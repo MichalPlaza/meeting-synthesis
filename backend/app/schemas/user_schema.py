@@ -31,7 +31,6 @@ class PyObjectId(ObjectId):
         json_schema.update(type="string", example="5eb7cf5a86d9755df3a6c590")
         return json_schema
 
-# MODELE Pydantic
 class UserBase(BaseModel):
     email: EmailStr
     username: str
@@ -48,7 +47,7 @@ class UserResponse(UserBase):
     model_config = ConfigDict(
         populate_by_name=True,
         arbitrary_types_allowed=True,
-        from_attributes=True # Dodałem z powrotem from_attributes=True, to jest zalecane dla modeli używanych z bazami danych.
+        from_attributes=True
     )
 
 class UserLogin(BaseModel):
