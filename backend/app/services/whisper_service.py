@@ -1,6 +1,6 @@
-import httpx
 import os
 
+import httpx
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -20,7 +20,9 @@ async def transcribe_audio(file_path: str, model: str = "whisper-1") -> str:
                 "file": (file_path, audio_file, "audio/mpeg"),
                 "model": (None, model),
             }
-            response = await client.post(OPENAI_WHISPER_URL, headers=headers, files=files)
+            response = await client.post(
+                OPENAI_WHISPER_URL, headers=headers, files=files
+            )
             response.raise_for_status()
             data = response.json()
             return data.get("text", "")

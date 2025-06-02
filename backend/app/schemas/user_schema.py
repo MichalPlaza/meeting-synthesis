@@ -1,7 +1,7 @@
-from bson import ObjectId
-from pydantic import BaseModel, EmailStr, Field, ConfigDict
-from typing import Optional, Annotated
 from datetime import datetime
+
+from bson import ObjectId
+from pydantic import BaseModel, EmailStr, Field
 
 from ..models.py_object_id import PyObjectId
 
@@ -14,13 +14,11 @@ class UserBase(BaseModel):
     updated_at: datetime
 
 
-
 class UserCreate(BaseModel):
     username: str
     email: EmailStr
     password: str
-    full_name: Optional[str] = None
-
+    full_name: str | None = None
 
 
 class UserLogin(BaseModel):
@@ -29,17 +27,17 @@ class UserLogin(BaseModel):
 
 
 class UserUpdate(BaseModel):
-    username: Optional[str] = None
-    email: Optional[EmailStr] = None
-    full_name: Optional[str] = None
-    password: Optional[str] = None
+    username: str | None = None
+    email: EmailStr | None = None
+    full_name: str | None = None
+    password: str | None = None
 
 
 class UserResponse(BaseModel):
-    id: Optional[PyObjectId] = Field(alias="_id")
+    id: PyObjectId | None = Field(alias="_id")
     username: str
     email: EmailStr
-    full_name: Optional[str] = None
+    full_name: str | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -55,4 +53,4 @@ class Token(BaseModel):
 
 
 class TokenData(BaseModel):
-    username: Optional[str] = None
+    username: str | None = None

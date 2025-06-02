@@ -1,7 +1,9 @@
-from bson import ObjectId
 from typing import Any
-from pydantic_core import core_schema
+
+from bson import ObjectId
 from pydantic import GetCoreSchemaHandler
+from pydantic_core import core_schema
+
 
 class PyObjectId(ObjectId):
     @classmethod
@@ -9,8 +11,7 @@ class PyObjectId(ObjectId):
         cls, source_type: Any, handler: GetCoreSchemaHandler
     ) -> core_schema.CoreSchema:
         return core_schema.no_info_wrap_validator_function(
-            cls.validate,
-            core_schema.str_schema()
+            cls.validate, core_schema.str_schema()
         )
 
     @classmethod

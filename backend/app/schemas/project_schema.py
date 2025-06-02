@@ -1,32 +1,30 @@
-from ctypes import py_object
-from typing import Optional, List
 from datetime import datetime
 
 from bson import ObjectId
 from pydantic import BaseModel, Field
+
 from ..models.py_object_id import PyObjectId
 
 
 class ProjectBase(BaseModel):
     name: str
-    description: Optional[str] = None
+    description: str | None = None
     meeting_datetime: datetime
 
 
 class ProjectCreate(BaseModel):
     name: str
-    description: Optional[str] = None
+    description: str | None = None
     owner_id: PyObjectId
-    members_ids: List[PyObjectId] = []
+    members_ids: list[PyObjectId] = []
     meeting_datetime: datetime
 
 
-
 class ProjectUpdate(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    meeting_datetime: Optional[datetime] = None
-    members_ids: Optional[List[PyObjectId]] = None
+    name: str | None = None
+    description: str | None = None
+    meeting_datetime: datetime | None = None
+    members_ids: list[PyObjectId] | None = None
 
 
 class ProjectResponse(BaseModel):
@@ -34,7 +32,7 @@ class ProjectResponse(BaseModel):
     name: str
     description: str
     owner_id: PyObjectId
-    members_ids: List[PyObjectId]
+    members_ids: list[PyObjectId]
     created_at: datetime
     updated_at: datetime
     meeting_datetime: datetime
@@ -43,4 +41,3 @@ class ProjectResponse(BaseModel):
         populate_by_name = True
         json_encoders = {ObjectId: str, PyObjectId: str}
         arbitrary_types_allowed = True
-
