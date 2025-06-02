@@ -1,6 +1,9 @@
+from ctypes import py_object
 from typing import Optional, List
 from datetime import datetime
-from pydantic import BaseModel
+
+from bson import ObjectId
+from pydantic import BaseModel, Field
 from ..models.py_object_id import PyObjectId
 
 
@@ -10,9 +13,13 @@ class ProjectBase(BaseModel):
     meeting_datetime: datetime
 
 
-class ProjectCreate(ProjectBase):
+class ProjectCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
     owner_id: PyObjectId
-    members_ids: Optional[List[PyObjectId]] = []
+    members_ids: List[PyObjectId] = []
+    meeting_datetime: datetime
+
 
 
 class ProjectUpdate(BaseModel):
@@ -22,13 +29,18 @@ class ProjectUpdate(BaseModel):
     members_ids: Optional[List[PyObjectId]] = None
 
 
-class ProjectResponse(ProjectBase):
-    id: PyObjectId
+class ProjectResponse(BaseModel):
+    id: PyObjectId = Field(..., alias="_id")
+    name: str
+    description: str
     owner_id: PyObjectId
     members_ids: List[PyObjectId]
     created_at: datetime
     updated_at: datetime
+    meeting_datetime: datetime
 
     class Config:
-        json_encoders = {PyObjectId: str}
-        from_attributes = True
+        populate_by_name = True
+        json_encoders = {ObjectId: str, PyObjectId: str}
+        arbitrary_types_allowed = True
+
