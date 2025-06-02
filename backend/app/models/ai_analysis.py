@@ -4,7 +4,7 @@ from pydantic import BaseModel
 
 from .action_items import ActionItem
 from .decision_made import DecisionMade
-from .ket_topic import KeyTopic
+from .key_topic import KeyTopic
 from .mentioned_date import MentionedDate
 
 
