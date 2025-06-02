@@ -1,13 +1,15 @@
-from dataclasses import Field
+
 from datetime import datetime, timezone
 from typing import Optional
 from bson import ObjectId
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from .py_object_id import PyObjectId
 
 
-class User(BaseModel): # Odpowiada UserInDB
+from datetime import datetime, timezone
+
+class User(BaseModel):
     id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
     username: str
     email: str
