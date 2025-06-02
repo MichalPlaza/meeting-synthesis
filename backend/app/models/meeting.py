@@ -1,12 +1,18 @@
 from dataclasses import Field
-from datetime import datetime
-
-from bson import ObjectId
+from datetime import datetime, timezone
+from typing import Optional
 from pydantic import BaseModel
 
+from .ai_analysis import AIAnalysis
+from .audio_file import AudioFile
+from .processing_config import ProcessingConfig
+from .processing_status import ProcessingStatus
+from .py_object_id import PyObjectId
+from .transcrpion import Transcription
 
-class Meeting(BaseModel): # Odpowiada MeetingInDB
-    id: ObjectId = Field(default_factory=ObjectId, alias="_id")
+
+class Meeting(BaseModel):
+    id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
     title: str
     meeting_datetime: datetime
     project_id: PyObjectId
@@ -18,26 +24,6 @@ class Meeting(BaseModel): # Odpowiada MeetingInDB
     transcription: Optional[Transcription] = None
     ai_analysis: Optional[AIAnalysis] = None
     last_updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-
-    class Config:
-        populate_by_name = True
-        json_encoders = {ObjectId: str, PyObjectId: str}
-        arbitrary_types_allowed = True
-
-class GlobalConfig(BaseModel):
-    id: str = Field(alias="_id", default="global_config")
-    available_languages: List[str] = ["pl", "en"]
-    default_llm_model_name: str = "gpt-3.5-turbo"
-    max_audio_file_size_mb: int = 100
-    maintenance_mode_active: bool = False
-    maintenance_message: Optional[str] = None
-
-    @field_validator('id') # Pydantic v2 field_validator
-    @classmethod
-    def id_must_be_global_config(cls, v):
-        if v != "global_config":
-            raise ValueError('id must be "global_config"')
-        return v
 
     class Config:
         populate_by_name = True
