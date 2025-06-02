@@ -1,7 +1,8 @@
-from dataclasses import Field
 from datetime import datetime, timezone
 from typing import Optional
-from pydantic import BaseModel
+
+from bson import ObjectId
+from pydantic import BaseModel, Field
 
 from .ai_analysis import AIAnalysis
 from .audio_file import AudioFile
@@ -29,3 +30,4 @@ class Meeting(BaseModel):
         populate_by_name = True
         json_encoders = {ObjectId: str, PyObjectId: str}
         arbitrary_types_allowed = True
+        from_attributes = True

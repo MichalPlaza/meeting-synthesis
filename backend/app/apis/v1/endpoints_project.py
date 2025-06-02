@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from typing import List
-from ..schemas.project_schema import ProjectCreate, ProjectResponse, ProjectUpdate
-from ..services import project_service
-from ..db.mongodb_utils import get_database
+from ...schemas.project_schema import ProjectCreate, ProjectResponse, ProjectUpdate
+from ...services import project_service
+from ...db.mongodb_utils import get_database
 
 router = APIRouter()
 
