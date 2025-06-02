@@ -1,63 +1,58 @@
-from pydantic import BaseModel, EmailStr, Field, GetJsonSchemaHandler, ConfigDict
-from pydantic_core import core_schema, PydanticCustomError
-from typing import Optional, Annotated, Any, Dict
 from bson import ObjectId
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
+from typing import Optional, Annotated
+from datetime import datetime
 
-class PyObjectId(ObjectId):
+from ..models.py_object_id import PyObjectId
 
-    @classmethod
-    def __get_pydantic_core_schema__(cls, _source_type: Any, _handler: Any) -> core_schema.CoreSchema:
-        return core_schema.json_or_python_schema(
-            python_schema=core_schema.with_info_plain_validator_function(cls._pyobjectid_validate),
-            json_schema=core_schema.str_schema(),
-            serialization=core_schema.plain_serializer_function_ser_schema(str),
-        )
 
-    @classmethod
-    def _pyobjectid_validate(cls, value: Any, info: core_schema.ValidationInfo) -> ObjectId:
-        # 'info' to dodatkowy argument przekazywany przez Pydantic
-        # Nie używamy go tutaj, ale musi być w sygnaturze
-        if isinstance(value, ObjectId):
-            return value
-        if isinstance(value, str) and ObjectId.is_valid(value):
-            return ObjectId(value)
-        raise PydanticCustomError("invalid_object_id", "Invalid ObjectId")
-
-    @classmethod
-    def __get_pydantic_json_schema__(
-        cls, core_schema: core_schema.CoreSchema, handler: GetJsonSchemaHandler
-    ) -> Dict[str, Any]:
-        json_schema = handler(core_schema)
-        json_schema.update(type="string", example="5eb7cf5a86d9755df3a6c590")
-        return json_schema
-
-# MODELE Pydantic
 class UserBase(BaseModel):
-    email: EmailStr
     username: str
+    email: EmailStr
+    full_name: str = None
+    created_at: datetime
+    updated_at: datetime
 
-class UserCreate(UserBase):
+
+
+class UserCreate(BaseModel):
+    username: str
+    email: EmailStr
     password: str
+    full_name: Optional[str] = None
 
-class UserResponse(UserBase):
-    # Field z aliasem do mapowania _id z MongoDB
-    # Używamy Annotated, jak już to robisz, to dobra praktyka
-    id: Optional[Annotated[PyObjectId, Field(alias="_id")]]
 
-    # Użyj ConfigDict dla Pydantic v2
-    model_config = ConfigDict(
-        populate_by_name=True,
-        arbitrary_types_allowed=True,
-        from_attributes=True # Dodałem z powrotem from_attributes=True, to jest zalecane dla modeli używanych z bazami danych.
-    )
 
 class UserLogin(BaseModel):
     username_or_email: str
     password: str
 
+
+class UserUpdate(BaseModel):
+    username: Optional[str] = None
+    email: Optional[EmailStr] = None
+    full_name: Optional[str] = None
+    password: Optional[str] = None
+
+
+class UserResponse(BaseModel):
+    id: Optional[PyObjectId] = Field(alias="_id")
+    username: str
+    email: EmailStr
+    full_name: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        populate_by_name = True
+        from_attributes = True
+        json_encoders = {ObjectId: str, PyObjectId: str}
+
+
 class Token(BaseModel):
     access_token: str
     token_type: str
+
 
 class TokenData(BaseModel):
     username: Optional[str] = None

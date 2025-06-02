@@ -1,22 +1,21 @@
-
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, List
+
 from bson import ObjectId
 from pydantic import BaseModel, Field
 
 from .py_object_id import PyObjectId
 
 
-from datetime import datetime, timezone
-
-class User(BaseModel):
-    id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
-    username: str
-    email: str
-    hashed_password: str
-    full_name: Optional[str] = None
+class Project(BaseModel):
+    id: PyObjectId = Field(default_factory=PyObjectId, alias='_id')
+    name: str
+    description: Optional[str] = None
+    owner_id: PyObjectId
+    members_ids: List[PyObjectId] = []
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    meeting_datetime: datetime
 
     class Config:
         populate_by_name = True

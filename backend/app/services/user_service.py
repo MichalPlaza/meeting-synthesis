@@ -17,11 +17,16 @@ async def register_new_user(db: AsyncIOMotorDatabase, user_data: UserCreate) -> 
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Użytkownik o tej nazwie użytkownika już istnieje.",
         )
+
     created_user = await crud_users.create_user(db, user_data)
+
     return UserResponse(
         id=created_user.id,
         username=created_user.username,
-        email=created_user.email
+        email=created_user.email,
+        full_name=created_user.full_name,
+        created_at=created_user.created_at,
+        updated_at=created_user.updated_at,
     )
 
 async def authenticate_user(db: AsyncIOMotorDatabase, form_data: UserLogin) -> Token:
