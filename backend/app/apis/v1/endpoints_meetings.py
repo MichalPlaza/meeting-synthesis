@@ -1,16 +1,29 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from typing import List
 
 from ...db.mongodb_utils import get_database
 from ...schemas.meeting_schema import MeetingCreate, MeetingResponse, MeetingUpdate
 from ...services import meeting_service
+from ...services.meeting_service import handle_meeting_upload
 
 router = APIRouter()
 
 @router.post("/", response_model=MeetingResponse, status_code=status.HTTP_201_CREATED)
 async def create_meeting(meeting_in: MeetingCreate, db: AsyncIOMotorDatabase = Depends(get_database)):
     meeting = await meeting_service.create_new_meeting(db, meeting_in)
+    return meeting
+
+# @TODO nie dziala upload pliku do traksrybcji, to tylko wzor jak powinno wygladac.
+@router.post("/upload", response_model=MeetingResponse)
+async def upload_meeting(
+    meeting_in: MeetingCreate = Depends(),
+    audio_file: UploadFile = File(...),
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    if audio_file.content_type not in ("audio/mpeg", "audio/wav", "audio/mp3"):
+        raise HTTPException(status_code=400, detail="Invalid audio file type")
+    meeting = await handle_meeting_upload(db, meeting_in, audio_file)
     return meeting
 
 @router.get("/", response_model=List[MeetingResponse])

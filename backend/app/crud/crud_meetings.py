@@ -70,3 +70,16 @@ async def delete_meeting(db: AsyncIOMotorDatabase, meeting_id: str) -> bool:
         return False
     result = await db["meetings"].delete_one({"_id": ObjectId(meeting_id)})
     return result.deleted_count == 1
+
+async def update_meeting_transcription(db: AsyncIOMotorDatabase, meeting_id: str, transcription_text: str) -> Optional[Meeting]:
+    update_data = {
+        "transcription.text": transcription_text,
+        "last_updated_at": datetime.now(timezone.utc),
+    }
+    result = await db["meetings"].update_one(
+        {"_id": ObjectId(meeting_id)},
+        {"$set": update_data}
+    )
+    if result.modified_count == 1:
+        return await get_meeting_by_id(db, meeting_id)
+    return None
