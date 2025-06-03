@@ -1,14 +1,13 @@
-from typing import Optional
 from datetime import datetime
+
 from pydantic import BaseModel, Field
 
-from ..models.py_object_id import PyObjectId
+from ..models.ai_analysis import AIAnalysis
 from ..models.audio_file import AudioFile
 from ..models.processing_config import ProcessingConfig
 from ..models.processing_status import ProcessingStatus
+from ..models.py_object_id import PyObjectId
 from ..models.transcrpion import Transcription
-from ..models.ai_analysis import AIAnalysis
-from ..models.segment import Segment
 
 
 class MeetingBase(BaseModel):
@@ -20,17 +19,19 @@ class MeetingBase(BaseModel):
 
 class MeetingCreate(MeetingBase):
     audio_file: AudioFile
-    processing_config: Optional[ProcessingConfig] = None  # można pominąć — zostanie ustawione domyślnie w modelu
+    processing_config: ProcessingConfig | None = (
+        None  # można pominąć — zostanie ustawione domyślnie w modelu
+    )
 
 
 class MeetingUpdate(BaseModel):
-    title: Optional[str] = None
-    meeting_datetime: Optional[datetime] = None
-    audio_file: Optional[AudioFile] = None
-    processing_config: Optional[ProcessingConfig] = None
-    processing_status: Optional[ProcessingStatus] = None
-    transcription: Optional[Transcription] = None
-    ai_analysis: Optional[AIAnalysis] = None
+    title: str | None = None
+    meeting_datetime: datetime | None = None
+    audio_file: AudioFile | None = None
+    processing_config: ProcessingConfig | None = None
+    processing_status: ProcessingStatus | None = None
+    transcription: Transcription | None = None
+    ai_analysis: AIAnalysis | None = None
 
 
 class MeetingResponse(MeetingBase):
@@ -38,8 +39,8 @@ class MeetingResponse(MeetingBase):
     audio_file: AudioFile
     processing_config: ProcessingConfig
     processing_status: ProcessingStatus
-    transcription: Optional[Transcription] = None
-    ai_analysis: Optional[AIAnalysis] = None
+    transcription: Transcription | None = None
+    ai_analysis: AIAnalysis | None = None
     uploaded_at: datetime
     last_updated_at: datetime
 

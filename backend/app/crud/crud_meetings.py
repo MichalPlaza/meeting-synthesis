@@ -1,14 +1,15 @@
-from datetime import datetime, timezone
-from typing import Optional, List
+from datetime import UTC, datetime
 
-from motor.motor_asyncio import AsyncIOMotorDatabase
 from bson import ObjectId
+from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from ..models.meeting import Meeting
 from ..schemas.meeting_schema import MeetingCreate, MeetingUpdate
 
 
-async def get_meeting_by_id(db: AsyncIOMotorDatabase, meeting_id: str) -> Optional[Meeting]:
+async def get_meeting_by_id(
+    db: AsyncIOMotorDatabase, meeting_id: str
+) -> Meeting | None:
     if not ObjectId.is_valid(meeting_id):
         return None
     meeting_doc = await db["meetings"].find_one({"_id": ObjectId(meeting_id)})
@@ -17,7 +18,7 @@ async def get_meeting_by_id(db: AsyncIOMotorDatabase, meeting_id: str) -> Option
     return None
 
 
-async def get_all_meetings(db: AsyncIOMotorDatabase) -> List[Meeting]:
+async def get_all_meetings(db: AsyncIOMotorDatabase) -> list[Meeting]:
     meetings = []
     cursor = db["meetings"].find()
     async for doc in cursor:
@@ -25,7 +26,9 @@ async def get_all_meetings(db: AsyncIOMotorDatabase) -> List[Meeting]:
     return meetings
 
 
-async def get_meetings_by_project(db: AsyncIOMotorDatabase, project_id: str) -> List[Meeting]:
+async def get_meetings_by_project(
+    db: AsyncIOMotorDatabase, project_id: str
+) -> list[Meeting]:
     if not ObjectId.is_valid(project_id):
         return []
     cursor = db["meetings"].find({"project_id": ObjectId(project_id)})
@@ -35,10 +38,12 @@ async def get_meetings_by_project(db: AsyncIOMotorDatabase, project_id: str) -> 
     return meetings
 
 
-async def create_meeting(db: AsyncIOMotorDatabase, meeting_data: MeetingCreate) -> Meeting:
+async def create_meeting(
+    db: AsyncIOMotorDatabase, meeting_data: MeetingCreate
+) -> Meeting:
     meeting_doc = meeting_data.dict(by_alias=True)
-    meeting_doc["uploaded_at"] = datetime.now(timezone.utc)
-    meeting_doc["last_updated_at"] = datetime.now(timezone.utc)
+    meeting_doc["uploaded_at"] = datetime.now(UTC)
+    meeting_doc["last_updated_at"] = datetime.now(UTC)
 
     result = await db["meetings"].insert_one(meeting_doc)
     meeting_doc["_id"] = result.inserted_id
@@ -46,7 +51,9 @@ async def create_meeting(db: AsyncIOMotorDatabase, meeting_data: MeetingCreate) 
     return Meeting(**meeting_doc)
 
 
-async def update_meeting(db: AsyncIOMotorDatabase, meeting_id: str, update_data: MeetingUpdate) -> Optional[Meeting]:
+async def update_meeting(
+    db: AsyncIOMotorDatabase, meeting_id: str, update_data: MeetingUpdate
+) -> Meeting | None:
     if not ObjectId.is_valid(meeting_id):
         return None
 
@@ -54,11 +61,10 @@ async def update_meeting(db: AsyncIOMotorDatabase, meeting_id: str, update_data:
     if not data:
         return await get_meeting_by_id(db, meeting_id)
 
-    data["last_updated_at"] = datetime.now(timezone.utc)
+    data["last_updated_at"] = datetime.now(UTC)
 
     result = await db["meetings"].update_one(
-        {"_id": ObjectId(meeting_id)},
-        {"$set": data}
+        {"_id": ObjectId(meeting_id)}, {"$set": data}
     )
     if result.modified_count == 1:
         return await get_meeting_by_id(db, meeting_id)
@@ -71,14 +77,16 @@ async def delete_meeting(db: AsyncIOMotorDatabase, meeting_id: str) -> bool:
     result = await db["meetings"].delete_one({"_id": ObjectId(meeting_id)})
     return result.deleted_count == 1
 
-async def update_meeting_transcription(db: AsyncIOMotorDatabase, meeting_id: str, transcription_text: str) -> Optional[Meeting]:
+
+async def update_meeting_transcription(
+    db: AsyncIOMotorDatabase, meeting_id: str, transcription_text: str
+) -> Meeting | None:
     update_data = {
         "transcription.text": transcription_text,
-        "last_updated_at": datetime.now(timezone.utc),
+        "last_updated_at": datetime.now(UTC),
     }
     result = await db["meetings"].update_one(
-        {"_id": ObjectId(meeting_id)},
-        {"$set": update_data}
+        {"_id": ObjectId(meeting_id)}, {"$set": update_data}
     )
     if result.modified_count == 1:
         return await get_meeting_by_id(db, meeting_id)

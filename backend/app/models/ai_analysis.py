@@ -1,4 +1,3 @@
-from typing import Optional, List
 
 from pydantic import BaseModel
 
@@ -9,8 +8,8 @@ from .mentioned_date import MentionedDate
 
 
 class AIAnalysis(BaseModel):
-    summary: Optional[str] = None
-    key_topics: Optional[List[KeyTopic]] = []
-    action_items: Optional[List[ActionItem]] = []
-    decisions_made: Optional[List[DecisionMade]] = []
-    mentioned_dates: Optional[List[MentionedDate]] = []
+    summary: str | None = None
+    key_topics: list[KeyTopic] | None = []
+    action_items: list[ActionItem] | None = []
+    decisions_made: list[DecisionMade] | None = []
+    mentioned_dates: list[MentionedDate] | None = []
