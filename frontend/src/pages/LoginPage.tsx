@@ -1,3 +1,4 @@
+import { useAuth } from '@/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -23,6 +24,7 @@ const loginFormSchema = z.object({
 type LoginFormValues = z.infer<typeof loginFormSchema>;
 
 function LoginPage() {
+  const { login } = useAuth();
   const navigate = useNavigate();
   const [errorMessage, setErrorMessage] = useState<string | null>(null); 
 
@@ -61,8 +63,7 @@ function LoginPage() {
       console.log('Login successful!', tokenData);
 
       // storage token (simple)
-      localStorage.setItem('access_token', tokenData.access_token);
-      localStorage.setItem('token_type', tokenData.token_type);
+      login(tokenData.access_token);
 
       // Redirect to main page
       navigate('/');

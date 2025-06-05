@@ -1,4 +1,4 @@
-import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Outlet, useLocation } from 'react-router-dom';
 import {
   NavigationMenu,
   NavigationMenuItem,
@@ -7,21 +7,17 @@ import {
 } from '@/components/ui/navigation-menu';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-
-
+import { useAuth } from '@/AuthContext';
 
 function MainLayout() {
-  const navigate = useNavigate();
   const location = useLocation(); 
   const userName = "ANNA";
-
+  const { isAuthenticated, user, logout } = useAuth();
+  
   const handleLogout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('token_type');
-    console.log("Logged out")
-    navigate('/');
+    logout();
   };
-  const isAuthenticated = localStorage.getItem('access_token') !== null ? true : false;
+  
 
   return (
     <div>
