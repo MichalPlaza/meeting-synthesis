@@ -1,9 +1,3 @@
-Oczywiście. Przejrzałem plik `README.md` i zaktualizowałem go, aby odzwierciedlał nowy, oparty na Dockerze proces uruchamiania jako metodę podstawową. Zachowałem Twój styl pisania – bezpośredni, techniczny i dobrze zorganizowany. Sekcje dotyczące manualnego setupu zostały przekształcone w opcjonalną ścieżkę dla deweloperów pracujących nad konkretnym komponentem.
-
-Poniżej znajduje się sugerowana, zaktualizowana wersja. Możesz ją skopiować i wkleić bezpośrednio do swojego pliku.
-
----
-
 # Meeting Synthesis
 
 Asystent do analizy i zarządzania wiedzą ze spotkań wykorzystujący narzędzia ML, z opcją przetwarzania lokalnego dla maksymalnej prywatności. Projekt ma na celu automatyzację tworzenia notatek, ekstrakcję kluczowych informacji oraz budowanie spójnej, przeszukiwalnej bazy wiedzy projektowej.
