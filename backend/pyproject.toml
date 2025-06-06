@@ -25,6 +25,7 @@ mypy = "^1.16.0"
 pytest = "^8.3.5"
 pytest-asyncio = "^1.0.0"
 httpx = "^0.28.1"
+pre-commit = "^4.2.0"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
@@ -32,8 +33,8 @@ build-backend = "poetry.core.masonry.api"
 
 
 [tool.ruff]
-select = ["E", "F", "W", "I", "N", "D", "UP", "ANN", "Q"]
-ignore = ["D203", "D212"] # Przykładowe ignorowane
+select = ["E", "F", "W", "I", "N", "UP", "ANN", "Q"]
+ignore = ["D"]
 line-length = 88
 src = ["app"]
 
@@ -69,7 +70,6 @@ convention = "google"
 python_version = "3.11"
 warn_return_any = true
 warn_unused_configs = true
-ignore_missing_imports = true # Na początku może być pomocne
-
+ignore_missing_imports = true
 plugins = ["pydantic.mypy"]
 mypy_path = "app"

@@ -1,4 +1,3 @@
-
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from ..crud import crud_projects

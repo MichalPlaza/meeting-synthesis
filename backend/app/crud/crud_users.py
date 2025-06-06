@@ -14,9 +14,7 @@ async def get_user_by_email(db: AsyncIOMotorDatabase, email: str) -> User | None
     return None
 
 
-async def get_user_by_username(
-    db: AsyncIOMotorDatabase, username: str
-) -> User | None:
+async def get_user_by_username(db: AsyncIOMotorDatabase, username: str) -> User | None:
     user_doc = await db["users"].find_one({"username": username})
     if user_doc:
         return User(**user_doc)

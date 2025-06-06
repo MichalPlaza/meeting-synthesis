@@ -23,9 +23,7 @@ class Meeting(BaseModel):
     processing_status: ProcessingStatus = Field(default_factory=ProcessingStatus)
     transcription: Transcription | None = None
     ai_analysis: AIAnalysis | None = None
-    last_updated_at: datetime = Field(
-        default_factory=lambda: datetime.now(UTC)
-    )
+    last_updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
     class Config:
         populate_by_name = True

@@ -1,4 +1,3 @@
-
 from pydantic import BaseModel
 
 from .action_items import ActionItem

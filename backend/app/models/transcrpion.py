@@ -1,4 +1,3 @@
-
 from pydantic import BaseModel
 
 from .segment import Segment

@@ -1,4 +1,5 @@
 import os
+
 from celery import Celery
 from dotenv import load_dotenv
 
@@ -18,7 +19,7 @@ celery_app = Celery(
     "worker",
     broker=celery_broker_url,
     backend=celery_result_backend,
-    include=["app.worker.tasks"]  # Lista modułów z zadaniami do zaimportowania
+    include=["app.worker.tasks"],  # Lista modułów z zadaniami do zaimportowania
 )
 
 # Opcjonalna konfiguracja

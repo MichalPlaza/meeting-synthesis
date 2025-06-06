@@ -13,18 +13,18 @@ const registerFormSchema = z.object({
   username: z.string().min(3, { message: 'Username must be at least 3 characters.' }),
   email: z.string().email({ message: 'Invalid email address.' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
-  full_name: z.string().optional(), 
+  full_name: z.string().optional(),
 });
 
 type RegisterFormValues = z.infer<typeof registerFormSchema>;
 
 function RegisterPage() {
-  const navigate = useNavigate(); 
-  const [errorMessage, setErrorMessage] = useState<string | null>(null); 
+  const navigate = useNavigate();
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const form = useForm<RegisterFormValues>({
-    resolver: zodResolver(registerFormSchema), 
-    defaultValues: { 
+    resolver: zodResolver(registerFormSchema),
+    defaultValues: {
       username: '',
       email: '',
       password: '',
@@ -33,11 +33,11 @@ function RegisterPage() {
   });
 
   const { isSubmitting } = form.formState;
-  
-  async function onSubmit(values: RegisterFormValues) {
-    setErrorMessage(null); 
 
-    const backendApiUrl = `${BACKEND_API_BASE_URL}/auth/register`; 
+  async function onSubmit(values: RegisterFormValues) {
+    setErrorMessage(null);
+
+    const backendApiUrl = `${BACKEND_API_BASE_URL}/auth/register`;
 
     try {
       const response = await fetch(backendApiUrl, {
@@ -45,7 +45,7 @@ function RegisterPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(values), 
+        body: JSON.stringify(values),
       });
 
       if (!response.ok) {
@@ -60,7 +60,7 @@ function RegisterPage() {
       alert('Registration successful! You can log in now.');
 
       // Redirect to login page
-      navigate('/login'); 
+      navigate('/login');
 
     } catch (error) {
       console.error('Error sending registration request:', error);
@@ -69,7 +69,7 @@ function RegisterPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-sm"> 
+    <div className="container mx-auto p-6 max-w-sm">
       <h2 className="text-2xl font-bold mb-6 text-center">Register New Account</h2>
 
       {/* Display common API errors */}
@@ -78,14 +78,14 @@ function RegisterPage() {
       )}
 
       <Form {...form}>
-        <form 
-            onSubmit={form.handleSubmit(onSubmit)} 
+        <form
+            onSubmit={form.handleSubmit(onSubmit)}
             className="space-y-4"> {/* Gắn hàm onSubmit vào handleSubmit của react-hook-form */}
 
           {/* Username field */}
           <FormField
-            control={form.control} 
-            name="username" 
+            control={form.control}
+            name="username"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Username</FormLabel>
@@ -153,7 +153,7 @@ function RegisterPage() {
       <p className="text-center text-sm text-gray-600 mt-4">
         Already have an account?{' '}
         <button
-          onClick={() => navigate('/login')} 
+          onClick={() => navigate('/login')}
           className="text-blue-600 hover:underline"
           type="button"
         >

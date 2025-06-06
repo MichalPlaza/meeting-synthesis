@@ -24,10 +24,10 @@ type LoginFormValues = z.infer<typeof loginFormSchema>;
 
 function LoginPage() {
   const navigate = useNavigate();
-  const [errorMessage, setErrorMessage] = useState<string | null>(null); 
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const form = useForm<LoginFormValues>({
-    resolver: zodResolver(loginFormSchema), 
+    resolver: zodResolver(loginFormSchema),
     defaultValues: {
       username_or_email: '',
       password: '',
@@ -35,9 +35,9 @@ function LoginPage() {
   });
 
   const { isSubmitting } = form.formState;
-  
+
   async function onSubmit(values: LoginFormValues) {
-    setErrorMessage(null); 
+    setErrorMessage(null);
 
     const backendApiUrl = `${BACKEND_API_BASE_URL}/auth/login`;
 
@@ -53,7 +53,7 @@ function LoginPage() {
       if (!response.ok) {
         const errorData = await response.json();
         setErrorMessage(errorData.detail || 'Login failed. Please check your Email and Password again.');
-        return; 
+        return;
       }
 
       // Login successful
@@ -74,7 +74,7 @@ function LoginPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-sm"> 
+    <div className="container mx-auto p-6 max-w-sm">
       <h2 className="text-2xl font-bold mb-6 text-center">Welcome to <br></br> Meeting Synthesis</h2>
 
       {/* Display common API errors */}
@@ -82,20 +82,20 @@ function LoginPage() {
         <p className="text-red-500 text-sm mb-4 text-center">{errorMessage}</p>
       )}
 
-      <Form {...form}> 
+      <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
 
           {/* User or Email field */}
           <FormField
-            control={form.control} 
-            name="username_or_email" 
-            render={({ field }) => ( 
+            control={form.control}
+            name="username_or_email"
+            render={({ field }) => (
               <FormItem>
                 <FormLabel>Username or Email</FormLabel>
                 <FormControl>
                   <Input type="text" placeholder="Username or Email" {...field} />
                 </FormControl>
-                <FormMessage /> 
+                <FormMessage />
               </FormItem>
             )}
           />
@@ -126,7 +126,7 @@ function LoginPage() {
       <p className="text-center text-sm text-gray-600 mt-4">
         Don't have an account?{' '}
         <button
-          onClick={() => navigate('/register')} 
+          onClick={() => navigate('/register')}
           className="text-blue-600 hover:underline"
           type="button"
         >

@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 
 function MainLayout() {
   const navigate = useNavigate();
-  const location = useLocation(); 
+  const location = useLocation();
   const userName = "ANNA";
 
   const handleLogout = () => {
@@ -72,7 +72,7 @@ function MainLayout() {
               <Button
                 onClick={handleLogout}
                 variant="ghost"
-                className="text-white-300 hover:bg-gray-500 hover:text-white px-5 py-5 rounded-md text-lg font-medium" 
+                className="text-white-300 hover:bg-gray-500 hover:text-white px-5 py-5 rounded-md text-lg font-medium"
               >
                 Log out
               </Button>
@@ -97,7 +97,7 @@ function MainLayout() {
             </NavigationMenuList>
           )}
         </NavigationMenu>
-        
+
       </header>
 
       <main className="container mx-auto p-4">
