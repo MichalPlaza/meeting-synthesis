@@ -1,23 +1,23 @@
-[project]
+[tool.poetry]
 name = "meeting-synthesis-backend"
 version = "0.1.0"
-description = "Backend for the Meeting Synthesis application, providing API and core logic for meeting analysis and knowledge management."
-authors = [
-    {name = "mplazax", email = "twoj.prawdziwy.email@example.com"} # Zaktualizuj email
-]
+description = "Backend for the Meeting Synthesis application"
+authors = ["mplazax <twoj.prawdziwy.email@example.com>"]
+readme = "README.md"
 
-requires-python = ">=3.11, <4.0"
-dependencies = [
-    "fastapi (>=0.115.12,<0.116.0)",
-    "uvicorn (>=0.34.3,<0.35.0)",
-    "pydantic (>=2.11.5,<3.0.0)",
-    "motor (>=3.7.1,<4.0.0)",
-    "python-jose[cryptography] (>=3.5.0,<4.0.0)",
-    "passlib[bcrypt] (>=1.7.4,<2.0.0)"
-]
-
-[tool.poetry]
-packages = [{include = "app", from = "."}]
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.115.2"
+uvicorn = {extras = ["standard"], version = "^0.34.0"}
+pydantic = {extras = ["email"], version = "^2.11.1"}
+motor = "^3.7.1"
+python-jose = {extras = ["cryptography"], version = "^3.5.0"}
+passlib = {extras = ["bcrypt"], version = "^1.7.4"}
+python-multipart = "^0.0.9"
+python-dotenv = "^1.0.0"
+celery = {extras = ["redis"], version = "^5.3.6"}
+redis = "^5.0.1"
+httpx = "^0.28.1"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.11.12"
