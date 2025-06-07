@@ -1,13 +1,16 @@
+import os
 import shutil
 import tempfile
+from uuid import uuid4
 
 from fastapi import UploadFile
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from ..crud import crud_meetings
+from ..models.audio_file import AudioFile
 from ..models.meeting import Meeting
 from ..schemas.meeting_schema import MeetingCreate, MeetingUpdate
-from .whisper_service import transcribe_audio
+#from .whisper_service import transcribe_audio
 
 
 async def create_new_meeting(db: AsyncIOMotorDatabase, data: MeetingCreate) -> Meeting:
@@ -38,20 +41,32 @@ async def delete_existing_meeting(db: AsyncIOMotorDatabase, meeting_id: str) -> 
     return await crud_meetings.delete_meeting(db, meeting_id)
 
 
+UPLOAD_DIR = "./uploads"
+
+
 async def handle_meeting_upload(
-    db: AsyncIOMotorDatabase, meeting_data: MeetingCreate, audio_file: UploadFile
+    db: AsyncIOMotorDatabase,
+    form_data,  # MeetingCreateForm
+    file: UploadFile,
 ):
-    # Zapisz plik tymczasowo
-    suffix = audio_file.filename.split(".")[-1]
-    with tempfile.NamedTemporaryFile(delete=True, suffix=f".{suffix}") as tmp:
-        shutil.copyfileobj(audio_file.file, tmp)
-        tmp.flush()
-        # Wstaw dokument meeting bez transkrypcji
-        meeting = await MeetingCreate(db, meeting_data)
-        # Transkrypcja
-        text = await transcribe_audio(tmp.name)
-        # Aktualizacja dokumentu meeting o transkrypcję
-        updated_meeting = await crud_meetings.update_meeting_transcription(
-            db, str(meeting.id), text
-        )
-        return updated_meeting or meeting
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+    ext = file.filename.split(".")[-1]
+    unique_filename = f"{uuid4().hex}.{ext}"
+    file_path = os.path.join(UPLOAD_DIR, unique_filename)
+
+    with open(file_path, "wb") as f:
+        content = await file.read()
+        f.write(content)
+
+    audio_metadata = AudioFile(
+        original_filename=file.filename,
+        storage_path_or_url=file_path,
+        mimetype=file.content_type,
+    )
+
+    meeting_create = form_data.to_meeting_create(audio_file=audio_metadata)
+    meeting = await crud_meetings.create_meeting(db, meeting_create)
+
+
+    return meeting
