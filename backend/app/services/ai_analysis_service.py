@@ -2,11 +2,8 @@ import json
 import ollama
 from ..models.ai_analysis import AIAnalysis
 
-# Nazwa lokalnego modelu, który masz uruchomiony w Ollama
 LOCAL_LLM_MODEL = "gemma2:2b"
 
-# Ten prompt został w pełni dostosowany do Twoich nowych, precyzyjnych modeli Pydantic.
-# Instruuje model, aby generował JSON o dokładnej, oczekiwanej strukturze.
 PROMPT_TEMPLATE = """
 You are a highly intelligent meeting analysis assistant. Your primary function is to meticulously analyze the meeting transcription provided and extract specific, structured information.
 
@@ -59,13 +56,9 @@ async def analyze_transcription(transcription: str) -> AIAnalysis:
         )
 
         raw_content = response["message"]["content"]
-        # Czasami modele nadal zwracają '```json\n{...}\n```', to jest dodatkowe zabezpieczenie
         cleaned_json_str = raw_content.strip().lstrip("```json").rstrip("```").strip()
-
         analysis_data = json.loads(cleaned_json_str)
 
-        # Pydantic inteligentnie zmapuje dane ze słownika do modeli,
-        # ignorując brakujące pola, dla których zdefiniowano wartości domyślne lub `None`.
         return AIAnalysis(**analysis_data)
 
     except json.JSONDecodeError as e:
