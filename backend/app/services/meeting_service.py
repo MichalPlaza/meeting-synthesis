@@ -5,6 +5,7 @@ import uuid
 from fastapi import UploadFile
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
+from .ai_analysis_service import analyze_transcription
 from .whisper_service import transcribe_audio
 from ..crud import crud_meetings
 from ..models.audio_file import AudioFile
@@ -50,6 +51,10 @@ UPLOAD_DIR = "./uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
+UPLOAD_DIR = "./uploads"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+
 async def handle_meeting_upload(
     db: AsyncIOMotorDatabase, meeting_data: MeetingCreateForm, audio_file: UploadFile
 ) -> Meeting:
@@ -57,45 +62,48 @@ async def handle_meeting_upload(
     generated_filename = f"{uuid.uuid4().hex}.{extension}"
     storage_path = os.path.join(UPLOAD_DIR, generated_filename)
 
-    # Zapisz plik
     with open(storage_path, "wb") as buffer:
         shutil.copyfileobj(audio_file.file, buffer)
 
-    # Utwórz instancję AudioFile
     audio_data = AudioFile(
         original_filename=audio_file.filename,
         storage_path_or_url=storage_path,
         mimetype=audio_file.content_type
     )
 
-    # Stwórz MeetingCreate z formularza
     full_data = meeting_data.to_meeting_create(audio_data)
-
-    # Utwórz meeting w bazie
     meeting = await crud_meetings.create_meeting(db, full_data)
 
     try:
-        # Ustaw status PROCESSING
         await crud_meetings.update_meeting(
             db, str(meeting.id),
-            MeetingUpdate(processing_status=ProcessingStatus(current_stage=ProcessingStage.PROCESSING))
+            MeetingUpdate(processing_status=ProcessingStatus(current_stage=ProcessingStage.PROCESSING, status_message="Starting transcription..."))
         )
 
-        # Transkrypcja
         full_text = await transcribe_audio(storage_path)
+        transcription_obj = Transcription(full_text=full_text)
 
-        # Zaktualizuj dokument Meeting o transkrypcję i status
+        await crud_meetings.update_meeting(
+            db, str(meeting.id),
+            MeetingUpdate(
+                transcription=transcription_obj,
+                processing_status=ProcessingStatus(current_stage=ProcessingStage.PROCESSING, status_message="Transcription complete. Starting AI analysis...")
+            )
+        )
+
+        ai_analysis_obj = await analyze_transcription(full_text)
+
         updated_meeting = await crud_meetings.update_meeting(
             db, str(meeting.id),
             MeetingUpdate(
-                transcription=Transcription(full_text=full_text),
-                processing_status=ProcessingStatus(current_stage=ProcessingStage.COMPLETED)
+                ai_analysis=ai_analysis_obj,
+                processing_status=ProcessingStatus(current_stage=ProcessingStage.COMPLETED, status_message="Processing complete.")
             )
         )
         return updated_meeting or meeting
 
     except Exception as e:
-        # W razie błędu aktualizuj status
+        print(f"Processing failed for meeting {meeting.id}: {e}")
         await crud_meetings.update_meeting(
             db, str(meeting.id),
             MeetingUpdate(
@@ -105,4 +113,4 @@ async def handle_meeting_upload(
                 )
             )
         )
-        return meeting
+        return await crud_meetings.get_meeting_by_id(db, str(meeting.id))
