@@ -9,5 +9,5 @@ from .enums.action_items_status import ActionItemStatus
 class ActionItem(BaseModel):
     description: str
     assigned_to: str | None = None
-    due_date: datetime | None = None
+    due_date: str | None = None
     user_comment: str | None = None
