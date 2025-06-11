@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from fastapi import Form
 from pydantic import BaseModel, Field
 
 from ..models.ai_analysis import AIAnalysis
@@ -49,3 +50,27 @@ class MeetingResponse(MeetingBase):
         populate_by_name = True
         json_encoders = {PyObjectId: str}
         arbitrary_types_allowed = True
+
+class MeetingCreateForm:
+    def __init__(
+        self,
+        title: str = Form(...),
+        meeting_datetime: datetime = Form(...),
+        project_id: str = Form(...),
+        uploader_id: str = Form(...),
+    ):
+        self.title = title
+        self.meeting_datetime = meeting_datetime
+        self.project_id = PyObjectId(project_id)
+        self.uploader_id = PyObjectId(uploader_id)
+
+    def to_meeting_create(self, audio_file: AudioFile, config: ProcessingConfig | None = None):
+
+        return MeetingCreate(
+            title=self.title,
+            meeting_datetime=self.meeting_datetime,
+            project_id=self.project_id,
+            uploader_id=self.uploader_id,
+            audio_file=audio_file,
+            processing_config=config or ProcessingConfig(),
+        )

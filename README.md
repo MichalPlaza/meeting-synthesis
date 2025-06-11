@@ -10,12 +10,10 @@ Asystent do analizy i zarządzania wiedzą ze spotkań wykorzystujący narzędzi
 
 - [Technologie](#technologie)
 - [Struktura Projektu](#struktura-projektu)
-- [Setup Lokalnego Środowiska Deweloperskiego](#setup-lokalnego-środowiska-deweloperskiego)
+- [Uruchomienie Środowiska Deweloperskiego](#uruchomienie-środowiska-deweloperskiego)
   - [Wymagania Wstępne](#wymagania-wstępne)
-  - [Instalacja Zależności](#instalacja-zależności)
-  - [Konfiguracja Środowiska (.env)](#konfiguracja-środowiska-env)
-  - [Uruchamianie Komponentów](#uruchamianie-komponentów)
-  - [Uruchamianie Całej Aplikacji (Docker Compose)](#uruchamianie-całej-aplikacji-docker-compose)
+  - [Konfiguracja i Start (Docker Compose)](#konfiguracja-i-start-docker-compose)
+  - [Rozwój Pojedynczego Serwisu (Tryb Hybrydowy)](#rozwój-pojedynczego-serwisu-tryb-hybrydowy)
 - [Testowanie](#testowanie)
 - [Narzędzia Deweloperskie i Standardy Kodu](#narzędzia-deweloperskie-i-standardy-kodu)
   - [Linting i Formatowanie](#linting-i-formatowanie)
@@ -29,9 +27,11 @@ Asystent do analizy i zarządzania wiedzą ze spotkań wykorzystujący narzędzi
 
 ## Technologie
 
-- **Backend:** Python 3.11+, FastAPI
-- **Frontend:** TypeScript, React (z Vite)
+- **Backend:** Python 3.11+, FastAPI, Poetry
+- **Frontend:** TypeScript, React (z Vite), PNPM
 - **Baza Danych:** MongoDB
+- **Broker Zadań:** Redis
+- **Przetwarzanie w Tle:** Celery
 - **Przetwarzanie Audio/AI:**
   - Transkrypcja: OpenAI Whisper
   - Identyfikacja Mówców: `pyannote-audio`
@@ -42,21 +42,26 @@ Asystent do analizy i zarządzania wiedzą ze spotkań wykorzystujący narzędzi
 
 Projekt jest podzielony na główne komponenty:
 
-- `backend/`: Zawiera logikę serwerową aplikacji (API, przetwarzanie danych).
+- `backend/`: Zawiera logikę serwerową aplikacji (API, zadania Celery, etc.).
 - `frontend/`: Zawiera interfejs użytkownika.
-- `docker-compose.yml`: Definiuje usługi dla pełnego uruchomienia aplikacji.
+- `docker-compose.yml`: Definiuje i łączy wszystkie usługi aplikacji.
+- `.env.example`: Szablon dla zmiennych środowiskowych całego projektu.
 - `scripts/`: Skrypty pomocnicze (np. do pobierania modeli).
 
-## Setup Lokalnego Środowiska Deweloperskiego
+## Uruchomienie Środowiska Deweloperskiego
 
 ### Wymagania Wstępne
 
-- [Python](https://www.python.org/) (wersja 3.11 lub nowsza)
-- [Node.js](https://nodejs.org/) (wersja LTS, np. 18.x lub 20.x) oraz npm
-- [Docker](https://www.docker.com/get-started) i Docker Compose
-- (Opcjonalnie, ale zalecane) [Git](https://git-scm.com/)
+Główną metodą uruchomienia jest Docker, co minimalizuje wymagania na maszynie hosta.
 
-### Instalacja Zależności
+- [Git](https://git-scm.com/)
+- [Docker](https://www.docker.com/get-started) i Docker Compose
+
+Instalacja Pythona czy Node.js na maszynie hosta nie jest wymagana do podstawowego uruchomienia aplikacji.
+
+### Konfiguracja i Start (Docker Compose)
+
+Jest to **zalecana i główna metoda** uruchamiania całej aplikacji. Gwarantuje spójne środowisko dla wszystkich usług.
 
 1.  **Sklonuj repozytorium (jeśli jeszcze tego nie zrobiłeś):**
 
@@ -65,89 +70,68 @@ Projekt jest podzielony na główne komponenty:
     cd meeting-syntesis
     ```
 
-2.  **Backend (Python):**
-    Zalecane jest użycie wirtualnego środowiska.
+2.  **Skonfiguruj zmienne środowiskowe:**
+    Projekt używa jednego pliku `.env` w głównym katalogu do zarządzania całą konfiguracją.
 
     ```bash
-    cd backend
-    python -m venv venv
-    source venv/bin/activate  # Na Windows: venv\Scripts\activate
-    pip install -r requirements.txt
-    cd ..
+    # Skopiuj szablon do właściwego pliku .env
+    cp .env.example .env
     ```
 
-3.  **Frontend (TypeScript/React):**
+    Następnie otwórz plik `.env` i uzupełnij wymagane wartości, takie jak `OPENAI_API_KEY` i `SECRET_KEY`. Domyślne wartości dla baz danych są już skonfigurowane do pracy wewnątrz sieci Docker.
+
+3.  **Zbuduj i uruchom kontenery:**
+    Ta komenda pobierze obrazy, zbuduje Twoje usługi i uruchomi cały stos w tle.
+
     ```bash
+    docker-compose up --build -d
+    ```
+
+    - `backend` API będzie dostępne pod `http://localhost:8000`
+    - `frontend` będzie dostępny pod `http://localhost:5173` (lub innym portem zmapowanym w `docker-compose.yml`)
+
+4.  **Aby zatrzymać wszystkie usługi:**
+
+    ```bash
+    docker-compose down
+    ```
+
+### Rozwój Pojedynczego Serwisu (Tryb Hybrydowy)
+
+Jeśli aktywnie pracujesz nad jedną częścią aplikacji (np. frontendem) i chcesz korzystać z szybszego auto-reload (HMR), możesz uruchomić większość usług w Dockerze, a jedną manualnie.
+
+**Przykład: Praca nad frontendem z resztą usług w tle**
+
+1.  Uruchom usługi zależne (backend, bazy danych) w Dockerze:
+    ```bash
+    docker-compose up -d backend mongo redis
+    ```
+2.  Zainstaluj zależności frontendu lokalnie:
+    ```bash
+    # Upewnij się, że masz zainstalowany Node.js i pnpm
+    # Jeśli nie masz pnpm: corepack enable
     cd frontend
-    npm install
-    cd ..
+    pnpm install
     ```
-
-### Konfiguracja Środowiska (.env)
-
-W przyszłości projekt będzie wykorzystywał pliki `.env` do zarządzania konfiguracją (np. klucze API, stringi połączeniowe do bazy danych).
-
-Na obecnym etapie pliki `.env` nie są jeszcze w pełni skonfigurowane. Informacje o wymaganych zmiennych zostaną dodane w miarę rozwoju projektu. Przykładowy plik `.env.example` zostanie dostarczony.
-
-### Uruchamianie Komponentów
-
-Zalecane dla aktywnego dewelopmentu poszczególnych części aplikacji.
-
-1.  **Baza Danych (MongoDB):**
-    Najprościej uruchomić MongoDB jako kontener Docker:
-
+3.  Uruchom serwer deweloperski Vite:
     ```bash
-    docker run -d -p 27017:27017 --name meeting-synthesis-mongo mongo
+    pnpm run dev
     ```
-
-    (Jeśli kontener już istnieje i jest zatrzymany: `docker start meeting-synthesis-mongo`)
-
-2.  **Backend (FastAPI):**
-    Upewnij się, że wirtualne środowisko Pythona jest aktywne.
-
-    ```bash
-    cd backend
-    # Uruchomienie serwera z auto-reload na porcie 8000
-    uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-    ```
-
-    API będzie dostępne pod adresem `http://localhost:8000`.
-
-3.  **Frontend (React/Vite):**
-    ```bash
-    cd frontend
-    npm run dev
-    ```
-    Aplikacja frontendowa będzie dostępna pod adresem wskazanym przez Vite (zazwyczaj `http://localhost:5173`).
-
-### Uruchamianie Całej Aplikacji (Docker Compose)
-
-Ta metoda uruchamia wszystkie usługi (backend, frontend, baza danych) zdefiniowane w `docker-compose.yml`. Jest to przydatne do testowania pełnej integracji.
-
-```bash
-docker-compose up -d --build
-```
-
-Aby zatrzymać usługi:
-
-```bash
-docker-compose down
-```
+    Frontend będzie teraz działał z HMR, komunikując się z backendem działającym w kontenerze.
 
 ## Testowanie
 
+Zalecane jest uruchamianie testów wewnątrz kontenerów, aby zapewnić spójność środowiska.
+
 1.  **Backend (pytest):**
-    Upewnij się, że wirtualne środowisko Pythona jest aktywne.
 
     ```bash
-    cd backend
-    pytest
+    docker-compose exec backend pytest
     ```
 
-2.  **Frontend (Vitest/Jest - zależnie od konfiguracji):**
+2.  **Frontend (Vitest):**
     ```bash
-    cd frontend
-    npm test
+    docker-compose exec frontend pnpm test
     ```
 
 ## Narzędzia Deweloperskie i Standardy Kodu
@@ -157,14 +141,12 @@ Dążymy do utrzymania wysokiej jakości kodu poprzez użycie następujących na
 ### Linting i Formatowanie
 
 - **Narzędzie Główne Python:** [Ruff](https://beta.ruff.rs/docs/)
-  Ruff jest używany do lintowania i formatowania kodu Python.
-  Konfiguracja Ruff znajduje się w pliku `pyproject.toml` (dla Pythona).
+  Ruff jest używany do lintowania i formatowania kodu Python. Konfiguracja znajduje się w pliku `backend/pyproject.toml`.
 
 ### Sprawdzanie Typów
 
 - **Python:** [Mypy](http://mypy-lang.org/)
-  Mypy jest używane do statycznej analizy typów w kodzie Python.
-  Konfiguracja Mypy znajduje się w pliku `pyproject.toml`.
+  Mypy jest używane do statycznej analizy typów w kodzie Python. Konfiguracja znajduje się w pliku `backend/pyproject.toml`.
 
 ### Pre-commit Hooks
 
@@ -177,9 +159,9 @@ Zalecamy użycie pre-commit hooks do automatycznego uruchamiania linterów i for
     pip install pre-commit
     ```
 2.  Zainstaluj hooki w swoim lokalnym repozytorium:
-    `bash
+    ```bash
     pre-commit install
-    `
+    ```
     Przykładowa konfiguracja (`.pre-commit-config.yaml`) zostanie dodana do projektu. Będzie ona zawierać hooki dla Ruff i Mypy.
 
 ## Konwencje Projektowe
@@ -189,10 +171,10 @@ Zalecamy użycie pre-commit hooks do automatycznego uruchamiania linterów i for
 Projekt stosuje strategię [GitHub Flow](https://docs.github.com/en/get-started/quickstart/github-flow):
 
 1.  Branch `main` jest zawsze źródłem prawdy i powinien być stabilny.
-2.  Nowe funkcje, poprawki, etc. są rozwijane na dedykowanych **feature branchach** tworzonych z `main`.
-    - Sugerowane nazewnictwo: `typ/opis-zadania` (np. `feat/user-auth`, `fix/transcription-error`, `docs/update-readme`).
+2.  Nowe funkcje i poprawki są rozwijane na dedykowanych **feature branchach** tworzonych z `main`.
+    - Sugerowane nazewnictwo: `typ/opis-zadania` (np. `feat/user-auth`, `fix/transcription-error`).
 3.  Po ukończeniu prac, tworzony jest **Pull Request (PR)** z feature brancha do `main`.
-4.  PR jest przeglądany (nawet w ramach samokontroli), testy CI muszą przejść.
+4.  PR jest przeglądany, a testy CI muszą przejść.
 5.  Po zatwierdzeniu, PR jest mergowany do `main`.
 6.  Feature branch jest usuwany po zmergowaniu.
 
@@ -202,18 +184,7 @@ Wszystkie commity powinny być zgodne ze specyfikacją [Conventional Commits](ht
 
 Format: `type(scope): subject`
 
-Przykładowe typy:
-
-- `feat`: Nowa funkcjonalność.
-- `fix`: Poprawka błędu.
-- `docs`: Zmiany w dokumentacji.
-- `style`: Zmiany formatowania, które nie wpływają na logikę (np. białe znaki, średniki).
-- `refactor`: Zmiany w kodzie, które ani nie naprawiają błędu, ani nie dodają funkcjonalności.
-- `perf`: Zmiany poprawiające wydajność.
-- `test`: Dodawanie lub poprawianie testów.
-- `build`: Zmiany wpływające na system budowania lub zależności zewnętrzne.
-- `ci`: Zmiany w konfiguracji CI.
-- `chore`: Inne zmiany, które nie modyfikują kodu źródłowego ani testów (np. aktualizacja narzędzi).
+Przykładowe typy: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`.
 
 ## Zgłaszanie Błędów i Propozycje
 
@@ -221,4 +192,4 @@ Wszelkie błędy, problemy lub propozycje nowych funkcjonalności prosimy zgłas
 
 ## Licencja
 
-(Do ustalenia - na razie projekt nie posiada formalnej licencji. Można tu później dodać np. MIT License.)
+(Do ustalenia - na razie projekt nie posiada formalnej licencji.)

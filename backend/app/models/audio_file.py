@@ -5,4 +5,3 @@ class AudioFile(BaseModel):
     original_filename: str
     storage_path_or_url: str
     mimetype: str
-    duration_seconds: float

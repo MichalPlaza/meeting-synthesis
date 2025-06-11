@@ -1,9 +1,10 @@
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status, Form
+from future.backports.datetime import datetime
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from ...db.mongodb_utils import get_database
-from ...schemas.meeting_schema import MeetingCreate, MeetingResponse, MeetingUpdate
+from ...schemas.meeting_schema import MeetingCreate, MeetingResponse, MeetingUpdate, MeetingCreateForm
 from ...services import meeting_service
 from ...services.meeting_service import handle_meeting_upload
 
@@ -18,23 +19,22 @@ async def create_meeting(
     return meeting
 
 
-# @TODO nie dziala upload pliku do traksrybcji, to tylko wzor jak powinno wygladac.
-@router.post("/upload", response_model=MeetingResponse)
-async def upload_meeting(
-    meeting_in: MeetingCreate = Depends(),
-    audio_file: UploadFile = File(...),
+@router.post("/upload", response_model=MeetingResponse, status_code=status.HTTP_201_CREATED)
+async def upload_meeting_with_file(
+    title: str = Form(...),
+    meeting_datetime: datetime = Form(...),
+    project_id: str = Form(...),
+    uploader_id: str = Form(...),
+    file: UploadFile = File(...),
     db: AsyncIOMotorDatabase = Depends(get_database),
 ):
-    if audio_file.content_type not in ("audio/mpeg", "audio/wav", "audio/mp3"):
-        raise HTTPException(status_code=400, detail="Invalid audio file type")
-    meeting = await handle_meeting_upload(db, meeting_in, audio_file)
-    return meeting
-
-
-@router.get("/", response_model=list[MeetingResponse])
-async def list_meetings(db: AsyncIOMotorDatabase = Depends(get_database)):
-    return await meeting_service.get_meetings(db)
-
+    form_data = MeetingCreateForm(
+        title=title,
+        meeting_datetime=meeting_datetime,
+        project_id=project_id,
+        uploader_id=uploader_id,
+    )
+    return await meeting_service.handle_meeting_upload(db, form_data, file)
 
 @router.get("/{meeting_id}", response_model=MeetingResponse)
 async def get_meeting(
