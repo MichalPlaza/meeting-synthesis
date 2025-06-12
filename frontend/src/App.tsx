@@ -7,6 +7,8 @@ import PublicLayout from './layouts/PublicLayout'
 import ProtectedRoute from './components/ProtectedRoute'
 import ProjectListPage from './pages/ProjectListPage'
 import { useAuth } from './AuthContext'
+import CreateProjectPage from './pages/CreateProjectPage'
+import ProjectDetailsPage from './pages/ProjectDetailsPage'
 
 function App() {
     const { isAuthenticated } = useAuth();
@@ -24,8 +26,8 @@ function App() {
         <Route path="/register" element={<RegisterPage />} />
         <Route element={<ProtectedRoute />}>  
           <Route path="/projects" element={<ProjectListPage />} />
-          {/* <Route path="/projects/new" element={<CreateProjectPage />} /> */}
-          {/* <Route path="/projects/:projectId" element={<ProjectDetailsPage />} /> */}
+          <Route path="/projects/new" element={<CreateProjectPage />} />
+          <Route path="/projects/:projectId" element={<ProjectDetailsPage />} />
          </Route>
       </Route>
 
