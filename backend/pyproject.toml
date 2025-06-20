@@ -20,6 +20,7 @@ redis = "^5.0.1"
 httpx = "^0.28.1"
 future = "^1.0.0"
 openai-whisper = "^20240930"
+ollama = "^0.5.1"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.11.12"
