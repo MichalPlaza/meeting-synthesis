@@ -1,107 +1,80 @@
-import { Link, Outlet, useLocation } from 'react-router-dom';
-import {
-  NavigationMenu,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-} from '@/components/ui/navigation-menu';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { useAuth } from '@/AuthContext';
+import { Link, Outlet } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/AuthContext";
+import { DiamondIcon, Bell, User } from "lucide-react";
 
-function MainLayout() {
-  const location = useLocation(); 
-  const userName = "ANNA";
-  const { isAuthenticated, user, logout } = useAuth();
-  
-  const handleLogout = () => {
-    logout();
-  };
-  
+function PublicLayout() {
+  const { isAuthenticated } = useAuth(); // Usunięto logout na razie z tego widoku
+
+  const navLinkClasses =
+    "text-sm font-medium text-muted-foreground transition-colors hover:text-foreground";
+
+  const renderPublicNav = () => (
+    <>
+      <Link to="/features" className={navLinkClasses}>
+        Features
+      </Link>
+      <Link to="/pricing" className={navLinkClasses}>
+        Pricing
+      </Link>
+      <Link to="/support" className={navLinkClasses}>
+        Support
+      </Link>
+    </>
+  );
+
+  const renderPrivateNav = () => (
+    <>
+      <Link to="/projects" className={navLinkClasses}>
+        Projects
+      </Link>
+      <Link to="/settings" className={navLinkClasses}>
+        Settings
+      </Link>
+    </>
+  );
 
   return (
-    <div>
-      <header className="bg-gray-800 text-white p-5 flex justify-between items-center">
-        <NavigationMenu>
-          <NavigationMenuList className="space-x-20">
-            <NavigationMenuItem>
-              <Link to="/">
-                <NavigationMenuLink className={cn("px-5 py-2 rounded-md text-lg font-medium", { 'bg-gray-900 text-white': location.pathname === '/' })}>
-                  Home
-                </NavigationMenuLink>
-              </Link>
-            </NavigationMenuItem>
-             <NavigationMenuItem>
-              <Link to="/guide"> {/* Thay /guide bằng route thực tế */}
-                <NavigationMenuLink className={cn("px-5 py-2 rounded-md text-lg font-medium", { 'bg-gray-900 text-white': location.pathname === '/guide' })}>
-                  Guide
-                </NavigationMenuLink>
-              </Link>
-            </NavigationMenuItem>
-             <NavigationMenuItem>
-              <Link to="/about"> {/* Thay /about bằng route thực tế */}
-                <NavigationMenuLink className={cn("px-5 py-2 rounded-md text-lg font-medium", { 'bg-gray-900 text-white': location.pathname === '/about' })}>
-                  About
-                </NavigationMenuLink>
-              </Link>
-            </NavigationMenuItem>
-             <NavigationMenuItem>
-              <Link to="/contact"> {/* Thay /contact bằng route thực tế */}
-                <NavigationMenuLink className={cn("px-5 py-2 rounded-md text-lg font-medium", { 'bg-gray-900 text-white': location.pathname === '/contact' })}>
-                  Contact
-                </NavigationMenuLink>
-              </Link>
-            </NavigationMenuItem>
-          </NavigationMenuList>
-        </NavigationMenu>
+    <div className="flex min-h-screen w-full flex-col bg-background">
+      <header className="sticky top-0 flex h-16 items-center border-b px-4 md:px-10">
+        <div className="flex items-center gap-2">
+          <DiamondIcon className="h-6 w-6 text-foreground" />
+          <Link to="/" className="text-lg font-bold text-foreground">
+            Meeting Synthesis
+          </Link>
+        </div>
 
-        {/* User Info and Logout */}
-        <NavigationMenu>
+        <nav className="ml-10 hidden items-center space-x-6 md:flex">
+          {isAuthenticated ? renderPrivateNav() : renderPublicNav()}
+        </nav>
+
+        <div className="ml-auto flex items-center gap-4">
           {isAuthenticated ? (
-            <NavigationMenuList className="space-x-20">
-              <NavigationMenuItem>
-                <Button className="space-x-20 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-md text-lg font-medium">
-                  Hello {userName.toUpperCase()}
-                </Button>
-              </NavigationMenuItem>
-              <NavigationMenuItem>
-              <Button
-                onClick={handleLogout}
-                variant="ghost"
-                className="text-white-300 hover:bg-gray-500 hover:text-white px-5 py-5 rounded-md text-lg font-medium" 
-              >
-                Log out
+            <>
+              <Button variant="ghost" size="icon" className="rounded-full">
+                <Bell className="h-5 w-5" />
+                <span className="sr-only">Notifications</span>
               </Button>
-              </NavigationMenuItem>
-            </NavigationMenuList>
+              <Button variant="ghost" size="icon" className="rounded-full">
+                <User className="h-5 w-5" />
+                <span className="sr-only">User Menu</span>
+              </Button>
+            </>
           ) : (
-            <NavigationMenuList className="space-x-20">
-              <NavigationMenuItem>
-                <Link to="/register">
-                  <NavigationMenuLink className={cn("px-5 py-2 rounded-md text-lg font-medium", { 'bg-gray-900 text-white': location.pathname === '/register' })}>
-                    Sign up
-                  </NavigationMenuLink>
-                </Link>
-              </NavigationMenuItem>
-              <NavigationMenuItem>
-                <Link to="/login">
-                  <NavigationMenuLink className={cn("px-5 py-2 rounded-md text-lg font-medium", { 'bg-gray-900 text-white': location.pathname === '/login' })}>
-                    Log in
-                  </NavigationMenuLink>
-                </Link>
-              </NavigationMenuItem>
-            </NavigationMenuList>
+            <Link to="/login">
+              <Button variant="secondary" className="rounded-full px-6">
+                Log in
+              </Button>
+            </Link>
           )}
-        </NavigationMenu>
-        
+        </div>
       </header>
 
-      <main className="container mx-auto p-4">
+      <main className="flex flex-1 flex-col items-center justify-center">
         <Outlet />
       </main>
-
     </div>
   );
 }
 
-export default MainLayout;
+export default PublicLayout;
