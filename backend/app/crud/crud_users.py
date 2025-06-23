@@ -48,3 +48,22 @@ async def create_user(db: AsyncIOMotorDatabase, user_data: UserCreate) -> User:
     result = await db["users"].insert_one(user_doc)
     user_doc["_id"] = result.inserted_id
     return User(**user_doc)
+
+
+async def get_all_users(db: AsyncIOMotorDatabase) -> list[User]:
+    user_docs = await db["users"].find({}).to_list(None)
+    return [User(**doc) for doc in user_docs]
+
+
+async def get_user_by_id(db: AsyncIOMotorDatabase, user_id: str) -> User | None:
+    try:
+        if not ObjectId.is_valid(user_id):
+            return None
+
+        user_doc = await db["users"].find_one({"_id": ObjectId(user_id)})
+        if user_doc:
+            return User(**user_doc)
+        return None
+    except Exception as e:
+        print(f"Error getting user by ID {user_id}: {e}")
+        return None

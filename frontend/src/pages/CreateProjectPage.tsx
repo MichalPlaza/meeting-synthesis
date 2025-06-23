@@ -1,4 +1,5 @@
-import { useState } from 'react';
+// src/pages/CreateProjectPage.tsx
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useNavigate } from 'react-router-dom';
@@ -15,221 +16,330 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea'; 
+import { Textarea } from '@/components/ui/textarea';
 
-import { useAuth } from '@/AuthContext'; 
+// Import hook xác thực để lấy user info và token
+import { useAuth } from '@/AuthContext'; // Correct import path if AuthContext is in src/contexts
 
-const BACKEND_API_BASE_URL = 'http://localhost:8000'; 
+// Import UserResponse schema for fetched users data type
+// Import UserResponse schema for fetched users data type
+import type { UserResponse } from '@/types/user'; // Assuming UserResponse is defined in src/types/user.ts
+ // Assuming UserResponse is defined in src/types/user.ts
 
-const HARDCODED_USERS = [
-  { id: 'user-abc', username: 'user_abc', email: 'abc@example.com', full_name: 'Alice' },
-  { id: 'user-def', username: 'user_def', email: 'def@example.com', full_name: 'Bob' },
-  { id: 'user-xyz', username: 'user_xyz', email: 'xyz@example.com', full_name: 'Charlie' },
-  { id: 'user-123', username: 'user_123', email: '123@example.com', full_name: 'David' },
-  // Add more fake users as needed
-];
+// Define backend API base URL
+const BACKEND_API_BASE_URL = 'http://localhost:8000'; // Ensure this is correct
 
+// === Zod Validation Schema ===
 const createProjectFormSchema = z.object({
   name: z.string().min(1, {
     message: 'Project name is required.',
   }),
-  description: z.string().min(1, { 
+  description: z.string().min(1, {
     message: 'Project description is required.',
   }),
-  meeting_datetime: z.string().min(1, { 
-      message: 'Meeting datetime is required..',
+  meeting_datetime: z.string().min(1, {
+      message: 'Meeting datetime is required.',
   }),
-  selectedMemberIds: z.array(z.string()).optional(),
+  // Array of selected member IDs (string array)
+  selectedMemberIds: z.array(z.string()).optional(), // Optional for now
 });
 
 type CreateProjectFormValues = z.infer<typeof createProjectFormSchema>;
+
+// Assuming UserResponse is defined in src/types/user.ts like this:
+// export interface UserResponse { id: string; username: string; email: string; full_name?: string; /* ...other fields */ }
+// If not, define a similar interface here or in a types file
 
 function CreateProjectPage() {
   const navigate = useNavigate();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [usersError, setUsersError] = useState<string | null>(null); // State for users fetch error
+  const [usersLoading, setUsersLoading] = useState(true); // State for users fetch loading
+  const [allUsers, setAllUsers] = useState<UserResponse[]>([]); // State for fetched users
 
-  const { token, logout } = useAuth(); 
+  // Get current user info and token from Auth Context
+  const { user, token, logout } = useAuth();
+  // Get user ID from Context user object (assuming user object has _id or id)
+  const currentUserId = user?._id;
 
-  const currentUserId = null; 
+  // === Fetch Users for Member Selection ===
+  useEffect(() => {
+    const fetchUsers = async () => {
+      if (!token) {
+        // Should be protected by ProtectedRoute, but safety check
+        setUsersError("Authentication token not available.");
+        setUsersLoading(false);
+        return;
+      }
 
-  const selectableUsers = HARDCODED_USERS.filter(u => u.id !== currentUserId);
+      setUsersLoading(true);
+      setUsersError(null);
+
+      const usersApiUrl = `${BACKEND_API_BASE_URL}/users`; // API endpoint to get all users
+
+      try {
+        const response = await fetch(usersApiUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`, // Include token
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          if (response.status === 401) {
+            // Token invalid or expired, logout user
+            setUsersError("Session expired. Please log in again.");
+            logout();
+            navigate('/login');
+          } else {
+            setUsersError(errorData.detail || 'Failed to fetch users.');
+          }
+          setAllUsers([]); // Clear users on error
+          return;
+        }
+
+        const usersData: UserResponse[] = await response.json();
+        // Optional: Filter out the current user from the selection list
+        // You might or might not want to select the owner as a member via dropdown
+        // If API automatically adds owner to members, filter owner here.
+        // If API requires owner in members_ids input, don't filter here.
+        console.log(usersData)
+        const selectableUsersList = usersData.filter(u => u._id !== currentUserId); // Example: filter out owner
+        setAllUsers(selectableUsersList);
+
+      } catch (error) {
+        console.error('Error fetching users:', error);
+        setUsersError('Failed to connect to server to fetch users.');
+        setAllUsers([]); // Clear users on error
+      } finally {
+        setUsersLoading(false);
+      }
+    };
+
+    if (token) { // Only fetch if token is available (user is likely logged in)
+      fetchUsers();
+    } else {
+       // If component renders without token (ProtectedRoute should prevent this)
+       setUsersLoading(false);
+       setUsersError("User not authenticated.");
+    }
+
+  }, [token, logout, navigate, currentUserId]); // Depend on token, and auth hooks
+
+
+  // Filter out the current user from the selection list if needed, even if fetch wasn't filtered
+  // This ensures owner is not in the options if you don't want them selectable
+  const selectableUsers = allUsers; // Use the fetched list (already potentially filtered in useEffect)
+
 
   const form = useForm<CreateProjectFormValues>({
     resolver: zodResolver(createProjectFormSchema),
     defaultValues: {
       name: '',
       description: '',
-      meeting_datetime: '', 
+      meeting_datetime: '',
       selectedMemberIds: [],
     },
   });
 
   const { isSubmitting } = form.formState;
 
+  // === Handle Form Submission ===
   async function onSubmit(values: CreateProjectFormValues) {
     setErrorMessage(null);
     setSuccessMessage(null);
 
+    // Basic check if user is logged in (redundant if using ProtectedRoute correctly, but safe)
     if (!currentUserId || !token) {
-        setErrorMessage("Bạn cần đăng nhập để tạo project."); 
+        setErrorMessage("You need to be logged in to create a project.");
+        // navigate('/login'); // Consider redirecting
         return;
     }
 
-    const backendApiUrl = `${BACKEND_API_BASE_URL}/project`; 
+    // Prepare data to send to Backend API POST /project
+    const memberIdsArray = values.selectedMemberIds || []; // Get selected IDs from form state
 
+    // Ensure owner is in member_ids if API requires it in the input body on create
+    // This is specific to your API requirement. In a standard API, backend handles this by reading token.
+    // Based on your API spec needing owner_id and members_ids in the body:
+    if (!memberIdsArray.includes(currentUserId)) {
+        memberIdsArray.unshift(currentUserId); // Add owner ID to the beginning if not included
+    }
+
+    const requestBody = {
+        name: values.name,
+        description: values.description,
+        // Convert datetime-local string to ISO string required by API
+        meeting_datetime: new Date(values.meeting_datetime).toISOString(),
+        owner_id: currentUserId, // Assuming API *requires* frontend to send this (INSECURE DESIGN)
+        members_ids: memberIdsArray, // Send the array of selected member IDs
+    };
+
+    console.log('Submitting project data:', requestBody); // Log data being sent
+
+    // === UNCOMMENT ACTUAL API SUBMISSION ===
+    const backendApiUrl = `${BACKEND_API_BASE_URL}/project`;
     try {
-        const requestBody = {
-            name: values.name,
-            description: values.description,
-            meeting_datetime: new Date(values.meeting_datetime).toISOString(), 
-            owner_id: currentUserId, 
-            members_ids: [currentUserId],
-        };
-
         const response = await fetch(backendApiUrl, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`, 
+              'Authorization': `Bearer ${token}`, // Include token for protected endpoint
             },
-            body: JSON.stringify(requestBody), 
+            body: JSON.stringify(requestBody), // Send the prepared data
         });
 
         if (!response.ok) {
             const errorData = await response.json();
             if (response.status === 401) {
-                 setErrorMessage("Bạn cần đăng nhập lại để thực hiện thao tác này.");
-                 logout(); 
-                 navigate('/login');
+                 setErrorMessage("Session expired. Please log in again.");
+                 logout(); // Logout frontend state
+                 navigate('/login'); // Redirect
             } else {
-                 setErrorMessage(errorData.detail || 'Tạo project thất bại. Vui lòng thử lại.');
+                 setErrorMessage(errorData.detail || 'Project creation failed. Please try again.');
             }
-            return;
+            return; // Stop here if fetch failed
         }
 
-        const newProject = await response.json(); // API có thể trả về object project vừa tạo
+        // Project created successfully
+        const newProject = await response.json(); // Assuming API returns the created project
         console.log('Project created successfully!', newProject);
 
         setSuccessMessage('Project created successfully!');
-        form.reset(); 
+        form.reset(); // Reset form on success
+
+        // Optional: Redirect to the new project details page or project list
+        // navigate(`/projects/${newProject._id}`); // Assuming API returns _id
+         setTimeout(() => navigate('/projects'), 1500); // Navigate to projects list after 1.5 seconds
+
 
     } catch (error) {
         console.error('Error submitting new project:', error);
-        setErrorMessage('An error occurred connecting to the server. Please try again later.');
+        setErrorMessage('An error occurred while submitting the project. Please try again later.');
     }
   }
 
+  // === Render Form UI ===
   return (
     <>
-    <div className="absolute top-25 left-15">
+    <div className="absolute top-30 left-15">
       <Link to="/projects" className="text-blue-600 hover:underline flex items-center space-x-1">
         ← <span>Back to Projects</span>  
       </Link>
     </div>
-
-    <div className="container mx-auto p-6 max-w-sm relative">
+      
+    <div className="container mx-auto p-6 max-w-sm relative"> 
 
       <h2 className="text-2xl font-bold mb-6 text-center">Create New Project</h2>
 
+      {/* Display success/error messages */}
       {successMessage && (
-         <p className="text-green-500 text-sm mb-4 text-center">{successMessage}</p>
+          <p className="text-green-500 text-sm mb-4 text-center">{successMessage}</p>
       )}
       {errorMessage && (
         <p className="text-red-500 text-sm mb-4 text-center">{errorMessage}</p>
       )}
 
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      {/* Loading/Error messages for fetching users */}
+      {usersLoading && <p className="text-center text-gray-600">Loading users...</p>}
+      {usersError && <p className="text-center text-red-500">{usersError}</p>}
 
-          {/* Name Field */}
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Project Name</FormLabel>
-                <FormControl>
-                  <Input placeholder="Enter project name" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+      {/* Shadcn UI Form - Only render form if users are loaded and no fetch error */}
+      {!usersLoading && !usersError ? (
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
 
-          {/* Description Field */}
-          <FormField
-            control={form.control}
-            name="description"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Description</FormLabel>
-                <FormControl>
-                  <Textarea placeholder="Enter project description" {...field} /> 
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+            {/* Name Field */}
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Project Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter project name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-          {/* Meeting_datetime Field */}
-          <FormField
-            control={form.control}
-            name="meeting_datetime"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Meeting Datetime</FormLabel>
-                <FormControl>
-                  <Input type="datetime-local" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+            {/* Description Field */}
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder="Enter project description" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-          <FormField
-            control={form.control}
-            name="selectedMemberIds" 
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Select Members (Hold Ctrl to select multiple)</FormLabel> 
-                <FormControl>
-                  {/* Use a native HTML select element with the 'multiple' attribute */}
-                  <select
-                    {...field} // Spread react-hook-form's field props (name, value, onBlur)
-                    multiple // Enable multi-selection
-                    // value expects an array of selected option values
-                    // onChange needs custom handling for multiple selection
-                    onChange={(event) => {
-                      // Convert HTMLCollection of selected options to an array of their values (IDs)
-                      const selectedValues = Array.from(event.target.selectedOptions, option => option.value);
-                      field.onChange(selectedValues); // Update form state with the array of IDs
-                    }}
-                    // Add some basic styling with Tailwind
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    // Style height and overflow for multiple options
-                     style={{ height: 'auto', overflowY: 'auto' }}
-                  >
-                    {/* Map hardcoded users to option elements */}
-                    {selectableUsers.map(user => (
-                      <option key={user.id} value={user.id}>
-                        {user.full_name || user.username} ({user.email})
-                      </option>
-                    ))}
-                  </select>
-                </FormControl>
-                <FormMessage /> 
-              </FormItem>
-            )}
-          />
+            {/* Meeting_datetime Field */}
+            <FormField
+              control={form.control}
+              name="meeting_datetime"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Meeting Datetime</FormLabel>
+                  <FormControl>
+                    <Input type="datetime-local" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        
-          {/* Submit */}
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? 'Creating...' : 'Create Project'}
-          </Button>
-        </form>
-      </Form>
+            {/* Member Selection Field (Multi-select dropdown) */}
+            <FormField
+              control={form.control}
+              name="selectedMemberIds"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Select Members (Hold Ctrl to select multiple)</FormLabel>
+                  <FormControl>
+                    {/* Use a native HTML select element */}
+                    <select
+                      {...field}
+                      multiple // Enable multi-selection
+                      onChange={(event) => {
+                        const selectedValues = Array.from(event.target.selectedOptions, option => option.value);
+                        field.onChange(selectedValues);
+                      }}
+                      // Add some basic styling with Tailwind
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        style={{ height: '150px', overflowY: 'auto' }} // Style height and overflow for multiple options
+                        disabled={form.formState.isSubmitting} // Disable select while submitting form
+                    >
+                        {/* Option mặc định hoặc hướng dẫn */}
+                      <option value="" disabled>{/* --- Select Members --- */}</option> {/* Tùy chọn rỗng bị disabled */}
+                      {/* Map fetched users to option elements */}
+                      {selectableUsers.map(user => (
+                        <option key={user._id} value={user._id}>
+                          {user.full_name || user.username} ({user.email})
+                        </option>
+                      ))}
+                    </select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Submit Button */}
+            <Button type="submit" className="w-full" disabled={isSubmitting || usersLoading}> {/* Disable if submitting or users are loading */}
+              {isSubmitting ? 'Creating...' : 'Create Project'}
+            </Button>
+          </form>
+        </Form>
+      ) : null /* Don't render the form if users are loading or error */ }
 
     </div>
     </>

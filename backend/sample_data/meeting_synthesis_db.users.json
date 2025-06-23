@@ -1,0 +1,45 @@
+[{
+  "_id": {
+    "$oid": "6840a0c4230bee507eb46c5c"
+  },
+  "username": "knam4202",
+  "email": "khanhnam040202@gmail.com",
+  "hashed_password": "$2b$12$oiDWEsxiBzsGWIGcS46gD.Z9UO72osbiRBYoyjsyr6ff/8b.AuemC",
+  "full_name": "Tran Ngoc Khanh Nam",
+  "created_at": {
+    "$date": "2025-06-04T19:38:44.434Z"
+  },
+  "updated_at": {
+    "$date": "2025-06-04T19:38:44.434Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6858e901658d3dc81ed842f5"
+  },
+  "username": "michal",
+  "email": "michal@gmail.com",
+  "hashed_password": "$2b$12$JLi0MURt3OutTq7gAZRe9utdivEYXvLelah3Ytsr512MqUXWeGui6",
+  "full_name": "Michal Plaza",
+  "created_at": {
+    "$date": "2025-06-23T05:41:21.364Z"
+  },
+  "updated_at": {
+    "$date": "2025-06-23T05:41:21.364Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "685937aeb8e270cdb0c7a725"
+  },
+  "username": "piotr",
+  "email": "piotr@gmail.com",
+  "hashed_password": "$2b$12$0cL7brw14rMhJ/yuZ53pt.a7V/CVREbV722GZF.yZLZCJuBi118Q.",
+  "full_name": "Piotr Branewski",
+  "created_at": {
+    "$date": "2025-06-23T11:17:02.511Z"
+  },
+  "updated_at": {
+    "$date": "2025-06-23T11:17:02.511Z"
+  }
+}]

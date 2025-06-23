@@ -16,7 +16,7 @@ function MeetingListItem({ meeting }: MeetingListItemProps) {
         <h3 className="text-lg font-semibold">{meeting.title}</h3>
         <p className="text-sm text-gray-600">Date & Time: {formattedDatetime}</p>
       </div>
-      <Link to={`/meetings/${meeting.id}`}>
+      <Link to={`/meetings/${meeting._id}`}>
          <Button variant="outline" size="sm">
             View Meeting
          </Button>

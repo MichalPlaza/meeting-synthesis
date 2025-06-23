@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from .apis.v1.endpoints_auth import router as auth_router
 from .apis.v1.endpoints_meetings import router as meetings_router
 from .apis.v1.endpoints_project import router as project_router
+from .apis.v1.endpoints_users import router as users_router
 from .db.mongodb_utils import close_mongo_connection, connect_to_mongo
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -36,3 +37,4 @@ async def shutdown_db_client():
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(project_router, prefix="/project", tags=["project"])
 app.include_router(meetings_router, prefix="/meetings", tags=["meetings"])
+app.include_router(users_router, prefix="/users", tags=["users"])

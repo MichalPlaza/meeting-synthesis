@@ -2,51 +2,88 @@ import { useState, useEffect } from 'react';
 import ProjectCard from '@/components/ProjectCard'; 
 import AddProjectButton from '@/components/AddProjectButton'; 
 import type { Project } from '@/types/project'; 
-// import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/AuthContext';
+
+const BACKEND_API_BASE_URL = 'http://localhost:8000';
 
 function ProjectListPage() {
-
+ 
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // const navigate = useNavigate();
-
-  const hardcodedProjects: Project[] = [
-    {
-      _id: "project-123",
-      name: "Marketing Strategy Q3",
-      description: "Planning and execution strategy for Q3 marketing campaigns.",
-      owner_id: "user-owner-abc",
-      members_ids: ["user-owner-abc", "user-member-xyz", "user-member-123"],
-      created_at: "2023-10-26T10:00:00.000Z",
-      updated_at: "2023-10-27T11:00:00.000Z",
-    },
-    {
-      _id: "project-456",
-      name: "Product Development Sprint 5",
-      description: "Focusing on new feature implementation and bug fixing for the next release.",
-      owner_id: "user-owner-def",
-      members_ids: ["user-owner-def", "user-member-abc"],
-      created_at: "2023-10-20T09:00:00.000Z",
-      updated_at: "2023-10-27T12:30:00.000Z",
-    },
-     {
-      _id: "project-789",
-      name: "Internal Tools Improvement",
-      description: "Enhancing internal software tools for better team productivity.",
-      owner_id: "user-owner-abc", // Ví dụ cùng owner với project 1
-      members_ids: ["user-owner-abc", "user-member-456"],
-      created_at: "2023-11-01T09:30:00.000Z",
-      updated_at: "2023-11-03T15:00:00.000Z",
-    }
-  ];
-
+  const navigate = useNavigate();
+  const { token, logout } = useAuth();
+  
   useEffect(() => {
-    // const fetchProjects = async () => { ... }
-    // fetchProjects();
+    const fetchProjects = async () => {
+      // Ensure token is available before fetching
+      if (!token) {
+        // Should be protected by ProtectedRoute, but safety check
+        setError("Authentication token not available.");
+        setLoading(false);
+        // Optional: Redirect to login if token is missing
+        // navigate('/login');
+        return;
+      }
 
-    setProjects(hardcodedProjects);
-  }, []); 
+      setLoading(true); // Start loading state
+      setError(null); // Reset error state
+
+      const projectsApiUrl = `${BACKEND_API_BASE_URL}/project`; // Backend API endpoint for projects list
+
+      try {
+        const response = await fetch(projectsApiUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`, // <<< Include the token in the header
+            'Content-Type': 'application/json', // Good practice
+          },
+        });
+
+        // Check if the response indicates an error (status code outside 2xx)
+        if (!response.ok) {
+           const errorData = await response.json();
+           // Handle 401 Unauthorized specifically (token expired/invalid)
+           if (response.status === 401) {
+             setError("Session expired. Please log in again.");
+             logout(); // Clear auth state in context and localStorage
+             navigate('/login'); // Redirect to login page
+           } else {
+             // Handle other types of errors
+             setError(errorData.detail || 'Failed to fetch projects.');
+           }
+           setProjects([]); // Clear previous projects on error
+           return; // Stop execution if there was an error
+        }
+
+        // If response is OK (status 2xx)
+        const data: Project[] = await response.json();
+        setProjects(data); // <<< Update state with fetched projects
+
+      } catch (err) {
+        // Handle network errors or other exceptions during fetch
+        console.error('Error fetching projects:', err);
+        setError('Failed to connect to server to fetch projects.');
+        setProjects([]); // Clear previous projects on network error
+      } finally {
+        // This block runs regardless of success or failure
+        setLoading(false); // End loading state
+      }
+    };
+
+    // Trigger the fetch operation only if the token is available
+    if (token) {
+      fetchProjects();
+    } else {
+       // If component renders without token (ProtectedRoute should handle this)
+       setLoading(false);
+       setError("User not authenticated.");
+       // Optional: Redirect to login if component somehow renders without token despite ProtectedRoute
+       // navigate('/login');
+    }
+
+  }, [token, logout, navigate]);
 
   return (
     <div className="relative">
@@ -56,13 +93,13 @@ function ProjectListPage() {
          <AddProjectButton />
       </div>
 
-      {loading && <p className="text-center">Đang tải danh sách project...</p>}
+      {loading && <p className="text-center text-gray-600">Loading projects...</p>}
       {error && <p className="text-center text-red-500">{error}</p>}
 
       {!loading && !error && (
         <>
           {projects.length === 0 ? (
-            <p className="text-center text-gray-600">Chưa có project nào. Nhấn nút 'Add New Project' để bắt đầu!</p>
+            <p className="text-center text-gray-600">No projects found. Click 'Add New Project' to get started!</p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"> 
               {projects.map((project) => (

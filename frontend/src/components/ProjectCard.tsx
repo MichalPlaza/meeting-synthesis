@@ -23,7 +23,6 @@ function ProjectCard({ project }: ProjectCardProps) {
     <Card className="flex flex-col justify-between h-full"> 
       <CardHeader>
         <CardTitle>{project.name}</CardTitle>
-        <CardDescription>Owner: {project.owner_id}</CardDescription>
         <CardDescription>Members: {project.members_ids.length}</CardDescription>
       </CardHeader>
       <CardContent className="flex-grow"> 

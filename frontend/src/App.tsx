@@ -9,6 +9,7 @@ import ProjectListPage from './pages/ProjectListPage'
 import { useAuth } from './AuthContext'
 import CreateProjectPage from './pages/CreateProjectPage'
 import ProjectDetailsPage from './pages/ProjectDetailsPage'
+import MeetingDetailsPage from './pages/MeetingDetailsPage'
 
 function App() {
     const { isAuthenticated } = useAuth();
@@ -28,6 +29,7 @@ function App() {
           <Route path="/projects" element={<ProjectListPage />} />
           <Route path="/projects/new" element={<CreateProjectPage />} />
           <Route path="/projects/:projectId" element={<ProjectDetailsPage />} />
+          <Route path="/meetings/:meetingId" element={<MeetingDetailsPage />} />
          </Route>
       </Route>
 

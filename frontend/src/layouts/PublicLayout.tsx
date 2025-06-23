@@ -11,9 +11,9 @@ import { useAuth } from '@/AuthContext';
 
 function MainLayout() {
   const location = useLocation(); 
-  const userName = "ANNA";
   const { isAuthenticated, user, logout } = useAuth();
-  
+  const userName = user?.full_name
+
   const handleLogout = () => {
     logout();
   };
@@ -21,7 +21,7 @@ function MainLayout() {
 
   return (
     <div>
-      <header className="bg-gray-800 text-white p-5 flex justify-between items-center">
+      <header className="bg-gray-800 text-white p-5 flex justify-between items-center px-10 md:px-20">
         <NavigationMenu>
           <NavigationMenuList className="space-x-20">
             <NavigationMenuItem>
@@ -96,7 +96,7 @@ function MainLayout() {
         
       </header>
 
-      <main className="container mx-auto p-4">
+      <main className="container mx-auto p-8">
         <Outlet />
       </main>
 

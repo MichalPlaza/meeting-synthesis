@@ -1,151 +1,172 @@
+// src/pages/ProjectDetailsPage.tsx
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom'; 
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import MeetingListItem from '@/components/MeetingListItem';
-import type { Project } from '@/types/project';
-import type { Meeting } from '@/types/meeting'; 
+import type { Project } from '@/types/project'; // Import Project type
+import type { Meeting } from '@/types/meeting'; // Import Meeting type
+import { useAuth } from '@/AuthContext'; // Import useAuth
+import { Button } from '@/components/ui/button';
 
-const HARDCODED_PROJECTS: Project[] = [
-  {
-    _id: "project-123",
-    name: "Marketing Strategy Q3",
-    description: "Planning and execution strategy for Q3 marketing campaigns.",
-    owner_id: "user-owner-abc",
-    members_ids: ["user-owner-abc", "user-member-xyz", "user-member-123"],
-    created_at: "2023-10-26T10:00:00.000Z",
-    updated_at: "2023-10-27T11:00:00.000Z"
-  },
-  {
-    _id: "project-456",
-    name: "Product Development Sprint 5",
-    description: "Focusing on new feature implementation and bug fixing for the next release.",
-    owner_id: "user-owner-def",
-    members_ids: ["user-owner-def", "user-member-abc"],
-    created_at: "2023-10-20T09:00:00.000Z",
-    updated_at: "2023-10-27T12:30:00.000Z"
-  },
-  {
-    _id: "project-789",
-    name: "Internal Tools Improvement",
-    description: "Enhancing internal software tools for better team productivity.",
-    owner_id: "user-owner-abc",
-    members_ids: ["user-owner-abc", "user-member-456"],
-    created_at: "2023-11-01T09:30:00.000Z",
-    updated_at: "2023-11-03T15:00:00.000Z",
-  }
-];
-
-const HARDCODED_MEETINGS: Meeting[] = [
-  {
-    id: "meeting-a1",
-    project_id: "project-123", // Thuộc Marketing Strategy Q3
-    title: "Q3 Planning Kickoff",
-    meeting_datetime: "2023-10-28T14:00:00.000Z",
-    created_at: "2023-10-27T09:00:00.000Z",
-    updated_at: "2023-10-27T09:00:00.000Z"
-  },
-  {
-    id: "meeting-a2",
-    project_id: "project-123", // Thuộc Marketing Strategy Q3
-    title: "Campaign Review Meeting",
-    meeting_datetime: "2023-11-01T10:00:00.000Z",
-    created_at: "2023-10-30T09:00:00.000Z",
-    updated_at: "2023-10-30T09:00:00.000Z"
-  },
-  {
-    id: "meeting-b1",
-    project_id: "project-456", 
-    title: "Sprint 5 Daily Standup",
-    meeting_datetime: "2023-10-29T10:00:00.000Z",
-    created_at: "2023-10-28T09:00:00.000Z",
-    updated_at: "2023-10-28T09:00:00.000Z"
-  },
-   {
-    id: "meeting-c1",
-    project_id: "project-789", 
-    title: "Tooling Sync",
-    meeting_datetime: "2023-11-05T16:00:00.000Z",
-    created_at: "2023-11-04T10:00:00.000Z",
-    updated_at: "2023-11-04T10:00:00.000Z"
-  }
-];
-
+// Define backend API base URL
+const BACKEND_API_BASE_URL = 'http://localhost:8000'; // Ensure this is correct
 
 function ProjectDetailsPage() {
   // Get project ID from the URL parameters (e.g., /projects/project-123 -> projectId = "project-123")
-  const { projectId } = useParams<{ projectId: string }>(); 
+  const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
-  // const { user, token, logout } = useAuth(); 
+  const { user, token, logout } = useAuth(); // Get user, token, logout from useAuth
 
   const [project, setProject] = useState<Project | null>(null);
   const [meetings, setMeetings] = useState<Meeting[]>([]);
-  const [loading, setLoading] = useState(true); 
+  const [loading, setLoading] = useState(true); // Start with loading=true for both project and meetings
   const [error, setError] = useState<string | null>(null);
 
-  // === Simulate Data Loading ===
+  // === Fetch Project Details and Meetings from Backend API ===
   useEffect(() => {
-    setLoading(true); 
-    setError(null); 
+    const fetchProjectData = async () => {
+      // Ensure token is available before fetching
+      if (!token) {
+        // Should be protected by ProtectedRoute, but safety check
+        setError("Authentication token not available.");
+        setLoading(false);
+        // Optional: Redirect to login if token is missing
+        // navigate('/login');
+        return;
+      }
 
-    // === Simulate Fetch Project Details and Meetings ===
-    // In a real app, you would fetch from:
-    // GET /projects/{projectId} (to get project details)
-    // GET /projects/{projectId}/meetings (to get meetings for this project)
-    // Remember to include the Authorization header with the token!
-
-    const loadData = async () => {
-        // Simulate network delay
-        // await new Promise(resolve => setTimeout(resolve, 500));
-
-        // --- Simulate Finding Project ---
-        const foundProject = HARDCODED_PROJECTS.find(p => p._id === projectId);
-
-        if (!foundProject) {
-            // If project ID from URL doesn't match any hardcoded project
-            setError(`Project with ID "${projectId}" not found.`);
-            setLoading(false);
-            setProject(null);
-            setMeetings([]);
-             // Optional: Redirect to 404 page or project list
-             // navigate('/404');
-             return;
-        }
-
-        setProject(foundProject); // Set hardcoded project details
-
-        // --- Simulate Finding Meetings for this Project ---
-        const projectMeetings = HARDCODED_MEETINGS.filter(m => m.project_id === projectId);
-        setMeetings(projectMeetings); // Set hardcoded meetings
-
-        setLoading(false); // End loading
-    };
-
-     // Check if projectId exists in URL params before attempting to load data
-     if (projectId) {
-        loadData();
-     } else {
-        // Handle case where projectId is missing in URL (should not happen with correct routing)
+      // Ensure projectId is available from URL params
+      if (!projectId) {
         setError("Project ID is missing in the URL.");
         setLoading(false);
+        return;
+      }
+
+      setLoading(true); // Start loading state
+      setError(null); // Reset error state
+      setProject(null); // Clear previous project data
+      setMeetings([]); // Clear previous meetings data
+
+
+      // === Define API URLs ===
+      const projectDetailsApiUrl = `${BACKEND_API_BASE_URL}/project/${projectId}`; // API to get specific project
+      const meetingsApiUrl = `${BACKEND_API_BASE_URL}/meetings/project/${projectId}`; // API to get meetings for project (ASSUMING THIS API EXISTS)
+
+      try {
+        // --- Fetch Project Details ---
+        const projectResponse = await fetch(projectDetailsApiUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`, // <<< Include token
+            'Content-Type': 'application/json',
+          },
+        });
+
+        // Handle errors for project details fetch
+        if (!projectResponse.ok) {
+           const errorData = await projectResponse.json();
+           if (projectResponse.status === 401) {
+             setError("Session expired. Please log in again.");
+             logout();
+             navigate('/login');
+           } else if (projectResponse.status === 403) {
+              // User is logged in but does not have access to this project
+              setError("You do not have permission to view this project.");
+              // Optional: Redirect to project list or 404
+              // navigate('/projects');
+           }
+           else if (projectResponse.status === 404) {
+              // Project not found with this ID
+               setError(`Project with ID "${projectId}" not found.`);
+               // Optional: Redirect to 404 page or project list
+               // navigate('/404');
+           }
+           else {
+             setError(errorData.detail || `Failed to fetch project details for ID "${projectId}".`);
+           }
+           setLoading(false); // Stop loading on error
+           return; // Stop execution if project fetch failed
+        }
+
+        // If project details fetch is OK
+        const projectData: Project = await projectResponse.json();
+        setProject(projectData); // Update state with fetched project details
+
+
+        // --- Fetch Meetings for this Project ---
+        const meetingsResponse = await fetch(meetingsApiUrl, {
+             method: 'GET',
+             headers: {
+                 'Authorization': `Bearer ${token}`, // <<< Include token again
+                 'Content-Type': 'application/json',
+             },
+         });
+
+        // Handle errors for meetings fetch
+        if (!meetingsResponse.ok) {
+             const errorData = await meetingsResponse.json();
+             // Handle 401 specifically (should already be caught by project fetch, but check again)
+             if (meetingsResponse.status === 401) {
+                setError("Session expired. Please log in again.");
+                logout();
+                navigate('/login');
+             } else if (meetingsResponse.status === 403) {
+                // User not allowed to view meetings (though usually covered by project permission)
+                setError("You do not have permission to view meetings for this project.");
+             }
+             else {
+                setError(errorData.detail || `Failed to fetch meetings for project "${projectId}".`);
+             }
+             setMeetings([]); // Clear previous meetings on error
+             // Continue rendering project details even if meetings fail to load
+         } else {
+              // If meetings fetch is OK
+              const meetingsData: Meeting[] = await meetingsResponse.json();
+              setMeetings(meetingsData); // Update state with fetched meetings
+         }
+
+
+      } catch (err) {
+        // Handle network errors or other exceptions during fetch
+        console.error(`Error fetching data for project ${projectId}:`, err);
+        setError('Failed to connect to server to fetch project data.');
+        // Clear previous data on network error
         setProject(null);
         setMeetings([]);
-        // Optional: Redirect to an error page or project list
-        // navigate('/projects');
-     }
+      } finally {
+        // This block runs regardless of success or failure of *either* fetch
+        setLoading(false); // End loading state
+      }
+    };
+
+    // Trigger the fetch operation only if projectId and token are available
+    // Adding token to dependencies ensures fetch happens if token changes
+    fetchProjectData();
+
+  }, [projectId, token, logout, navigate]); // <<< Dependency array: Re-run effect if projectId, token, or auth hooks change
 
 
-  }, [projectId]); // Dependency array: re-run effect if projectId changes in the URL
-
-  // Render loading, error, or data
+  // --- Render Loading, Error, or Data ---
   if (loading) {
     return <p className="text-center">Loading project details...</p>;
   }
 
   if (error) {
-    return <p className="text-center text-red-500">{error}</p>;
+    return (
+      <div className="container mx-auto p-6 text-center">
+        <p className="text-red-500">{error}</p>
+         {error !== "Authentication token not available." && ( 
+             <Link to="/projects" className="text-blue-600 hover:underline inline-flex items-center space-x-1 justify-center mt-4">
+              ← <span>Back to Projects</span>
+            </Link>
+         )}
+      </div>
+    );
   }
 
   // If project is not found after loading (should be covered by error state, but extra check)
+  // This case should only happen if error is null but project is still null after !loading
   if (!project) {
+      // This could happen if fetch failed but error state wasn't set correctly, or if projectId is initially undefined
       return <p className="text-center text-gray-600">Project details could not be loaded.</p>;
   }
 
@@ -153,9 +174,10 @@ function ProjectDetailsPage() {
   // === Render Project Details and Meeting List ===
   return (
     <div className="container mx-auto p-6">
-      <div className="mb-6"> 
-        <Link to="/projects" className="text-blue-600 hover:underline flex items-center space-x-1">
-          ← <span>Back to Projects</span>  
+      {/* Back to Projects Link */}
+      <div className="mb-6">
+        <Link to="/projects" className="text-blue-600 hover:underline inline-flex items-center space-x-1">
+          ← <span>Back to Projects</span>
         </Link>
       </div>
 
@@ -163,10 +185,11 @@ function ProjectDetailsPage() {
       <h2 className="text-3xl font-bold mb-6">{project.name}</h2>
 
       {/* Optional: Display other project details */}
-      {/* <p>Description: {project.description}</p> */}
-      {/* <p>Owner: {project.owner_id}</p> */}
-      {/* <p>Members: {project.members_ids.length}</p> */}
-      {/* <p>Created: {format(new Date(project.created_at), 'PP')}</p> */}
+      {project.description && <p className="text-gray-700 mb-4"><strong>Description:</strong> {project.description}</p>}
+      {/* You can add Owner and Members display here if needed, fetching user details if necessary */}
+      {/* <p>Members count: {project.members_ids.length}</p> */}
+      {/* You might want to fetch owner username/fullname from the /users API */}
+      {/* {project.owner_id && <p>Owner: {getOwnerName(project.owner_id)}</p>} */}
 
 
       {/* Meeting List Section */}
@@ -178,20 +201,20 @@ function ProjectDetailsPage() {
         <div className="border rounded-md overflow-hidden"> {/* Border and overflow for the list container */}
           {meetings.map(meeting => (
             // Pass the meeting object to MeetingListItem
-            <MeetingListItem key={meeting.id} meeting={meeting} />
+            <MeetingListItem key={meeting._id} meeting={meeting} />
           ))}
         </div>
       )}
 
-      {/* Optional: Add New Meeting Button (Only for project owner) */}
-       {/* You'll need to check if the current user is the project owner */}
-       {/* {user && project.owner_id === (user._id || user.id) && ( */}
-           {/* <div className="mt-6"> */}
-               {/* <Link to={`/projects/${projectId}/meetings/new`}> */}
-                 {/* <Button>Add New Meeting</Button> */}
-               {/* </Link> */}
-           {/* </div> */}
-       {/* )} */}
+
+       
+      {user && project.owner_id === user._id  && (
+          <div className="mt-6"> 
+              <Link to={`/projects/${projectId}/meetings/new`}>
+                <Button>Add New Meeting</Button>
+              </Link>
+          </div>
+      )} 
 
     </div>
   );

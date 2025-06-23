@@ -33,18 +33,36 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   useEffect(() => {
     const storedToken = localStorage.getItem('access_token');
+    const storedUser = localStorage.getItem('user');
+
     if (storedToken) {
       setToken(storedToken);
+      if (storedUser) {
+        try {
+          setUser(JSON.parse(storedUser));
+        } catch (e) {
+          console.error("Failed to parse stored user data:", e);
+          localStorage.removeItem('user');
+        }
+      }
     }
   }, []);
 
   const login = (newToken: string, newUser?: any) => {
     localStorage.setItem('access_token', newToken);
     setToken(newToken);
+    if (newUser) {
+      localStorage.setItem('user', JSON.stringify(newUser));
+      setUser(newUser);
+    } else {
+       localStorage.removeItem('user');
+       setUser(null);
+    }
   };
 
   const logout = () => {
     localStorage.removeItem('access_token');
+    localStorage.removeItem('user');
     setToken(null);
     setUser(null);
     navigate('/'); 

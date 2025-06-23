@@ -24,7 +24,7 @@ const loginFormSchema = z.object({
 type LoginFormValues = z.infer<typeof loginFormSchema>;
 
 function LoginPage() {
-  const { login } = useAuth();
+  const { login, user: authUser, logout } = useAuth();
   const navigate = useNavigate();
   const [errorMessage, setErrorMessage] = useState<string | null>(null); 
 
@@ -42,7 +42,8 @@ function LoginPage() {
     setErrorMessage(null); 
 
     const backendApiUrl = `${BACKEND_API_BASE_URL}/auth/login`;
-
+    const backendUsersMeApiUrl = `${BACKEND_API_BASE_URL}/users/me`; // Endpoint get user info
+    
     try {
       const response = await fetch(backendApiUrl, {
         method: 'POST',
@@ -62,9 +63,37 @@ function LoginPage() {
       const tokenData = await response.json();
       console.log('Login successful!', tokenData);
 
-      // storage token (simple)
-      login(tokenData.access_token);
+      const accessToken = tokenData.access_token;
 
+      const userMeResponse = await fetch(backendUsersMeApiUrl, {
+          method: 'GET',
+          headers: {
+              'Authorization': `Bearer ${accessToken}`, // <<< Include the token here
+              // 'Content-Type': 'application/json', // Not strictly needed for GET, but good practice
+          },
+      });
+
+      if (!userMeResponse.ok) {
+           // Handle error when calling /users/me (e.g., token expired, invalid)
+           console.error('Error fetching /users/me:', userMeResponse.status, await userMeResponse.text());
+           // If /users/me fails with 401, it might indicate token issue
+           if (userMeResponse.status === 401) {
+               setErrorMessage("Authentication failed after login. Please log in again.");
+               logout(); // Log out frontend state if token seems invalid
+               navigate('/login'); // Redirect back to login
+           } else {
+               setErrorMessage('Login successful, but could not fetch user info.');
+           }
+           // Note: You still have the token, maybe decide whether to proceed or not
+           return; // Stop here if fetching user info failed
+
+      }
+
+      const userData = await userMeResponse.json();
+      console.log('User info fetched from /users/me:', userData);
+
+      // storage token (simple)
+      login(accessToken, userData);
       // Redirect to main page
       navigate('/');
 

@@ -1,0 +1,54 @@
+[{
+  "_id": {
+    "$oid": "685918ff3c2c485cf180dd1c"
+  },
+  "name": "Marketing Strategy Q3",
+  "description": "Planning and execution strategy for Q3 marketing campaigns.",
+  "meeting_datetime": {
+    "$date": "2025-06-23T09:06:00.000Z"
+  },
+  "owner_id": {
+    "$oid": "6840a0c4230bee507eb46c5c"
+  },
+  "members_ids": [
+    {
+      "$oid": "6840a0c4230bee507eb46c5c"
+    },
+    {
+      "$oid": "6858e901658d3dc81ed842f5"
+    }
+  ],
+  "created_at": {
+    "$date": "2025-06-23T09:06:07.969Z"
+  },
+  "updated_at": {
+    "$date": "2025-06-23T09:06:07.969Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "185918ff3c2c485cf180dd1c"
+  },
+  "name": "Internal Tools Improvement",
+  "description": "Enhancing internal software tools for better team productivity.",
+  "meeting_datetime": {
+    "$date": "2025-06-23T09:06:00.000Z"
+  },
+  "owner_id": {
+    "$oid": "6840a0c4230bee507eb46c5c"
+  },
+  "members_ids": [
+    {
+      "$oid": "6840a0c4230bee507eb46c5c"
+    },
+    {
+      "$oid": "6858e901658d3dc81ed842f5"
+    }
+  ],
+  "created_at": {
+    "$date": "2025-06-23T09:06:07.969Z"
+  },
+  "updated_at": {
+    "$date": "2025-06-23T09:06:07.969Z"
+  }
+}]
