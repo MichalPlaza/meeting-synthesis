@@ -93,3 +93,5 @@ local_models/
 models_cache/
 audio_uploads/
 transcript_outputs/
+project_source_code.txt
+collect_source_code.sh

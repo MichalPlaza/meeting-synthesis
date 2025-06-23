@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes } from "react-router-dom";
 
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
@@ -12,32 +12,42 @@ import ProjectDetailsPage from './pages/ProjectDetailsPage'
 import MeetingDetailsPage from './pages/MeetingDetailsPage'
 
 function App() {
-    const { isAuthenticated } = useAuth();
-  
+  const { isAuthenticated } = useAuth();
+
   return (
     <>
-    <Routes>
-     
-      <Route element={<PublicLayout />}>
-        <Route
-          path="/"
-          element={isAuthenticated ? <Navigate to="/projects" replace /> : <HomePage />}
-        />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route element={<ProtectedRoute />}>  
-          <Route path="/projects" element={<ProjectListPage />} />
-          <Route path="/projects/new" element={<CreateProjectPage />} />
-          <Route path="/projects/:projectId" element={<ProjectDetailsPage />} />
-          <Route path="/meetings/:meetingId" element={<MeetingDetailsPage />} />
-         </Route>
-      </Route>
+      <Routes>
+        <Route element={<PublicLayout />}>
+          <Route
+            path="/"
+            element={
+              isAuthenticated ? (
+                <Navigate to="/projects" replace />
+              ) : (
+                <HomePage />
+              )
+            }
+          />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route element={<ProtectedRoute />}>
+            <Route path="/projects" element={<ProjectListPage />} />
+            <Route path="/projects/new" element={<CreateProjectPage />} />
+            <Route path="/projects/:projectId" element={<ProjectDetailsPage />} />
+            <Route path="/meetings/:meetingId" element={<MeetingDetailsPage />} />
+          </Route>
+        </Route>
 
-      <Route path="*" element={<div className="text-center mt-10 text-xl">404 Not Found</div>} />
+        <Route
+          path="*"
+          element={
+            <div className="text-center mt-10 text-xl">404 Not Found</div>
+          }
+        />
 
     </Routes>
     </>
-  )
+  );
 }
 
-export default App
+export default App;
