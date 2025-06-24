@@ -132,4 +132,94 @@
   "last_updated_at": {
     "$date": "2025-06-23T09:06:07.969Z"
   }
+},
+{
+  "_id": {
+    "$oid": "685a0508a39e3b1bb6430e34"
+  },
+  "title": "UX Design Review – Mobile App",
+  "meeting_datetime": {
+    "$date": "2025-06-23T09:06:00.000Z"
+  },
+  "project_id": {
+    "$oid": "185918ff3c2c485cf180dd1c"
+  },
+  "uploader_id": {
+    "$oid": "385918ff3c2c485cf180dd1c"
+  },
+  "audio_file": {
+    "original_filename": "string",
+    "storage_path_or_url": "string",
+    "mimetype": "string"
+  },
+  "processing_config": {
+    "language": "pl",
+    "processing_mode_selected": "local"
+  },
+  "processing_status": {
+    "current_stage": "uploaded",
+    "completed_at": "2025-06-23T10:25:56.803Z",
+    "error_message": "string"
+  },
+  "transcription": {
+    "full_text": "string"
+  },
+  "ai_analysis": {
+    "summary": "string",
+    "key_topics": [],
+    "action_items": [],
+    "decisions_made": [],
+    "mentioned_dates": []
+  },
+  "updated_at": {
+    "$date": "2025-06-23T09:06:07.969Z"
+  },
+  "last_updated_at": {
+    "$date": "2025-06-23T09:06:07.969Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "685a0593a39e3b1bb6430e39"
+  },
+  "title": "Infrastructure Upgrade Planning",
+  "meeting_datetime": {
+    "$date": "2025-06-23T09:06:00.000Z"
+  },
+  "project_id": {
+    "$oid": "185918ff3c2c485cf180dd1c"
+  },
+  "uploader_id": {
+    "$oid": "385918ff3c2c485cf180dd1c"
+  },
+  "audio_file": {
+    "original_filename": "string",
+    "storage_path_or_url": "string",
+    "mimetype": "string"
+  },
+  "processing_config": {
+    "language": "pl",
+    "processing_mode_selected": "local"
+  },
+  "processing_status": {
+    "current_stage": "uploaded",
+    "completed_at": "2025-06-23T10:25:56.803Z",
+    "error_message": "string"
+  },
+  "transcription": {
+    "full_text": "string"
+  },
+  "ai_analysis": {
+    "summary": "string",
+    "key_topics": [],
+    "action_items": [],
+    "decisions_made": [],
+    "mentioned_dates": []
+  },
+  "updated_at": {
+    "$date": "2025-06-23T09:06:07.969Z"
+  },
+  "last_updated_at": {
+    "$date": "2025-06-23T09:06:07.969Z"
+  }
 }]
