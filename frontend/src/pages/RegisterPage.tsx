@@ -69,8 +69,10 @@ function RegisterPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-sm"> 
+    <div className="flex items-center justify-center bg-gray-50 px-40">
+    <div className="w-full max-w-md bg-white p-6 rounded-lg shadow-lg">
       <h2 className="text-2xl font-bold mb-6 text-center">Register New Account</h2>
+
 
       {/* Display common API errors */}
       {errorMessage && (
@@ -161,6 +163,7 @@ function RegisterPage() {
         </button>
       </p>
 
+    </div>
     </div>
   );
 }

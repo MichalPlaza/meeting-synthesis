@@ -173,40 +173,42 @@ function ProjectDetailsPage() {
 
   // === Render Project Details and Meeting List ===
   return (
-    <div className="container mx-auto p-6">
+    <div className="container mx-auto px-4 md:px-8 py-6">
       {/* Back to Projects Link */}
-      <div className="mb-6">
-        <Link to="/projects" className="text-blue-600 hover:underline inline-flex items-center space-x-1">
-          ← <span>Back to Projects</span>
+      <div className="mb-4">
+        <Link to="/projects" className="text-blue-600 hover:text-blue-800 inline-flex items-center gap-2 text-m font-medium">
+          ← Back to Projects
         </Link>
       </div>
 
-      {/* Project Name */}
-      <h2 className="text-3xl font-bold mb-6">{project.name}</h2>
+      <div className="mb-6">
+        {/* Project Name */}
+        <h2 className="text-3xl font-bold text-gray-900">{project.name}</h2>
 
-      {/* Optional: Display other project details */}
-      {project.description && <p className="text-gray-700 mb-4"><strong>Description:</strong> {project.description}</p>}
-      {/* You can add Owner and Members display here if needed, fetching user details if necessary */}
-      {/* <p>Members count: {project.members_ids.length}</p> */}
-      {/* You might want to fetch owner username/fullname from the /users API */}
-      {/* {project.owner_id && <p>Owner: {getOwnerName(project.owner_id)}</p>} */}
-
+        {/* Optional: Display other project details */}
+        {project.description && (
+          <p className="text-gray-700 mt-2 text-base leading-relaxed">
+            <span className="font-semibold">Description:</span> {project.description}
+          </p>
+        )}
+        <p>Members: {project.members_ids.length}</p>
+        {/* You might want to fetch owner username/fullname from the /users API */}
+        {/* {project.owner_id && <p>Owner: {getOwnerName(project.owner_id)}</p>} */}
+      </div>
 
       {/* Meeting List Section */}
       <h3 className="text-2xl font-bold mt-8 mb-4">Meetings</h3>
 
       {meetings.length === 0 ? (
-        <p className="text-gray-600">No meetings found for this project.</p>
+        <p className="text-gray-500 italic">No meetings found for this project.</p>
       ) : (
-        <div className="border rounded-md overflow-hidden"> {/* Border and overflow for the list container */}
+        <div className="space-y-2">
           {meetings.map(meeting => (
             // Pass the meeting object to MeetingListItem
             <MeetingListItem key={meeting._id} meeting={meeting} />
           ))}
         </div>
       )}
-
-
        
       {user && project.owner_id === user._id  && (
           <div className="mt-6"> 

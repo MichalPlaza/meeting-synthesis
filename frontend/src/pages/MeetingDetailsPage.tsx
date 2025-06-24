@@ -8,6 +8,7 @@ import { format } from 'date-fns'; // For formatting date/time
 // Import Shadcn UI components
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'; // Using Card for sections
+import { Checkbox } from '@/components/ui/checkbox';
 
 // Define backend API base URL
 const BACKEND_API_BASE_URL = 'http://localhost:8000'; // Ensure this is correct
@@ -19,33 +20,64 @@ const HARDCODED_MEETING_DETAILS: Meeting[] = [
     _id: "68592612ea00f2f41f04d35c", // Example ID matching a MeetingListItem
     project_id: "685918ff3c2c485cf180dd1c", // Example project ID
     title: "Campaign Review Meeting",
-    meeting_datetime: "2024-07-26T10:00:00.000Z", // Example date/time
+    meeting_datetime: "2024-07-26T10:00:00.000Z",
     uploaded_at: "2024-07-25T09:00:00.000Z",
     last_updated_at: "2024-07-26T11:00:00.000Z",
-    ai_summary: "This meeting focused on the upcoming product launch...", // Example summary
-    key_takeaways: "Key decisions included finalizing the launch date and assigning responsibilities for key tasks.", // Example takeaways
-    action_items: "- Finalize marketing plan (Due: July 30, 2024, Assignee: Amelia Carter)\n- Allocate resources for launch event (Due: August 5, 2024, Assignee: Benjamin Foster)\n- Confirm launch date with stakeholders (Due: August 10, 2024, Assignee: Chloe Bennett)", // Example action items (as plain text with line breaks)
-    decisions: "Launch date set for August 15, 2024\nAmelia Carter to lead marketing efforts\nBenjamin Foster to manage resource allocation", // Example decisions (as plain text with line breaks)
-    full_transcript: "Speaker 1: Good morning, everyone. Let's discuss the product launch.\nSpeaker 2: I think we should aim for August 15th.\nSpeaker 3: Agreed. Amelia, can you lead the marketing?\nSpeaker 1: Benjamin, please allocate resources, Chloe, confirm the date with stakeholders.",
+    ai_summary: "This meeting centered around finalizing preparations for the Q3 product launch campaign. Team members reviewed previous campaign metrics, aligned on messaging, discussed target audience insights, and confirmed marketing channels. Specific dates and responsibilities were agreed upon to ensure a smooth rollout.",
+    key_takeaways: "• Final launch date confirmed: August 15, 2024\n• Amelia Carter will lead all marketing operations\n• Resources and timeline for event planning have been approved",
+    action_items: "1. Finalize marketing plan (Due: July 30, 2024, Assignee: Amelia Carter)\n2. Allocate resources for launch event (Due: August 5, 2024, Assignee: Benjamin Foster)\n3. Confirm launch date with stakeholders (Due: August 10, 2024, Assignee: Chloe Bennett)",
+    decisions: "• Launch date set for August 15, 2024\n• Amelia Carter to oversee marketing execution\n• Benjamin Foster to manage resource allocation\n• Chloe Bennett to handle stakeholder communications",
+    full_transcript: "Speaker 1: Good morning, everyone. Let's discuss the product launch campaign.\nSpeaker 2: I think we should aim for August 15th as the final date.\nSpeaker 3: That works. Amelia, can you take lead on marketing execution?\nSpeaker 2: Sure, I'll also finalize the plan by next week.\nSpeaker 1: Benjamin, please take care of logistics for the event.\nSpeaker 3: Noted. I’ll confirm venue and technical setup.\nSpeaker 1: Chloe, make sure our stakeholders are informed by early August.\nSpeaker 4: Will do. I’ll send out communications by the 10th.",
     uploader_id: '',
     audio_url: ''
   },
-   {
-    _id: "6859266dea00f2f41f04d35d", // Another example ID
+  {
+    _id: "6859266dea00f2f41f04d35d", 
     project_id: "685918ff3c2c485cf180dd1c",
     title: "Sprint 5 Daily Standup",
     meeting_datetime: "2023-10-29T10:00:00.000Z",
     uploaded_at: "2023-10-28T09:00:00.000Z",
     last_updated_at: "2023-10-28T09:00:00.000Z",
-    ai_summary: "Daily standup updates...",
-    key_takeaways: "Sprint progress reviewed, blockers discussed.",
-    action_items: "- Update task status on Jira",
-    decisions: "Proceed with current sprint tasks.",
-    full_transcript: "Speaker 1: Yesterday I did X. Today I plan to do Y. No blockers.\nSpeaker 2: Yesterday I did A. Today I plan to do B. Blocked by C.",
+    ai_summary: "The team provided brief updates on their current tasks during Sprint 5. Progress was made across backend and frontend features. A blocker was raised regarding a database migration task. Action was taken to resolve this before the next standup.",
+    key_takeaways: "• Most tasks are on track as planned\n• One blocker related to the database migration needs resolution\n• Communication across teams is effective",
+    action_items: "1. Update task statuses on Jira (Assignee: All team members)\n2. Resolve database migration issue (Due: October 30, 2023, Assignee: Linh Tran)\n3. Confirm QA test scope for new feature (Due: October 30, 2023, Assignee: Alex Morgan)",
+    decisions: "• Continue with current sprint plan\n• Database migration will be prioritized\n• QA team to prepare testing checklist by next sprint",
+    full_transcript: "Speaker 1: Yesterday, I worked on the login API and finished integration testing. Today, I’ll start reviewing the analytics module. No blockers.\nSpeaker 2: I completed the frontend dashboard. Today, I’ll test the user profile edit. Blocked by pending database schema change.\nSpeaker 3: Backend tasks are progressing. I’ll help Linh resolve the migration issue.\nSpeaker 4: I’m preparing the QA checklist for new features and will sync with Alex later today.",
     uploader_id: '',
     audio_url: ''
+  },
+  {
+    _id: "685a0508a39e3b1bb6430e34",
+    project_id: "185918ff3c2c485cf180dd1c",
+    title: "UX Design Review – Mobile App",
+    meeting_datetime: "2025-05-14T14:30:00.000Z",
+    uploaded_at: "2025-05-14T14:00:00.000Z",
+    last_updated_at: "2025-05-14T15:10:00.000Z",
+    ai_summary: "The design team reviewed the latest mobile app wireframes, focusing on user navigation, accessibility, and UI consistency. Feedback was collected on onboarding flow and visual hierarchy. Tasks were assigned for iterative improvements and usability testing.",
+    key_takeaways: "• Onboarding screens need clearer progress indicators\n• Button size adjustments required for accessibility compliance\n• UI styling should follow updated branding guidelines",
+    action_items: "1. Update onboarding flow with progress bar (Due: May 17, 2025, Assignee: Mia Thompson)\n2. Adjust button padding and font size (Due: May 18, 2025, Assignee: Ryan Park)\n3. Review updated design with branding team (Due: May 20, 2025, Assignee: Olivia Green)",
+    decisions: "• Stick with the 4-step onboarding format\n• Use brand-approved color palette moving forward\n• Schedule usability testing for May 21 with internal team",
+    full_transcript: "Speaker 1: Let’s walk through the new mobile onboarding.\nSpeaker 2: The navigation is smoother, but the progress isn’t obvious to users.\nSpeaker 3: I agree. Let’s add a progress bar to the top.\nSpeaker 2: Also, the CTA buttons are small—especially on older phones.\nSpeaker 1: Good point. Ryan, can you handle accessibility adjustments?\nSpeaker 3: Sure. I’ll also sync with Olivia for brand checks.\nSpeaker 4: Great. Let’s wrap and reconvene after usability tests.",
+    uploader_id: "",
+    audio_url: ""
+  },
+  {
+    _id: "685a0593a39e3b1bb6430e39",
+    project_id: "185918ff3c2c485cf180dd1c",
+    title: "Infrastructure Upgrade Planning",
+    meeting_datetime: "2025-06-10T11:00:00.000Z",
+    uploaded_at: "2025-06-10T11:15:00.000Z",
+    last_updated_at: "2025-06-10T12:00:00.000Z",
+    ai_summary: "This meeting focused on the roadmap for server infrastructure upgrades. Discussions included cloud migration strategy, load testing, downtime mitigation, and cost estimation. The DevOps team proposed a phased rollout plan to reduce service interruptions.",
+    key_takeaways: "• Initial migration phase will target non-critical services\n• Cloud provider: AWS selected based on cost and scalability\n• Peak traffic scenarios will be simulated before deployment",
+    action_items: "1. Create migration checklist (Due: June 14, 2025, Assignee: Mark Reyes)\n2. Schedule load testing session (Due: June 16, 2025, Assignee: Sara Lin)\n3. Present cost breakdown to finance (Due: June 17, 2025, Assignee: David Chen)",
+    decisions: "• Proceed with AWS for hosting\n• Follow 3-phase rollout: test → partial prod → full migration\n• Monitor SLA and rollback triggers closely during first phase",
+    full_transcript: "Speaker 1: Today we’ll outline the migration steps.\nSpeaker 2: I recommend starting with dev services. It’s lower risk.\nSpeaker 3: AWS offers best autoscaling for our needs.\nSpeaker 1: Let’s test load on staging before going live.\nSpeaker 4: I’ll compile the cost estimate for next meeting.\nSpeaker 2: We also need a rollback plan in case things go sideways.\nSpeaker 3: I’ll work on SLA monitoring setup.",
+    uploader_id: "",
+    audio_url: ""
   }
-  // Add more hardcoded meetings as needed for different IDs
+
+  
 ];
 
 
@@ -187,7 +219,7 @@ function MeetingDetailsPage() {
   return (
     <div className="container mx-auto p-6">
         <div className="mb-6">
-             <Link to={`/projects/${meeting.project_id}`} className="text-blue-600 hover:underline inline-flex items-center space-x-1">
+             <Link to={`/projects/${meeting.project_id}`} className="text-blue-600 hover:text-blue-800 inline-flex items-center gap-2 text-m font-medium">
                ← <span>Back to Meetings List</span>
              </Link>
         </div>
@@ -214,13 +246,11 @@ function MeetingDetailsPage() {
         <TabsContent value="ai-summary">
            <Card className="mt-4"> {/* Optional: Wrap content in a Card */}
              <CardHeader>
-               <CardTitle className="text-xl font-semibold">Key Takeaways</CardTitle>
+               <CardTitle className="text-xl font-semibold">📝 Key Takeaways</CardTitle>
              </CardHeader>
              <CardContent>
-               {/* Display Key Takeaways text */}
-               <p>{meeting.key_takeaways || "No key takeaways available."}</p>
-               {/* Display AI Summary text */}
-               <h4 className="text-lg font-semibold mt-4 mb-2">AI Generated Summary</h4>
+               <p className="whitespace-pre-line leading-loose">{meeting.key_takeaways || "No key takeaways available."}</p>
+               <h4 className="text-lg font-semibold mt-4 mb-2">🤖 AI Generated Summary</h4>
                 <p>{meeting.ai_summary || "No AI summary available."}</p>
              </CardContent>
            </Card>
@@ -230,25 +260,26 @@ function MeetingDetailsPage() {
         <TabsContent value="action-items">
            <Card className="mt-4">
              <CardHeader>
-               <CardTitle className="text-xl font-semibold">Action Items</CardTitle>
+               <CardTitle className="text-xl font-semibold">✅ Action Items</CardTitle>
              </CardHeader>
              <CardContent>
                {/* Display Action Items text, preserving line breaks */}
                {/* TODO: If action_items is structured data, map over it to render checkboxes */}
-               <p>{renderTextWithLineBreaks(meeting.action_items) || "No action items found."}</p>
+               {/* <p>{renderTextWithLineBreaks(meeting.action_items) || "No action items found."}</p> */}
                 {/* Example if action_items was structured: */}
-                {/* {meeting.action_items && meeting.action_items.length > 0 ? (
-                  meeting.action_items.map((item, index) => (
-                    <div key={index} className="flex items-center space-x-2 mb-2">
+                {meeting.action_items && meeting.action_items.length > 0 ? (
+                  meeting.action_items.split('\n').map((item, index) => (
+                    <div key={index} className="flex items-center space-x-2 mb-7">
                       <Checkbox id={`action-item-${index}`} />
-                      <label htmlFor={`action-item-${index}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                        {item.task}
-                        {item.due_date && ` (Due: ${format(new Date(item.due_date), 'PPP')})`}
-                        {item.assignee && ` (Assignee: ${item.assignee})`} // Might need to fetch assignee name
+                      <label
+                        htmlFor={`action-item-${index}`}
+                        className="text-m leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        {item}
                       </label>
                     </div>
                   ))
-                ) : (<p>No action items found.</p>)} */}
+                ) : (<p>No action items found.</p>)}
              </CardContent>
            </Card>
         </TabsContent>
@@ -257,12 +288,14 @@ function MeetingDetailsPage() {
         <TabsContent value="decisions">
           <Card className="mt-4">
              <CardHeader>
-               <CardTitle className="text-xl font-semibold">Key Decisions</CardTitle>
+               <CardTitle className="text-xl font-semibold">📌 Key Decisions</CardTitle>
              </CardHeader>
              <CardContent>
                {/* Display Decisions text, preserving line breaks */}
                {/* TODO: If decisions is structured data, map over it */}
-               <p>{renderTextWithLineBreaks(meeting.decisions) || "No key decisions recorded."}</p>
+                <p className="whitespace-pre-line leading-loose">
+                {meeting.decisions || "No key decisions recorded."}
+                </p>
              </CardContent>
            </Card>
         </TabsContent>
@@ -271,7 +304,7 @@ function MeetingDetailsPage() {
         <TabsContent value="full-transcript">
           <Card className="mt-4">
              <CardHeader>
-               <CardTitle className="text-xl font-semibold">Full Transcript</CardTitle>
+               <CardTitle className="text-xl font-semibold">📄 Full Transcript</CardTitle>
                 {/* Optional: Audio Player */}
                 {true && (
                     <div className="flex items-center space-x-4 mt-2">
@@ -289,7 +322,7 @@ function MeetingDetailsPage() {
              <CardContent>
                {/* Display Full Transcript text, preserving line breaks */}
                {/* Using pre-wrap to handle whitespace and line breaks */}
-               <div className="whitespace-pre-wrap">{meeting.full_transcript || "No transcript available."}</div>
+               <div className="whitespace-pre-wrap ">{meeting.full_transcript || "No transcript available."}</div>
              </CardContent>
            </Card>
         </TabsContent>

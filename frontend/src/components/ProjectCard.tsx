@@ -20,22 +20,26 @@ function ProjectCard({ project }: ProjectCardProps) {
   const formattedDate = format(new Date(project.created_at), 'PP'); 
 
   return (
-    <Card className="flex flex-col justify-between h-full"> 
-      <CardHeader>
-        <CardTitle>{project.name}</CardTitle>
-        <CardDescription>Members: {project.members_ids.length}</CardDescription>
+    <Card className="flex flex-col h-full border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300 rounded-lg">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-lg font-semibold truncate">{project.name}</CardTitle>
+        <CardDescription className="text-sm text-gray-800">
+          Members: {project.members_ids.length}
+        </CardDescription>
       </CardHeader>
-      <CardContent className="flex-grow"> 
-        <p className="text-sm text-gray-700 line-clamp-3"> 
+
+      <CardContent className="flex-grow py-2">
+        <p className="text-sm text-gray-800 line-clamp-3">
           {project.description || "No description provided."}
         </p>
       </CardContent>
-      <CardFooter className="flex justify-between items-center">
-        <p className="text-xs text-gray-500">Created: {formattedDate}</p>
-        <Link to={`/projects/${project._id}`}> 
-           <Button variant="link" className="p-0 h-auto">
-              View Project
-           </Button>
+
+      <CardFooter className="mt-auto flex justify-between items-center text-sm text-gray-800">
+        <span className="text-xs">Created: {formattedDate}</span>
+        <Link to={`/projects/${project._id}`}>
+          <Button variant="outline" size="sm">
+            View
+          </Button>
         </Link>
       </CardFooter>
     </Card>

@@ -1,4 +1,3 @@
-// src/pages/CreateProjectPage.tsx
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -226,13 +225,12 @@ function CreateProjectPage() {
   return (
     <>
     <div className="absolute top-30 left-15">
-      <Link to="/projects" className="text-blue-600 hover:underline flex items-center space-x-1">
+      <Link to="/projects" className="text-blue-600 hover:text-blue-800 inline-flex items-center gap-2 text-m font-medium">
         ← <span>Back to Projects</span>  
       </Link>
     </div>
-      
-    <div className="container mx-auto p-6 max-w-sm relative"> 
-
+       
+    <div className="mx-auto w-full max-w-md bg-white p-6 rounded-lg shadow-lg relative">
       <h2 className="text-2xl font-bold mb-6 text-center">Create New Project</h2>
 
       {/* Display success/error messages */}
@@ -313,13 +311,12 @@ function CreateProjectPage() {
                         const selectedValues = Array.from(event.target.selectedOptions, option => option.value);
                         field.onChange(selectedValues);
                       }}
-                      // Add some basic styling with Tailwind
+
                       className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        style={{ height: '150px', overflowY: 'auto' }} // Style height and overflow for multiple options
-                        disabled={form.formState.isSubmitting} // Disable select while submitting form
+                        style={{ height: '150px', overflowY: 'auto' }} 
+                        disabled={form.formState.isSubmitting} 
                     >
-                        {/* Option mặc định hoặc hướng dẫn */}
-                      <option value="" disabled>{/* --- Select Members --- */}</option> {/* Tùy chọn rỗng bị disabled */}
+ 
                       {/* Map fetched users to option elements */}
                       {selectableUsers.map(user => (
                         <option key={user._id} value={user._id}>
@@ -334,12 +331,12 @@ function CreateProjectPage() {
             />
 
             {/* Submit Button */}
-            <Button type="submit" className="w-full" disabled={isSubmitting || usersLoading}> {/* Disable if submitting or users are loading */}
+            <Button type="submit" className="w-full" disabled={isSubmitting || usersLoading}> 
               {isSubmitting ? 'Creating...' : 'Create Project'}
             </Button>
           </form>
         </Form>
-      ) : null /* Don't render the form if users are loading or error */ }
+      ) : null }
 
     </div>
     </>

@@ -20,34 +20,34 @@ function MainLayout() {
   
 
   return (
-    <div>
-      <header className="bg-gray-800 text-white p-5 flex justify-between items-center px-10 md:px-20">
+    <div className="bg-gray-50 min-h-screen">
+      <header className="bg-blue-950 text-white p-5 flex justify-between items-center px-10 md:px-20">
         <NavigationMenu>
           <NavigationMenuList className="space-x-20">
             <NavigationMenuItem>
               <Link to="/">
-                <NavigationMenuLink className={cn("px-5 py-2 rounded-md text-lg font-medium", { 'bg-gray-900 text-white': location.pathname === '/' })}>
+                <NavigationMenuLink className={cn("px-5 py-2 rounded-md text-lg font-medium", { 'bg-blue-900 text-white': location.pathname === '/' })}>
                   Home
                 </NavigationMenuLink>
               </Link>
             </NavigationMenuItem>
              <NavigationMenuItem>
               <Link to="/guide"> {/* Thay /guide bằng route thực tế */}
-                <NavigationMenuLink className={cn("px-5 py-2 rounded-md text-lg font-medium", { 'bg-gray-900 text-white': location.pathname === '/guide' })}>
+                <NavigationMenuLink className={cn("px-5 py-2 rounded-md text-lg font-medium", { 'bg-blue-900 text-white': location.pathname === '/guide' })}>
                   Guide
                 </NavigationMenuLink>
               </Link>
             </NavigationMenuItem>
              <NavigationMenuItem>
               <Link to="/about"> {/* Thay /about bằng route thực tế */}
-                <NavigationMenuLink className={cn("px-5 py-2 rounded-md text-lg font-medium", { 'bg-gray-900 text-white': location.pathname === '/about' })}>
+                <NavigationMenuLink className={cn("px-5 py-2 rounded-md text-lg font-medium", { 'bg-blue-900 text-white': location.pathname === '/about' })}>
                   About
                 </NavigationMenuLink>
               </Link>
             </NavigationMenuItem>
              <NavigationMenuItem>
               <Link to="/contact"> {/* Thay /contact bằng route thực tế */}
-                <NavigationMenuLink className={cn("px-5 py-2 rounded-md text-lg font-medium", { 'bg-gray-900 text-white': location.pathname === '/contact' })}>
+                <NavigationMenuLink className={cn("px-5 py-2 rounded-md text-lg font-medium", { 'bg-blue-900 text-white': location.pathname === '/contact' })}>
                   Contact
                 </NavigationMenuLink>
               </Link>
@@ -60,7 +60,7 @@ function MainLayout() {
           {isAuthenticated ? (
             <NavigationMenuList className="space-x-20">
               <NavigationMenuItem>
-                <Button className="space-x-20 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-md text-lg font-medium">
+                <Button className="space-x-20 bg-blue-800 hover:bg-blue-700 text-white px-5 py-2 rounded-md text-lg font-medium">
                   Hello {userName.toUpperCase()}
                 </Button>
               </NavigationMenuItem>
@@ -78,14 +78,14 @@ function MainLayout() {
             <NavigationMenuList className="space-x-20">
               <NavigationMenuItem>
                 <Link to="/register">
-                  <NavigationMenuLink className={cn("px-5 py-2 rounded-md text-lg font-medium", { 'bg-gray-900 text-white': location.pathname === '/register' })}>
+                  <NavigationMenuLink className={cn("px-5 py-2 rounded-md text-lg font-medium", { 'bg-blue-900 text-white': location.pathname === '/register' })}>
                     Sign up
                   </NavigationMenuLink>
                 </Link>
               </NavigationMenuItem>
               <NavigationMenuItem>
                 <Link to="/login">
-                  <NavigationMenuLink className={cn("px-5 py-2 rounded-md text-lg font-medium", { 'bg-gray-900 text-white': location.pathname === '/login' })}>
+                  <NavigationMenuLink className={cn("px-5 py-2 rounded-md text-lg font-medium", { 'bg-blue-900 text-white': location.pathname === '/login' })}>
                     Log in
                   </NavigationMenuLink>
                 </Link>
