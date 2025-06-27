@@ -10,9 +10,9 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import { toast } from "sonner";
 import z from "zod";
 
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
@@ -20,144 +20,88 @@ const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
 const loginFormSchema = z.object({
   username_or_email: z
     .string()
-    .min(1, {
-      message: "Username or Email is required.",
-    })
-    .email({
-      message: "Invalid email.",
-    }),
-  password: z.string().min(1, {
-    message: "Password is required.",
-  }),
+    .min(1, { message: "Email is required." })
+    .email({ message: "Invalid email." }),
+  password: z.string().min(1, { message: "Password is required." }),
 });
 
 type LoginFormValues = z.infer<typeof loginFormSchema>;
 
 function LoginPage() {
-  const { login, user: authUser, logout } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginFormSchema),
-    defaultValues: {
-      username_or_email: "",
-      password: "",
-    },
+    defaultValues: { username_or_email: "", password: "" },
   });
 
   const { isSubmitting } = form.formState;
 
   async function onSubmit(values: LoginFormValues) {
-    setErrorMessage(null);
-
-    const backendApiUrl = `${BACKEND_API_BASE_URL}/auth/login`;
-    const backendUsersMeApiUrl = `${BACKEND_API_BASE_URL}/users/me`; // Endpoint get user info
+    const loginApiUrl = `${BACKEND_API_BASE_URL}/auth/login`;
+    const userApiUrl = `${BACKEND_API_BASE_URL}/users/me`;
 
     try {
-      const response = await fetch(backendApiUrl, {
+      const response = await fetch(loginApiUrl, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        setErrorMessage(
-          errorData.detail ||
-            "Login failed. Please check your Email and Password again."
+        toast.error(
+          errorData.detail || "Login failed. Please check your credentials."
         );
         return;
       }
 
-      // Login successful
       const tokenData = await response.json();
-      console.log("Login successful!", tokenData);
-
       const accessToken = tokenData.access_token;
 
-      const userMeResponse = await fetch(backendUsersMeApiUrl, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${accessToken}`, // <<< Include the token here
-          // 'Content-Type': 'application/json', // Not strictly needed for GET, but good practice
-        },
+      const userResponse = await fetch(userApiUrl, {
+        headers: { Authorization: `Bearer ${accessToken}` },
       });
 
-      if (!userMeResponse.ok) {
-        // Handle error when calling /users/me (e.g., token expired, invalid)
-        console.error(
-          "Error fetching /users/me:",
-          userMeResponse.status,
-          await userMeResponse.text()
-        );
-        // If /users/me fails with 401, it might indicate token issue
-        if (userMeResponse.status === 401) {
-          setErrorMessage(
-            "Authentication failed after login. Please log in again."
-          );
-          logout(); // Log out frontend state if token seems invalid
-          navigate("/login"); // Redirect back to login
-        } else {
-          setErrorMessage("Login successful, but could not fetch user info.");
-        }
-        // Note: You still have the token, maybe decide whether to proceed or not
-        return; // Stop here if fetching user info failed
+      if (!userResponse.ok) {
+        toast.error("Login successful, but could not fetch user info.");
+        return;
       }
 
-      const userData = await userMeResponse.json();
-      console.log("User info fetched from /users/me:", userData);
-
-      // storage token (simple)
+      const userData = await userResponse.json();
       login(accessToken, userData);
-      // Redirect to main page
       navigate("/");
+      toast.success(
+        `Welcome back, ${userData.full_name || userData.username}!`
+      );
     } catch (error) {
       console.error("Error sending login request:", error);
-      setErrorMessage(
-        "An error occurred while connecting to the server. Please try again later."
-      );
+      toast.error("An error occurred while connecting to the server.");
     }
   }
 
   return (
-    <div className="flex items-center justify-center bg-gray-50 px-40">
-      <div className="w-full max-w-md bg-white p-6 rounded-lg shadow-lg">
-        <h2 className="text-2xl font-bold mb-6 text-center">
-          Welcome to <br></br> Meeting Synthesis
+    <div className="flex flex-col items-center justify-center">
+      <div className="w-full max-w-sm space-y-6">
+        <h2 className="text-3xl font-bold text-center">
+          Log in to your account
         </h2>
-
-        {/* Display common API errors */}
-        {errorMessage && (
-          <p className="text-red-500 text-sm mb-4 text-center">
-            {errorMessage}
-          </p>
-        )}
-
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {/* User or Email field */}
             <FormField
               control={form.control}
               name="username_or_email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Username or Email</FormLabel>
+                  <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input
-                      type="text"
-                      placeholder="Username or Email"
-                      {...field}
-                    />
+                    <Input type="email" placeholder="Your email" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-
-            {/* Password */}
             <FormField
               control={form.control}
               name="password"
@@ -165,30 +109,34 @@ function LoginPage() {
                 <FormItem>
                   <FormLabel>Password</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="********" {...field} />
+                    <Input
+                      type="password"
+                      placeholder="Your password"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-
-            {/* Submit */}
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
-              {isSubmitting ? "Processing..." : "Log in"}
+            <Button
+              type="submit"
+              className="w-full !mt-6"
+              size="lg"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Logging in..." : "Log in"}
             </Button>
           </form>
         </Form>
-
-        {/* Link to register page */}
-        <p className="text-center text-sm text-gray-600 mt-4">
+        <p className="text-center text-sm text-muted-foreground">
           Don't have an account?{" "}
-          <button
-            onClick={() => navigate("/register")}
-            className="text-blue-600 hover:underline"
-            type="button"
+          <Link
+            to="/register"
+            className="font-semibold text-foreground hover:underline"
           >
-            Sign up now
-          </button>
+            Create an account
+          </Link>
         </p>
       </div>
     </div>

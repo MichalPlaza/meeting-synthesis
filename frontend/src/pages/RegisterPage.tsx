@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -18,6 +18,9 @@ import { Button } from "@/components/ui/button";
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
 
 const registerFormSchema = z.object({
+  full_name: z
+    .string()
+    .min(2, { message: "Name must be at least 2 characters." }),
   username: z
     .string()
     .min(3, { message: "Username must be at least 3 characters." }),
@@ -25,38 +28,32 @@ const registerFormSchema = z.object({
   password: z
     .string()
     .min(6, { message: "Password must be at least 6 characters." }),
-  full_name: z.string().optional(),
 });
 
 type RegisterFormValues = z.infer<typeof registerFormSchema>;
 
 function RegisterPage() {
   const navigate = useNavigate();
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerFormSchema),
     defaultValues: {
+      full_name: "",
       username: "",
       email: "",
       password: "",
-      full_name: "",
     },
   });
 
   const { isSubmitting } = form.formState;
 
   async function onSubmit(values: RegisterFormValues) {
-    setErrorMessage(null);
-
     const backendApiUrl = `${BACKEND_API_BASE_URL}/auth/register`;
 
     try {
       const response = await fetch(backendApiUrl, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values),
       });
 
@@ -64,41 +61,40 @@ function RegisterPage() {
         const errorData = await response.json();
         const detailMessage =
           errorData.detail || "Registration failed. Please try again.";
-        setErrorMessage(detailMessage);
-        toast.error(detailMessage); // Show error toast
+        toast.error(detailMessage);
         return;
       }
 
-      // Registration successful
-      const responseData = await response.json();
-      console.log("Registration successful!", responseData);
+      toast.success("Account created successfully! You can now log in.");
 
-      // Show success toast instead of alert
-      toast.success("Registration successful! You can now log in.");
-
-      // Redirect to login page after a short delay so the user can see the toast
       setTimeout(() => {
         navigate("/login");
       }, 1500);
     } catch (error) {
       console.error("Error sending registration request:", error);
-      const connectionError =
-        "An error occurred while connecting to the server. Please try again later.";
-      setErrorMessage(connectionError);
-      toast.error(connectionError);
+      toast.error("An error occurred while connecting to the server.");
     }
   }
 
   return (
-    <div className="flex items-center justify-center bg-gray-50 px-40">
-      <div className="w-full max-w-md bg-white p-6 rounded-lg shadow-lg">
-        <h2 className="text-2xl font-bold mb-6 text-center">
-          Register New Account
-        </h2>
-
+    <div className="flex flex-col items-center justify-center">
+      <div className="w-full max-w-sm space-y-6">
+        <h2 className="text-3xl font-bold text-center">Create an account</h2>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {/* Username field */}
+            <FormField
+              control={form.control}
+              name="full_name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Your name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="username"
@@ -112,8 +108,6 @@ function RegisterPage() {
                 </FormItem>
               )}
             />
-
-            {/* Email field */}
             <FormField
               control={form.control}
               name="email"
@@ -121,18 +115,12 @@ function RegisterPage() {
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input
-                      type="email"
-                      placeholder="email@example.com"
-                      {...field}
-                    />
+                    <Input type="email" placeholder="Your email" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-
-            {/* Password field */}
             <FormField
               control={form.control}
               name="password"
@@ -140,45 +128,34 @@ function RegisterPage() {
                 <FormItem>
                   <FormLabel>Password</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="******" {...field} />
+                    <Input
+                      type="password"
+                      placeholder="Your password"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-
-            {/* Full Name Field (Optional) */}
-            <FormField
-              control={form.control}
-              name="full_name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Full Name (Optional)</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Your fullname" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Submit */}
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
-              {isSubmitting ? "Processing..." : "Sign Up"}
+            <Button
+              type="submit"
+              className="w-full !mt-6"
+              size="lg"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Creating account..." : "Create account"}
             </Button>
           </form>
         </Form>
-
-        {/* Link to login page */}
-        <p className="text-center text-sm text-gray-600 mt-4">
+        <p className="text-center text-sm text-muted-foreground">
           Already have an account?{" "}
-          <button
-            onClick={() => navigate("/login")}
-            className="text-blue-600 hover:underline"
-            type="button"
+          <Link
+            to="/login"
+            className="font-semibold text-foreground hover:underline"
           >
-            Sign in now
-          </button>
+            Log in
+          </Link>
         </p>
       </div>
     </div>
