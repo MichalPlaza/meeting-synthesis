@@ -1,56 +1,77 @@
-import { Link, Outlet, useLocation } from 'react-router-dom';
+import { Link, Outlet, useLocation } from "react-router-dom";
 import {
   NavigationMenu,
   NavigationMenuItem,
   NavigationMenuLink,
   NavigationMenuList,
-} from '@/components/ui/navigation-menu';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { useAuth } from '@/AuthContext';
+} from "@/components/ui/navigation-menu";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/AuthContext";
+import { Toaster } from "sonner";
 
 function MainLayout() {
-  const location = useLocation(); 
+  const location = useLocation();
   const { isAuthenticated, user, logout } = useAuth();
-  const userName = user?.full_name
+  const userName = user?.full_name;
 
   const handleLogout = () => {
     logout();
   };
-  
 
   return (
     <div className="bg-gray-50 min-h-screen">
+      <Toaster richColors position="top-center" />
       <header className="bg-blue-950 text-white p-5 flex justify-between items-center px-10 md:px-20">
         <NavigationMenu>
           <NavigationMenuList className="space-x-20">
             <NavigationMenuItem>
-              <Link to="/">
-                <NavigationMenuLink className={cn("px-5 py-2 rounded-md text-lg font-medium", { 'bg-blue-900 text-white': location.pathname === '/' })}>
+              <NavigationMenuLink asChild>
+                <Link
+                  to="/"
+                  className={cn("px-5 py-2 rounded-md text-lg font-medium", {
+                    "bg-blue-900 text-white": location.pathname === "/",
+                  })}
+                >
                   Home
-                </NavigationMenuLink>
-              </Link>
+                </Link>
+              </NavigationMenuLink>
             </NavigationMenuItem>
-             <NavigationMenuItem>
-              <Link to="/guide"> {/* Thay /guide bằng route thực tế */}
-                <NavigationMenuLink className={cn("px-5 py-2 rounded-md text-lg font-medium", { 'bg-blue-900 text-white': location.pathname === '/guide' })}>
+            <NavigationMenuItem>
+              <NavigationMenuLink asChild>
+                <Link
+                  to="/guide"
+                  className={cn("px-5 py-2 rounded-md text-lg font-medium", {
+                    "bg-blue-900 text-white": location.pathname === "/guide",
+                  })}
+                >
                   Guide
-                </NavigationMenuLink>
-              </Link>
+                </Link>
+              </NavigationMenuLink>
             </NavigationMenuItem>
-             <NavigationMenuItem>
-              <Link to="/about"> {/* Thay /about bằng route thực tế */}
-                <NavigationMenuLink className={cn("px-5 py-2 rounded-md text-lg font-medium", { 'bg-blue-900 text-white': location.pathname === '/about' })}>
+            <NavigationMenuItem>
+              <NavigationMenuLink asChild>
+                <Link
+                  to="/about"
+                  className={cn("px-5 py-2 rounded-md text-lg font-medium", {
+                    "bg-blue-900 text-white": location.pathname === "/about",
+                  })}
+                >
                   About
-                </NavigationMenuLink>
-              </Link>
+                </Link>
+              </NavigationMenuLink>
             </NavigationMenuItem>
-             <NavigationMenuItem>
-              <Link to="/contact"> {/* Thay /contact bằng route thực tế */}
-                <NavigationMenuLink className={cn("px-5 py-2 rounded-md text-lg font-medium", { 'bg-blue-900 text-white': location.pathname === '/contact' })}>
+            <NavigationMenuItem>
+              <NavigationMenuLink asChild>
+                <Link
+                  to="/contact"
+                  className={cn("px-5 py-2 rounded-md text-lg font-medium", {
+                    "bg-blue-900 text-white": location.pathname === "/contact",
+                  })}
+                >
                   Contact
-                </NavigationMenuLink>
-              </Link>
+                </Link>
+              </NavigationMenuLink>
             </NavigationMenuItem>
           </NavigationMenuList>
         </NavigationMenu>
@@ -65,41 +86,50 @@ function MainLayout() {
                 </Button>
               </NavigationMenuItem>
               <NavigationMenuItem>
-              <Button
-                onClick={handleLogout}
-                variant="ghost"
-                className="text-white-300 hover:bg-gray-500 hover:text-white px-5 py-5 rounded-md text-lg font-medium" 
-              >
-                Log out
-              </Button>
+                <Button
+                  onClick={handleLogout}
+                  variant="ghost"
+                  className="text-white-300 hover:bg-gray-500 hover:text-white px-5 py-5 rounded-md text-lg font-medium"
+                >
+                  Log out
+                </Button>
               </NavigationMenuItem>
             </NavigationMenuList>
           ) : (
             <NavigationMenuList className="space-x-20">
               <NavigationMenuItem>
-                <Link to="/register">
-                  <NavigationMenuLink className={cn("px-5 py-2 rounded-md text-lg font-medium", { 'bg-blue-900 text-white': location.pathname === '/register' })}>
+                <NavigationMenuLink asChild>
+                  <Link
+                    to="/register"
+                    className={cn("px-5 py-2 rounded-md text-lg font-medium", {
+                      "bg-blue-900 text-white":
+                        location.pathname === "/register",
+                    })}
+                  >
                     Sign up
-                  </NavigationMenuLink>
-                </Link>
+                  </Link>
+                </NavigationMenuLink>
               </NavigationMenuItem>
               <NavigationMenuItem>
-                <Link to="/login">
-                  <NavigationMenuLink className={cn("px-5 py-2 rounded-md text-lg font-medium", { 'bg-blue-900 text-white': location.pathname === '/login' })}>
+                <NavigationMenuLink asChild>
+                  <Link
+                    to="/login"
+                    className={cn("px-5 py-2 rounded-md text-lg font-medium", {
+                      "bg-blue-900 text-white": location.pathname === "/login",
+                    })}
+                  >
                     Log in
-                  </NavigationMenuLink>
-                </Link>
+                  </Link>
+                </NavigationMenuLink>
               </NavigationMenuItem>
             </NavigationMenuList>
           )}
         </NavigationMenu>
-        
       </header>
 
       <main className="container mx-auto p-8">
         <Outlet />
       </main>
-
     </div>
   );
 }
