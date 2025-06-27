@@ -12,13 +12,15 @@ interface FeatureCardProps {
 
 function FeatureCard({ feature }: FeatureCardProps) {
   return (
-    <Card className="flex flex-col items-center text-center p-8 bg-card rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
-      <div className="text-5xl mb-6">{feature.icon}</div>
-      <CardHeader className="p-0 mb-2">
-        <CardTitle className="text-xl font-semibold">{feature.title}</CardTitle>
-      </CardHeader>
+    <Card className="flex flex-col items-center text-center p-6">
+      {/* Optional: Icon or Image */}
+      <div className="text-4xl mb-4">{feature.icon}</div>{" "}
+      {/* Example using emoji as icon */}
+      <CardTitle className="text-xl font-semibold mb-2">
+        {feature.title}
+      </CardTitle>
       <CardContent className="p-0">
-        <p className="text-muted-foreground">{feature.description}</p>
+        <p className="text-gray-600">{feature.description}</p>
       </CardContent>
     </Card>
   );
