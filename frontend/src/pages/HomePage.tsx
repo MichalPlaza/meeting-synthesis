@@ -28,33 +28,36 @@ function HomePage() {
     <div className="flex flex-col items-center text-center">
       {/* Hero Section */}
       <section className="mt-16 w-full">
-        <h1 className="text-4xl md:text-6xl font-bold tracking-tight">
-          Transform Conversations into Knowledge
+        <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
+          Welcome to <span className="text-primary">Meeting Synthesis</span>
         </h1>
+
         <p className="mt-6 max-w-2xl mx-auto text-lg text-muted-foreground">
-          Meeting Synthesis is an engineering project that uses AI to
-          automatically transcribe, summarize, and extract key insights from
-          your meetings. Focus on the conversation, not on taking notes.
+          Effortlessly transform your meeting recordings into concise summaries,
+          actionable items, and key decisions. Focus on what matters, not
+          note-taking.
         </p>
         <div className="mt-8 flex justify-center gap-4">
           <Link to="/register">
             <Button size="lg">Create Account</Button>
           </Link>
           <Link to="/login">
-            <Button size="lg" variant="secondary">
-              Log In
+            <Button size="lg" variant="outline">
+              Already a user? Log In
             </Button>
           </Link>
         </div>
       </section>
 
       {/* Features Section */}
-      <section id="features" className="mt-24 w-full max-w-5xl">
+      <section id="features" className="mt-24 w-full">
         <h2 className="text-3xl font-bold mb-12">Key Features</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {features.map((feature, index) => (
-            <FeatureCard key={index} feature={feature} />
-          ))}
+        <div className="flex justify-center">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl">
+            {features.map((feature, index) => (
+              <FeatureCard key={index} feature={feature} />
+            ))}
+          </div>
         </div>
       </section>
 
