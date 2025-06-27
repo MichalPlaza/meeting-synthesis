@@ -41,6 +41,7 @@ services:
       - "27017:27017"
     volumes:
       - mongodb_data:/data/db
+      - ./mongo-init:/docker-entrypoint-initdb.d # <-- Montuje cały katalog
     environment:
       MONGO_INITDB_DATABASE: meeting_synthesis_db
     restart: unless-stopped

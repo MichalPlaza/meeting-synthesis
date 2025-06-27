@@ -1,0 +1,45 @@
+[
+  {
+    "_id": { "$oid": "685918ff3c2c485cf180dd1c" },
+    "name": "Marketing Strategy Q3",
+    "description": "This project focuses on planning, coordinating, and executing the marketing strategy for the third quarter of 2025. It includes defining campaign goals, setting KPIs, allocating budgets, and assigning responsibilities across the team. Key deliverables include a social media calendar, paid advertising plans, content strategy, and market performance reviews.",
+    "meeting_datetime": { "$date": "2025-06-23T09:06:00.000Z" },
+    "owner_id": { "$oid": "6840a0c4230bee507eb46c5c" },
+    "members_ids": [
+      { "$oid": "6840a0c4230bee507eb46c5c" },
+      { "$oid": "6858e901658d3dc81ed842f5" },
+      { "$oid": "685937aeb8e270cdb0c7a725" },
+      { "$oid": "685a001d97a3d66deaba627f" }
+    ],
+    "created_at": { "$date": "2025-06-23T09:06:07.969Z" },
+    "updated_at": { "$date": "2025-06-23T09:06:07.969Z" }
+  },
+  {
+    "_id": { "$oid": "185918ff3c2c485cf180dd1c" },
+    "name": "Internal Tools Improvement",
+    "description": "This project aims to enhance the internal software tools used across departments to streamline workflows, reduce manual effort, and improve team productivity. The focus areas include upgrading the task tracking system, optimizing internal dashboards, automating report generation, and improving integration with third-party services such as Slack and Jira. Feedback will be collected from team members regularly to prioritize improvements and ensure usability.",
+    "meeting_datetime": { "$date": "2025-06-23T09:06:00.000Z" },
+    "owner_id": { "$oid": "6840a0c4230bee507eb46c5c" },
+    "members_ids": [
+      { "$oid": "6840a0c4230bee507eb46c5c" },
+      { "$oid": "6858e901658d3dc81ed842f5" },
+      { "$oid": "685a008f97a3d66deaba6284" }
+    ],
+    "created_at": { "$date": "2025-06-23T09:06:07.969Z" },
+    "updated_at": { "$date": "2025-06-23T09:06:07.969Z" }
+  },
+  {
+    "_id": { "$oid": "685a0379a39e3b1bb6430e31" },
+    "name": "DevOps Automation Pipeline",
+    "description": "This project aims to automate the software deployment and infrastructure provisioning process by designing and implementing a robust CI/CD pipeline using tools like GitHub Actions, Docker, and Terraform. The goal is to reduce human error, improve deployment consistency, and shorten the release cycle. The pipeline will include stages for build, test, security scanning, deployment to staging/production, and rollback strategies. Metrics will be tracked to evaluate performance improvements post-deployment.",
+    "meeting_datetime": { "$date": "2025-06-18T15:00:00.000Z" },
+    "owner_id": { "$oid": "685937aeb8e270cdb0c7a725" },
+    "members_ids": [
+      { "$oid": "685937aeb8e270cdb0c7a725" },
+      { "$oid": "6858e901658d3dc81ed842f5" },
+      { "$oid": "685a008f97a3d66deaba6284" }
+    ],
+    "created_at": { "$date": "2025-06-23T09:06:07.969Z" },
+    "updated_at": { "$date": "2025-06-23T09:06:07.969Z" }
+  }
+]
