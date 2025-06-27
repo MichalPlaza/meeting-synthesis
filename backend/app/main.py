@@ -13,6 +13,8 @@ app = FastAPI(title="Meeting Synthesis API")
 origins = [
     "http://localhost:5173",  
     "http://127.0.0.1:5173", 
+    "http://localhost:3000",  
+    "http://127.0.0.1:3000"
 ]
 
 # Add CORS middleware to enable cross-origin requests from specified origins
