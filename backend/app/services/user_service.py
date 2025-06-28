@@ -1,12 +1,9 @@
-from datetime import timedelta
-
 from fastapi import HTTPException, status
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
-from ..core.config import ACCESS_TOKEN_EXPIRE_MINUTES
 from ..crud import crud_users
 from ..schemas.user_schema import Token, UserCreate, UserLogin, UserResponse
-from ..services.security import create_access_token, verify_password
+from ..services.security import create_access_token, create_refresh_token, verify_password
 
 
 async def register_new_user(
@@ -36,18 +33,26 @@ async def register_new_user(
 
 
 async def authenticate_user(db: AsyncIOMotorDatabase, form_data: UserLogin) -> Token:
-    user = await crud_users.get_user_by_username_or_email(
-        db, username_or_email=form_data.username_or_email
+    user = await crud_users.get_user_by_email(
+        db, email=form_data.username_or_email
     )
+    
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Nieprawidłowa nazwa użytkownika, email lub hasło",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user.username, "email": user.email},
-        expires_delta=access_token_expires,
+
+    token_data = {"sub": user.username, "email": user.email}
+    access_token = create_access_token(data=token_data)
+    
+    refresh_token = None
+    if form_data.remember_me:
+        refresh_token = create_refresh_token(data=token_data)
+
+    return Token(
+        access_token=access_token, 
+        refresh_token=refresh_token, 
+        token_type="bearer"
     )
-    return Token(access_token=access_token, token_type="bearer")

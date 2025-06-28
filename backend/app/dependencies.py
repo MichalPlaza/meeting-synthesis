@@ -22,7 +22,8 @@ async def get_current_user(
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    token_data = security.decode_access_token(token) 
+    # Poprawiona nazwa funkcji!
+    token_data = security.decode_token(token) 
 
     if token_data is None or token_data.username is None: 
         raise credentials_exception
