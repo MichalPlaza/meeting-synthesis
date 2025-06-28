@@ -105,12 +105,6 @@ function ProjectDetailsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <Link
-          to="/projects"
-          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          ← Back to Projects
-        </Link>
         <div className="mt-4 border-b pb-4">
           <h2 className="text-3xl font-bold text-foreground">{project.name}</h2>
           {project.description && (
