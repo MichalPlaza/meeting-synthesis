@@ -16,7 +16,7 @@ function MainLayout() {
           <Link to="/" className="text-xl font-bold text-foreground">
             Meeting Synthesis
           </Link>
-          <nav className="flex items-center space-x-2 md:space-x-6">
+          <nav className="flex items-center space-x-2 md:space-x-4">
             {isAuthenticated ? (
               <>
                 <Link to="/projects">
@@ -31,26 +31,29 @@ function MainLayout() {
               </>
             ) : (
               <>
-                <Link
-                  to="/#features"
-                  className="hidden md:inline text-sm text-muted-foreground hover:text-foreground transition-colors"
+                <Button
+                  asChild
+                  variant="ghost"
+                  className="hidden md:inline-flex"
                 >
-                  Features
-                </Link>
-                <Link
-                  to="/about"
-                  className="hidden md:inline text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  <Link to="/#features">Features</Link>
+                </Button>
+                <Button
+                  asChild
+                  variant="ghost"
+                  className="hidden md:inline-flex"
                 >
-                  About
-                </Link>
-                <Link
-                  to="/contact"
-                  className="hidden md:inline text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  <Link to="/about">About</Link>
+                </Button>
+                <Button
+                  asChild
+                  variant="ghost"
+                  className="hidden md:inline-flex"
                 >
-                  Contact
-                </Link>
+                  <Link to="/contact">Contact</Link>
+                </Button>
                 <Link to="/login">
-                  <Button variant="default" size="sm">
+                  <Button variant="secondary" size="sm">
                     Log in
                   </Button>
                 </Link>

@@ -35,7 +35,11 @@ function LoginPage() {
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginFormSchema),
-    defaultValues: { username_or_email: "", password: "", remember_me: false },
+    defaultValues: {
+      username_or_email: "",
+      password: "",
+      remember_me: true, // ZMIANA: Ustawienie domyślnej wartości na true
+    },
   });
 
   const { isSubmitting } = form.formState;
@@ -61,7 +65,7 @@ function LoginPage() {
 
       const tokenData = await response.json();
       const accessToken = tokenData.access_token;
-      const refreshToken = tokenData.refresh_token; // Pobieramy refresh token
+      const refreshToken = tokenData.refresh_token;
 
       const userResponse = await fetch(userApiUrl, {
         headers: { Authorization: `Bearer ${accessToken}` },
@@ -73,7 +77,7 @@ function LoginPage() {
       }
 
       const userData = await userResponse.json();
-      login(accessToken, userData, refreshToken); // Przekazujemy refresh token do funkcji login
+      login(accessToken, userData, refreshToken);
       navigate("/");
       toast.success(
         `Welcome back, ${userData.full_name || userData.username}!`
@@ -126,16 +130,20 @@ function LoginPage() {
               control={form.control}
               name="remember_me"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md p-4">
+                <FormItem className="flex flex-row items-center space-x-2 pt-2">
                   <FormControl>
                     <Checkbox
+                      id="remember-me-checkbox"
                       checked={field.value}
                       onCheckedChange={field.onChange}
                     />
                   </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>Remember me</FormLabel>
-                  </div>
+                  <FormLabel
+                    htmlFor="remember-me-checkbox"
+                    className="text-sm font-normal text-muted-foreground hover:cursor-pointer"
+                  >
+                    Remember me
+                  </FormLabel>
                 </FormItem>
               )}
             />
