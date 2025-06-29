@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import FeatureCard from "@/components/FeatureCard";
 import React from "react";
 
-// Dane są teraz maksymalnie proste
 const features = [
   {
     title: "Transcription",
@@ -21,14 +20,12 @@ const features = [
 
 function HomePage() {
   return (
-    <div className="flex flex-col items-center text-center">
-      {/* Hero Section */}
-      <section className="mt-16 w-full">
-        <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
+    <div className="flex flex-col items-center text-center space-y-24">
+      <section className="w-full">
+        <h1>
           Welcome to <span className="text-primary">Meeting Synthesis</span>
         </h1>
-
-        <p className="mt-6 max-w-2xl mx-auto text-lg text-muted-foreground">
+        <p className="mt-6 max-w-2xl mx-auto lead">
           Effortlessly transform your meeting recordings into concise summaries,
           actionable items, and key decisions. Focus on what matters, not
           note-taking.
@@ -45,26 +42,24 @@ function HomePage() {
         </div>
       </section>
 
-      {/* Features Section */}
-      <section id="features" className="mt-24 w-full">
-        <h2 className="text-3xl font-bold mb-12">Key Features</h2>
-        <div className="flex justify-center">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl">
+      <section id="features" className="w-full">
+        <h2 className="mb-12">Key Features</h2>
+        <ul className="flex justify-center">
+          <li className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl">
             {features.map((feature, index) => (
               <FeatureCard key={index} feature={feature} />
             ))}
-          </div>
-        </div>
+          </li>
+        </ul>
       </section>
 
-      {/* Footer Link */}
-      <p className="text-center text-muted-foreground mt-20">
+      <p className="text-center text-muted-foreground">
         Want to learn more?{" "}
-        <Link to="/guide" className="text-primary hover:underline">
+        <Link to="/guide" className="link">
           Read our Guide
         </Link>{" "}
         or{" "}
-        <Link to="/about" className="text-primary hover:underline">
+        <Link to="/about" className="link">
           About Us
         </Link>
         .

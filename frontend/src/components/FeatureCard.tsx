@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useMemo } from "react";
-import { Card, CardContent, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface Feature {
   title: string;
@@ -70,15 +70,14 @@ function FeatureCard({ feature }: FeatureCardProps) {
       1,
     ].sort();
 
-    // Generate more blobs with varied sizes and opacity for an organic feel
     const heightmapGradients = [];
     for (let i = 0; i < 12; i++) {
       heightmapGradients.push({
         rotation: Math.random() * 360,
         translateX: (Math.random() - 0.5) * 300,
         translateY: (Math.random() - 0.5) * 300,
-        scale: Math.random() * 0.8 + 0.5, // Scale from 0.5x to 1.3x
-        opacity: Math.random() * 0.4 + 0.3, // Opacity from 0.3 to 0.7
+        scale: Math.random() * 0.8 + 0.5,
+        opacity: Math.random() * 0.4 + 0.3,
       });
     }
     return { colorPalette, colorStops, heightmapGradients };
@@ -159,24 +158,28 @@ function FeatureCard({ feature }: FeatureCardProps) {
   }, [randomParams]);
 
   return (
-    <Card className="relative flex flex-col justify-center items-center text-center p-8 border-0 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 min-h-[280px] overflow-hidden">
-      <canvas
-        ref={canvasRef}
-        className="absolute inset-0 w-full h-full"
-        width="200"
-        height="200"
-      ></canvas>
-      <div className="absolute inset-0 bg-black/10 backdrop-blur-sm"></div>
+    <li className="list-none">
+      <Card className="relative flex flex-col justify-center items-center text-center p-8 border-0 shadow-lg hover:shadow-2xl transition-all duration-300 min-h-[280px] overflow-hidden rounded-[var(--radius-container)]">
+        <canvas
+          ref={canvasRef}
+          className="absolute inset-0 w-full h-full"
+          width="200"
+          height="200"
+        ></canvas>
+        <div className="absolute inset-0 bg-black/10 backdrop-blur-sm"></div>
 
-      <div className="relative z-10 text-white">
-        <CardTitle className="text-2xl font-bold mb-3 drop-shadow-md">
-          {feature.title}
-        </CardTitle>
-        <CardContent className="p-0">
-          <p className="text-white/80 drop-shadow-sm">{feature.description}</p>
-        </CardContent>
-      </div>
-    </Card>
+        <div className="relative z-10 text-white">
+          <h3 className="text-2xl font-bold mb-3 drop-shadow-md">
+            {feature.title}
+          </h3>
+          <CardContent className="p-0">
+            <p className="text-white/80 drop-shadow-sm">
+              {feature.description}
+            </p>
+          </CardContent>
+        </div>
+      </Card>
+    </li>
   );
 }
 

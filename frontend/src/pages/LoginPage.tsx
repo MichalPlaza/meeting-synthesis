@@ -38,7 +38,7 @@ function LoginPage() {
     defaultValues: {
       username_or_email: "",
       password: "",
-      remember_me: true, // ZMIANA: Ustawienie domyślnej wartości na true
+      remember_me: true,
     },
   });
 
@@ -90,82 +90,84 @@ function LoginPage() {
 
   return (
     <div className="flex flex-col items-center justify-center">
-      <div className="w-full max-w-sm space-y-6">
-        <h2 className="text-3xl font-bold text-center">
+      <div className="w-full max-w-sm space-y-8">
+        <h1 className="text-center text-3xl font-bold tracking-tight">
           Log in to your account
-        </h2>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="username_or_email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input type="email" placeholder="Your email" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Password</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="password"
-                      placeholder="Your password"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="remember_me"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center space-x-2 pt-2">
-                  <FormControl>
-                    <Checkbox
-                      id="remember-me-checkbox"
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                  <FormLabel
-                    htmlFor="remember-me-checkbox"
-                    className="text-sm font-normal text-muted-foreground hover:cursor-pointer"
-                  >
-                    Remember me
-                  </FormLabel>
-                </FormItem>
-              )}
-            />
-            <Button
-              type="submit"
-              className="w-full !mt-6"
-              size="lg"
-              disabled={isSubmitting}
+        </h1>
+        <div className="space-y-6">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="username_or_email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input type="email" placeholder="Your email" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Password</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="password"
+                        placeholder="Your password"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="remember_me"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center space-x-2 pt-2">
+                    <FormControl>
+                      <Checkbox
+                        id="remember-me-checkbox"
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <FormLabel
+                      htmlFor="remember-me-checkbox"
+                      className="text-sm font-normal text-muted-foreground hover:cursor-pointer"
+                    >
+                      Remember me
+                    </FormLabel>
+                  </FormItem>
+                )}
+              />
+              <Button
+                type="submit"
+                className="w-full !mt-8"
+                size="lg"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Logging in..." : "Log in"}
+              </Button>
+            </form>
+          </Form>
+          <p className="text-center subtle">
+            Don't have an account?{" "}
+            <Link
+              to="/register"
+              className="font-semibold text-foreground hover:underline"
             >
-              {isSubmitting ? "Logging in..." : "Log in"}
-            </Button>
-          </form>
-        </Form>
-        <p className="text-center text-sm text-muted-foreground">
-          Don't have an account?{" "}
-          <Link
-            to="/register"
-            className="font-semibold text-foreground hover:underline"
-          >
-            Create an account
-          </Link>
-        </p>
+              Create an account
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

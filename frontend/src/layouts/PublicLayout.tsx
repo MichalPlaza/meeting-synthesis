@@ -10,9 +10,31 @@ function MainLayout() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <Toaster richColors theme="light" position="top-center" />
-      <header className="container mx-auto max-w-5xl p-4">
-        <div className="flex justify-between items-center border-b border-border/50 pb-4">
+      <Toaster
+        position="bottom-right"
+        offset={24}
+        gap={16}
+        richColors
+        toastOptions={{
+          style: {
+            // Styl inline pozostaje pusty
+          },
+          classNames: {
+            toast:
+              "bg-card text-card-foreground border rounded-[var(--radius-container)] shadow-lg",
+            title: "text-base font-semibold",
+            description: "text-muted-foreground",
+            actionButton: "bg-primary text-primary-foreground",
+            cancelButton: "bg-secondary text-secondary-foreground",
+            success: "!border-success/50 [&>div>svg]:text-success",
+            error: "!border-destructive/50 [&>div>svg]:text-destructive",
+            warning: "!border-warning/50 [&>div>svg]:text-warning",
+            info: "!border-info/50 [&>div>svg]:text-info",
+          },
+        }}
+      />
+      <header className="container mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center border-b border-border/50 py-4">
           <Link to="/" className="text-xl font-bold text-foreground">
             Meeting Synthesis
           </Link>
@@ -43,7 +65,7 @@ function MainLayout() {
                   variant="ghost"
                   className="hidden md:inline-flex"
                 >
-                  <Link to="/about">About</Link>
+                  <Link to="/contact">Contact</Link>
                 </Button>
                 <Button
                   asChild
@@ -64,7 +86,7 @@ function MainLayout() {
         </div>
       </header>
 
-      <main className="container mx-auto max-w-5xl p-8">
+      <main className="container mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-12">
         <Outlet />
       </main>
     </div>
