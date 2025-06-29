@@ -26,6 +26,9 @@ class Meeting(BaseModel):
     last_updated_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC)
     )
+    
+    duration_seconds: int | None = None
+    tags: list[str] = []
 
     class Config:
         populate_by_name = True

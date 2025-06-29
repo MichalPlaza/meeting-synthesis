@@ -1,6 +1,4 @@
-
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status, Form
-# from future.backports.datetime import datetime
 from datetime import datetime
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
@@ -26,6 +24,7 @@ async def upload_meeting_with_file(
     meeting_datetime: datetime = Form(...),
     project_id: str = Form(...),
     uploader_id: str = Form(...),
+    tags: str = Form(""),
     file: UploadFile = File(...),
     db: AsyncIOMotorDatabase = Depends(get_database),
 ):
@@ -34,6 +33,7 @@ async def upload_meeting_with_file(
         meeting_datetime=meeting_datetime,
         project_id=project_id,
         uploader_id=uploader_id,
+        tags=tags,
     )
     return await meeting_service.handle_meeting_upload(db, form_data, file)
 
