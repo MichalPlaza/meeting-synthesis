@@ -93,7 +93,7 @@ function MeetingDetailsPage() {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <div className="mb-8">
+      <div className="mb-12">
         <Link
           to={`/projects/${meeting.project_id}`}
           className="subtle hover:text-foreground transition-colors"

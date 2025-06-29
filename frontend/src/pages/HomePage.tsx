@@ -20,8 +20,8 @@ const features = [
 
 function HomePage() {
   return (
-    <div className="flex flex-col items-center text-center">
-      <section className="mt-16 w-full">
+    <div className="flex flex-col items-center text-center space-y-24">
+      <section className="w-full">
         <h1>
           Welcome to <span className="text-primary">Meeting Synthesis</span>
         </h1>
@@ -42,18 +42,18 @@ function HomePage() {
         </div>
       </section>
 
-      <section id="features" className="mt-24 w-full">
+      <section id="features" className="w-full">
         <h2 className="mb-12">Key Features</h2>
-        <div className="flex justify-center">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl">
+        <ul className="flex justify-center">
+          <li className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl">
             {features.map((feature, index) => (
               <FeatureCard key={index} feature={feature} />
             ))}
-          </div>
-        </div>
+          </li>
+        </ul>
       </section>
 
-      <p className="text-center text-muted-foreground mt-20">
+      <p className="text-center text-muted-foreground">
         Want to learn more?{" "}
         <Link to="/guide" className="link">
           Read our Guide

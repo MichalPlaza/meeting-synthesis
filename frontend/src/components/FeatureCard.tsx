@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useMemo } from "react";
-import { Card, CardContent, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface Feature {
   title: string;
@@ -158,24 +158,28 @@ function FeatureCard({ feature }: FeatureCardProps) {
   }, [randomParams]);
 
   return (
-    <Card className="relative flex flex-col justify-center items-center text-center p-8 border-0 hover:shadow-2xl transition-all duration-300 min-h-[280px] overflow-hidden rounded-[var(--radius-container)]">
-      <canvas
-        ref={canvasRef}
-        className="absolute inset-0 w-full h-full"
-        width="200"
-        height="200"
-      ></canvas>
-      <div className="absolute inset-0 bg-black/10 backdrop-blur-sm"></div>
+    <li className="list-none">
+      <Card className="relative flex flex-col justify-center items-center text-center p-8 border-0 shadow-lg hover:shadow-2xl transition-all duration-300 min-h-[280px] overflow-hidden rounded-[var(--radius-container)]">
+        <canvas
+          ref={canvasRef}
+          className="absolute inset-0 w-full h-full"
+          width="200"
+          height="200"
+        ></canvas>
+        <div className="absolute inset-0 bg-black/10 backdrop-blur-sm"></div>
 
-      <div className="relative z-10 text-white">
-        <CardTitle className="text-2xl font-bold mb-3 drop-shadow-md">
-          {feature.title}
-        </CardTitle>
-        <CardContent className="p-0">
-          <p className="text-white/80 drop-shadow-sm">{feature.description}</p>
-        </CardContent>
-      </div>
-    </Card>
+        <div className="relative z-10 text-white">
+          <h3 className="text-2xl font-bold mb-3 drop-shadow-md">
+            {feature.title}
+          </h3>
+          <CardContent className="p-0">
+            <p className="text-white/80 drop-shadow-sm">
+              {feature.description}
+            </p>
+          </CardContent>
+        </div>
+      </Card>
+    </li>
   );
 }
 

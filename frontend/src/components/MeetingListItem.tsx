@@ -11,7 +11,7 @@ function MeetingListItem({ meeting }: MeetingListItemProps) {
   const formattedDatetime = format(new Date(meeting.meeting_datetime), "PPP p");
 
   return (
-    <div className="flex justify-between items-center p-4 bg-card rounded-[var(--radius-container)] hover:shadow-xl transition-shadow duration-300 border">
+    <li className="flex justify-between items-center p-4 bg-card rounded-[var(--radius-container)] shadow-md hover:shadow-xl transition-shadow duration-300 border">
       <div>
         <h3 className="text-lg font-semibold">{meeting.title}</h3>
         <p className="text-sm text-muted-foreground">
@@ -23,7 +23,7 @@ function MeetingListItem({ meeting }: MeetingListItemProps) {
           View Meeting
         </Button>
       </Link>
-    </div>
+    </li>
   );
 }
 
