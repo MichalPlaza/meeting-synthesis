@@ -7,10 +7,10 @@ import PublicLayout from "./layouts/PublicLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ProjectListPage from "./pages/ProjectListPage";
 import { useAuth } from "./AuthContext";
-import CreateProjectPage from "./pages/CreateProjectPage";
+// import CreateProjectPage from "./pages/CreateProjectPage"; // <-- USUWAMY
 import ProjectDetailsPage from "./pages/ProjectDetailsPage";
 import MeetingDetailsPage from "./pages/MeetingDetailsPage";
-import MeetingsListPage from "./pages/MeetingsListPage"; // <-- IMPORT
+import MeetingsListPage from "./pages/MeetingsListPage";
 import StyleGuidePage from "./pages/StyleGuidePage";
 
 function App() {
@@ -24,7 +24,7 @@ function App() {
             path="/"
             element={
               isAuthenticated ? (
-                <Navigate to="/meetings" replace /> // <-- ZMIANA: Przekierowanie na /meetings
+                <Navigate to="/meetings" replace />
               ) : (
                 <HomePage />
               )
@@ -36,10 +36,8 @@ function App() {
           <Route path="/style-guide" element={<StyleGuidePage />} />
 
           <Route element={<ProtectedRoute />}>
-            <Route path="/meetings" element={<MeetingsListPage />} />{" "}
-            {/* <-- NOWA STRONA */}
+            <Route path="/meetings" element={<MeetingsListPage />} />
             <Route path="/projects" element={<ProjectListPage />} />
-            <Route path="/projects/new" element={<CreateProjectPage />} />
             <Route
               path="/projects/:projectId"
               element={<ProjectDetailsPage />}
