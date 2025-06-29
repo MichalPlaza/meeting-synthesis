@@ -5,153 +5,82 @@
     "title": "Campaign Review Meeting",
     "meeting_datetime": { "$date": "2025-06-23T09:06:00.000Z" },
     "project_id": { "$oid": "685918ff3c2c485cf180dd1c" },
+    "duration_seconds": 2700,
+    "tags": ["marketing", "q3-planning"],
     "audio_file": {
-      "original_filename": "string",
+      "original_filename": "review.mp3",
       "storage_path_or_url": "string",
-      "mimetype": "string"
+      "mimetype": "audio/mpeg"
     },
     "processing_config": {
       "language": "pl",
       "processing_mode_selected": "local"
     },
     "processing_status": {
-      "current_stage": "uploaded",
+      "current_stage": "completed",
       "completed_at": { "$date": "2025-06-23T10:25:56.803Z" },
-      "error_message": "string"
+      "error_message": null
     },
-    "transcription": { "full_text": "string" },
+    "transcription": { "full_text": "Full transcription text here..." },
     "ai_analysis": {
-      "summary": "string",
+      "summary": "Summary of the campaign review...",
       "key_topics": [],
       "action_items": [],
       "decisions_made": [],
       "mentioned_dates": []
     },
-    "updated_at": { "$date": "2025-06-23T09:06:07.969Z" },
     "last_updated_at": { "$date": "2025-06-23T09:06:07.969Z" }
   },
   {
     "_id": { "$oid": "6859266dea00f2f41f04d35d" },
-    "title": "Sprint 5 Daily Standup",
-    "meeting_datetime": { "$date": "2025-06-23T09:06:00.000Z" },
-    "project_id": { "$oid": "685918ff3c2c485cf180dd1c" },
     "uploader_id": { "$oid": "385918ff3c2c485cf180dd1c" },
+    "title": "Sprint 5 Daily Standup",
+    "meeting_datetime": { "$date": "2025-06-24T09:00:00.000Z" },
+    "project_id": { "$oid": "685918ff3c2c485cf180dd1c" },
+    "duration_seconds": 950,
+    "tags": ["standup", "dev-team"],
     "audio_file": {
-      "original_filename": "string",
+      "original_filename": "standup.wav",
       "storage_path_or_url": "string",
-      "mimetype": "string"
+      "mimetype": "audio/wav"
     },
     "processing_config": {
-      "language": "pl",
+      "language": "en",
       "processing_mode_selected": "local"
     },
     "processing_status": {
-      "current_stage": "uploaded",
-      "completed_at": { "$date": "2025-06-23T10:25:56.803Z" },
-      "error_message": "string"
+      "current_stage": "completed",
+      "completed_at": null,
+      "error_message": null
     },
-    "transcription": { "full_text": "string" },
-    "ai_analysis": {
-      "summary": "string",
-      "key_topics": [],
-      "action_items": [],
-      "decisions_made": [],
-      "mentioned_dates": []
-    },
-    "updated_at": { "$date": "2025-06-23T09:06:07.969Z" },
-    "last_updated_at": { "$date": "2025-06-23T09:06:07.969Z" }
+    "transcription": { "full_text": null },
+    "ai_analysis": null,
+    "last_updated_at": { "$date": "2025-06-24T09:01:07.969Z" }
   },
   {
     "_id": { "$oid": "6859361dea00f2f41f04d396" },
-    "title": "Marketing Strategy Q3",
-    "meeting_datetime": { "$date": "2025-06-23T09:06:00.000Z" },
-    "project_id": { "$oid": "685918ff3c2c485cf180dd1c" },
     "uploader_id": { "$oid": "285918ff3c2c485cf180dd1c" },
-    "audio_file": {
-      "original_filename": "string",
-      "storage_path_or_url": "string",
-      "mimetype": "string"
-    },
-    "processing_config": {
-      "language": "pl",
-      "processing_mode_selected": "local"
-    },
-    "processing_status": {
-      "current_stage": "uploaded",
-      "completed_at": { "$date": "2025-06-23T10:25:56.803Z" },
-      "error_message": "string"
-    },
-    "transcription": { "full_text": "string" },
-    "ai_analysis": {
-      "summary": "string",
-      "key_topics": [],
-      "action_items": [],
-      "decisions_made": [],
-      "mentioned_dates": []
-    },
-    "updated_at": { "$date": "2025-06-23T09:06:07.969Z" },
-    "last_updated_at": { "$date": "2025-06-23T09:06:07.969Z" }
-  },
-  {
-    "_id": { "$oid": "685a0508a39e3b1bb6430e34" },
-    "title": "UX Design Review – Mobile App",
-    "meeting_datetime": { "$date": "2025-06-23T09:06:00.000Z" },
+    "title": "Client Onboarding - Acme Corp",
+    "meeting_datetime": { "$date": "2025-06-20T14:30:00.000Z" },
     "project_id": { "$oid": "185918ff3c2c485cf180dd1c" },
-    "uploader_id": { "$oid": "385918ff3c2c485cf180dd1c" },
+    "duration_seconds": 3650,
+    "tags": ["client-facing", "onboarding", "critical"],
     "audio_file": {
-      "original_filename": "string",
+      "original_filename": "acme-onboarding.m4a",
       "storage_path_or_url": "string",
-      "mimetype": "string"
+      "mimetype": "audio/mp4"
     },
     "processing_config": {
-      "language": "pl",
+      "language": "en",
       "processing_mode_selected": "local"
     },
     "processing_status": {
-      "current_stage": "uploaded",
-      "completed_at": { "$date": "2025-06-23T10:25:56.803Z" },
-      "error_message": "string"
+      "current_stage": "failed",
+      "completed_at": null,
+      "error_message": "Audio encoding not supported."
     },
-    "transcription": { "full_text": "string" },
-    "ai_analysis": {
-      "summary": "string",
-      "key_topics": [],
-      "action_items": [],
-      "decisions_made": [],
-      "mentioned_dates": []
-    },
-    "updated_at": { "$date": "2025-06-23T09:06:07.969Z" },
-    "last_updated_at": { "$date": "2025-06-23T09:06:07.969Z" }
-  },
-  {
-    "_id": { "$oid": "685a0593a39e3b1bb6430e39" },
-    "title": "Infrastructure Upgrade Planning",
-    "meeting_datetime": { "$date": "2025-06-23T09:06:00.000Z" },
-    "project_id": { "$oid": "185918ff3c2c485cf180dd1c" },
-    "uploader_id": { "$oid": "385918ff3c2c485cf180dd1c" },
-    "audio_file": {
-      "original_filename": "string",
-      "storage_path_or_url": "string",
-      "mimetype": "string"
-    },
-    "processing_config": {
-      "language": "pl",
-      "processing_mode_selected": "local"
-    },
-    "processing_status": {
-      "current_stage": "uploaded",
-      "completed_at": { "$date": "2025-06-23T10:25:56.803Z" },
-      "error_message": "string"
-    },
-    "transcription": { "full_text": "string" },
-    "ai_analysis": {
-      "summary": "string",
-      "key_topics": [],
-      "action_items": [],
-      "decisions_made": [],
-      "mentioned_dates": []
-    },
-    "updated_at": { "$date": "2025-06-23T09:06:07.969Z" },
-    "last_updated_at": { "$date": "2025-06-23T09:06:07.969Z" }
+    "transcription": null,
+    "ai_analysis": null,
+    "last_updated_at": { "$date": "2025-06-20T15:30:00.969Z" }
   }
 ]

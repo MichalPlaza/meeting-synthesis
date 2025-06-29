@@ -1,8 +1,7 @@
-
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status, Form
-# from future.backports.datetime import datetime
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status, Form, Query
 from datetime import datetime
 from motor.motor_asyncio import AsyncIOMotorDatabase
+from typing import List
 
 from ...db.mongodb_utils import get_database
 from ...schemas.meeting_schema import MeetingCreate, MeetingResponse, MeetingUpdate, MeetingCreateForm
@@ -19,6 +18,18 @@ async def create_meeting(
     meeting = await meeting_service.create_new_meeting(db, meeting_in)
     return meeting
 
+@router.get("/", response_model=List[MeetingResponse])
+async def list_meetings(
+    q: str = Query(None, description="Search term for meeting titles"),
+    project_ids: List[str] = Query(None, description="List of project IDs to filter by"),
+    tags: List[str] = Query(None, description="List of tags to filter by"),
+    sort_by: str = Query("newest", description="Sort order"),
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    meetings = await meeting_service.get_meetings_with_filters(
+        db=db, q=q, project_ids=project_ids, tags=tags, sort_by=sort_by
+    )
+    return meetings
 
 @router.post("/upload", response_model=MeetingResponse, status_code=status.HTTP_201_CREATED)
 async def upload_meeting_with_file(
@@ -26,6 +37,7 @@ async def upload_meeting_with_file(
     meeting_datetime: datetime = Form(...),
     project_id: str = Form(...),
     uploader_id: str = Form(...),
+    tags: str = Form(""),
     file: UploadFile = File(...),
     db: AsyncIOMotorDatabase = Depends(get_database),
 ):
@@ -34,6 +46,7 @@ async def upload_meeting_with_file(
         meeting_datetime=meeting_datetime,
         project_id=project_id,
         uploader_id=uploader_id,
+        tags=tags,
     )
     return await meeting_service.handle_meeting_upload(db, form_data, file)
 

@@ -10,7 +10,8 @@ import { useAuth } from "./AuthContext";
 import CreateProjectPage from "./pages/CreateProjectPage";
 import ProjectDetailsPage from "./pages/ProjectDetailsPage";
 import MeetingDetailsPage from "./pages/MeetingDetailsPage";
-import StyleGuidePage from "./pages/StyleGuidePage"; // <-- IMPORT
+import MeetingsListPage from "./pages/MeetingsListPage"; // <-- IMPORT
+import StyleGuidePage from "./pages/StyleGuidePage";
 
 function App() {
   const { isAuthenticated } = useAuth();
@@ -23,7 +24,7 @@ function App() {
             path="/"
             element={
               isAuthenticated ? (
-                <Navigate to="/projects" replace />
+                <Navigate to="/meetings" replace /> // <-- ZMIANA: Przekierowanie na /meetings
               ) : (
                 <HomePage />
               )
@@ -32,10 +33,11 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
 
-          {/* --- STAŁA ŚCIEŻKA DO WZORNIKA --- */}
           <Route path="/style-guide" element={<StyleGuidePage />} />
 
           <Route element={<ProtectedRoute />}>
+            <Route path="/meetings" element={<MeetingsListPage />} />{" "}
+            {/* <-- NOWA STRONA */}
             <Route path="/projects" element={<ProjectListPage />} />
             <Route path="/projects/new" element={<CreateProjectPage />} />
             <Route

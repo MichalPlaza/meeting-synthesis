@@ -21,8 +21,10 @@ class MeetingBase(BaseModel):
 class MeetingCreate(MeetingBase):
     audio_file: AudioFile
     processing_config: ProcessingConfig | None = (
-        None  # można pominąć — zostanie ustawione domyślnie w modelu
+        None
     )
+    duration_seconds: int | None = None
+    tags: list[str] = []
 
 
 class MeetingUpdate(BaseModel):
@@ -33,6 +35,8 @@ class MeetingUpdate(BaseModel):
     processing_status: ProcessingStatus | None = None
     transcription: Transcription | None = None
     ai_analysis: AIAnalysis | None = None
+    duration_seconds: int | None = None
+    tags: list[str] | None = None
 
 
 class MeetingResponse(MeetingBase):
@@ -44,6 +48,8 @@ class MeetingResponse(MeetingBase):
     ai_analysis: AIAnalysis | None = None
     uploaded_at: datetime
     last_updated_at: datetime
+    duration_seconds: int | None = None
+    tags: list[str] = []
 
     class Config:
         from_attributes = True
@@ -58,14 +64,20 @@ class MeetingCreateForm:
         meeting_datetime: datetime = Form(...),
         project_id: str = Form(...),
         uploader_id: str = Form(...),
+        tags: str = Form("")
     ):
         self.title = title
         self.meeting_datetime = meeting_datetime
         self.project_id = PyObjectId(project_id)
         self.uploader_id = PyObjectId(uploader_id)
+        self.tags = [tag.strip() for tag in tags.split(',') if tag.strip()]
 
-    def to_meeting_create(self, audio_file: AudioFile, config: ProcessingConfig | None = None):
-
+    def to_meeting_create(
+        self, 
+        audio_file: AudioFile, 
+        duration: int | None,
+        config: ProcessingConfig | None = None
+    ):
         return MeetingCreate(
             title=self.title,
             meeting_datetime=self.meeting_datetime,
@@ -73,4 +85,6 @@ class MeetingCreateForm:
             uploader_id=self.uploader_id,
             audio_file=audio_file,
             processing_config=config or ProcessingConfig(),
+            duration_seconds=duration,
+            tags=self.tags
         )
