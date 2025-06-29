@@ -44,12 +44,10 @@ function HomePage() {
 
       <section id="features" className="w-full">
         <h2 className="mb-12">Key Features</h2>
-        <ul className="flex justify-center">
-          <li className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl">
-            {features.map((feature, index) => (
-              <FeatureCard key={index} feature={feature} />
-            ))}
-          </li>
+        <ul className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          {features.map((feature, index) => (
+            <FeatureCard key={index} feature={feature} />
+          ))}
         </ul>
       </section>
 
