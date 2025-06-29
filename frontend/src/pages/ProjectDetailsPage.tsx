@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import MeetingListItem from "@/components/MeetingListItem";
+import MeetingListItem from "@/components/MeetingListItem"; // <-- Już jest
 import type { Project } from "@/types/project";
 import type { Meeting } from "@/types/meeting";
 import { useAuth } from "@/AuthContext";
 import { Button } from "@/components/ui/button";
-import { FolderOpen, Mic, PlusIcon } from "lucide-react";
+import { Mic, PlusIcon, FolderOpen } from "lucide-react"; // <-- Dodano FolderOpen
 import EmptyState from "@/components/EmptyState";
 import ErrorState from "@/components/ErrorState";
 
@@ -77,6 +77,7 @@ function ProjectDetailsPage() {
   }, [fetchProjectData]);
 
   if (loading) {
+    // TODO: W przyszłości można dodać szkielet dla tej strony
     return (
       <p className="text-center text-muted-foreground">
         Loading project details...
