@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import type { Meeting } from "@/types/meeting";
 import { useAuth } from "@/AuthContext";
@@ -16,7 +16,10 @@ import {
   Flag,
   Sparkles,
   ListTree,
+  FolderOpen, // Dodano FolderOpen, choć nieużywane w tym pliku, to z poprzedniej modyfikacji
 } from "lucide-react";
+import ErrorState from "@/components/ErrorState";
+import EmptyState from "@/components/EmptyState";
 
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
 
@@ -29,37 +32,38 @@ function MeetingDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchMeetingData = async () => {
-      if (!token || !meetingId) {
-        setError("Authentication token or Meeting ID is missing.");
-        setLoading(false);
-        return;
+  const fetchMeetingData = useCallback(async () => {
+    if (!token || !meetingId) {
+      setError("Authentication token or Meeting ID is missing.");
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    const meetingApiUrl = `${BACKEND_API_BASE_URL}/meetings/${meetingId}`;
+    try {
+      const response = await fetch(meetingApiUrl, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) {
+        if (response.status === 404)
+          throw new Error(`Meeting with ID "${meetingId}" not found.`);
+        throw new Error(
+          `Failed to fetch meeting details (Status: ${response.status})`
+        );
       }
-      setLoading(true);
-      setError(null);
-      const meetingApiUrl = `${BACKEND_API_BASE_URL}/meetings/${meetingId}`;
-      try {
-        const response = await fetch(meetingApiUrl, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!response.ok) {
-          if (response.status === 404)
-            throw new Error(`Meeting with ID "${meetingId}" not found.`);
-          throw new Error(
-            `Failed to fetch meeting details (Status: ${response.status})`
-          );
-        }
-        const meetingData: Meeting = await response.json();
-        setMeeting(meetingData);
-      } catch (err: any) {
-        setError(err.message || "Failed to connect to server.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchMeetingData();
+      const meetingData: Meeting = await response.json();
+      setMeeting(meetingData);
+    } catch (err: any) {
+      setError(err.message || "Failed to connect to server.");
+    } finally {
+      setLoading(false);
+    }
   }, [meetingId, token, logout, navigate]);
+
+  useEffect(() => {
+    fetchMeetingData();
+  }, [fetchMeetingData]);
 
   if (loading) {
     return (
@@ -71,19 +75,21 @@ function MeetingDetailsPage() {
   }
   if (error) {
     return (
-      <div className="text-center">
-        <p className="text-destructive font-semibold">{error}</p>
-        <Link to="/projects" className="mt-4 inline-block">
-          <Button variant="outline">← Back to Projects</Button>
-        </Link>
-      </div>
+      <ErrorState message={error} onRetry={fetchMeetingData}>
+        <Button variant="outline" asChild>
+          {/* --- ZMIANA TUTAJ: Wstecz do listy spotkań --- */}
+          <Link to="/meetings">← Meetings</Link>
+        </Button>
+      </ErrorState>
     );
   }
   if (!meeting) {
     return (
-      <p className="text-center text-muted-foreground">
-        Meeting details could not be loaded.
-      </p>
+      <EmptyState
+        icon={FolderOpen}
+        title="Meeting Not Found"
+        description="We couldn't find a meeting with the specified ID."
+      />
     );
   }
 
@@ -94,11 +100,12 @@ function MeetingDetailsPage() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-12">
+        {/* --- ZMIANA TUTAJ: Wstecz do listy spotkań --- */}
         <Link
-          to={`/projects/${meeting.project_id}`}
+          to={`/meetings`}
           className="subtle hover:text-foreground transition-colors"
         >
-          ← Back to Project
+          ← Meetings
         </Link>
       </div>
 
