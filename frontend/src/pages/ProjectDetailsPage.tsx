@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import MeetingListItem from "@/components/MeetingListItem"; // <-- Już jest
+import MeetingListItem from "@/components/MeetingListItem";
 import type { Project } from "@/types/project";
 import type { Meeting } from "@/types/meeting";
 import { useAuth } from "@/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Mic, PlusIcon, FolderOpen } from "lucide-react"; // <-- Dodano FolderOpen
+import { Mic, PlusIcon, FolderOpen } from "lucide-react";
 import EmptyState from "@/components/EmptyState";
 import ErrorState from "@/components/ErrorState";
 
@@ -77,7 +77,6 @@ function ProjectDetailsPage() {
   }, [fetchProjectData]);
 
   if (loading) {
-    // TODO: W przyszłości można dodać szkielet dla tej strony
     return (
       <p className="text-center text-muted-foreground">
         Loading project details...
@@ -89,7 +88,7 @@ function ProjectDetailsPage() {
     return (
       <ErrorState message={error} onRetry={fetchProjectData}>
         <Button variant="outline" asChild>
-          <Link to="/projects">← Back to Projects</Link>
+          <Link to="/projects">← Projects</Link>
         </Button>
       </ErrorState>
     );
@@ -107,6 +106,15 @@ function ProjectDetailsPage() {
 
   return (
     <div className="space-y-12">
+      <div className="mb-12">
+        <Link
+          to={`/projects`}
+          className="subtle hover:text-foreground transition-colors"
+        >
+          ← Projects
+        </Link>
+      </div>
+
       <section>
         <div className="border-b pb-6">
           <h1 className="text-3xl font-bold tracking-tight">{project.name}</h1>
