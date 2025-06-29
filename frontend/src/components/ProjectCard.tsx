@@ -19,7 +19,7 @@ function ProjectCard({ project }: ProjectCardProps) {
   const formattedDate = format(new Date(project.created_at), "PP");
 
   return (
-    <Card className="flex flex-col h-full bg-card rounded-xl shadow-md hover:shadow-xl transition-shadow duration-300">
+    <Card className="flex flex-col h-full bg-card hover:shadow-xl transition-shadow duration-300 rounded-[var(--radius-container)]">
       <CardHeader className="pb-2">
         <CardTitle className="text-lg font-semibold truncate">
           {project.name}

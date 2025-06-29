@@ -88,24 +88,23 @@ function MeetingDetailsPage() {
   }
 
   const processedDate = format(new Date(meeting.meeting_datetime), "PPP, p");
-  const cardClassName = "mt-4 bg-card rounded-xl shadow-md border p-6";
+  const cardClassName =
+    "mt-4 bg-card rounded-[var(--radius-container)] shadow-md border p-6";
 
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-8">
         <Link
           to={`/projects/${meeting.project_id}`}
-          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          className="subtle hover:text-foreground transition-colors"
         >
           ← Back to Project
         </Link>
       </div>
 
       <div className="space-y-2 mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
-          {meeting.title}
-        </h1>
-        <p className="text-muted-foreground">Processed on {processedDate}</p>
+        <h1>{meeting.title}</h1>
+        <p className="subtle">Processed on {processedDate}</p>
       </div>
 
       <Tabs defaultValue="ai-summary" className="w-full">

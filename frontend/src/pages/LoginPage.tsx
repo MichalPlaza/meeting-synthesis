@@ -38,7 +38,7 @@ function LoginPage() {
     defaultValues: {
       username_or_email: "",
       password: "",
-      remember_me: true, // ZMIANA: Ustawienie domyślnej wartości na true
+      remember_me: true,
     },
   });
 
@@ -91,9 +91,7 @@ function LoginPage() {
   return (
     <div className="flex flex-col items-center justify-center">
       <div className="w-full max-w-sm space-y-6">
-        <h2 className="text-3xl font-bold text-center">
-          Log in to your account
-        </h2>
+        <h2 className="text-center">Log in to your account</h2>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
@@ -157,7 +155,7 @@ function LoginPage() {
             </Button>
           </form>
         </Form>
-        <p className="text-center text-sm text-muted-foreground">
+        <p className="text-center subtle">
           Don't have an account?{" "}
           <Link
             to="/register"

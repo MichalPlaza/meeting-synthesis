@@ -70,15 +70,14 @@ function FeatureCard({ feature }: FeatureCardProps) {
       1,
     ].sort();
 
-    // Generate more blobs with varied sizes and opacity for an organic feel
     const heightmapGradients = [];
     for (let i = 0; i < 12; i++) {
       heightmapGradients.push({
         rotation: Math.random() * 360,
         translateX: (Math.random() - 0.5) * 300,
         translateY: (Math.random() - 0.5) * 300,
-        scale: Math.random() * 0.8 + 0.5, // Scale from 0.5x to 1.3x
-        opacity: Math.random() * 0.4 + 0.3, // Opacity from 0.3 to 0.7
+        scale: Math.random() * 0.8 + 0.5,
+        opacity: Math.random() * 0.4 + 0.3,
       });
     }
     return { colorPalette, colorStops, heightmapGradients };
@@ -159,7 +158,7 @@ function FeatureCard({ feature }: FeatureCardProps) {
   }, [randomParams]);
 
   return (
-    <Card className="relative flex flex-col justify-center items-center text-center p-8 border-0 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 min-h-[280px] overflow-hidden">
+    <Card className="relative flex flex-col justify-center items-center text-center p-8 border-0 hover:shadow-2xl transition-all duration-300 min-h-[280px] overflow-hidden rounded-[var(--radius-container)]">
       <canvas
         ref={canvasRef}
         className="absolute inset-0 w-full h-full"

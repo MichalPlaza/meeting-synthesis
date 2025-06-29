@@ -106,7 +106,7 @@ function ProjectDetailsPage() {
     <div className="space-y-8">
       <div>
         <div className="mt-4 border-b pb-4">
-          <h2 className="text-3xl font-bold text-foreground">{project.name}</h2>
+          <h2>{project.name}</h2>
           {project.description && (
             <p className="text-muted-foreground mt-2 max-w-2xl">
               {project.description}
@@ -117,7 +117,7 @@ function ProjectDetailsPage() {
 
       <div>
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-2xl font-bold">Meetings</h3>
+          <h3>Meetings</h3>
           {user && project.owner_id === user._id && (
             <Link to={`/projects/${projectId}/meetings/new`}>
               <Button>
@@ -128,11 +128,11 @@ function ProjectDetailsPage() {
         </div>
 
         {meetings.length === 0 ? (
-          <div className="text-center py-10 border-2 border-dashed border-border rounded-lg">
+          <div className="text-center py-10 border-2 border-dashed border-border rounded-[var(--radius-container)]">
             <p className="text-muted-foreground">
               🎤 No meetings found for this project.
             </p>
-            <p className="mt-2 text-sm text-muted-foreground">
+            <p className="mt-2 subtle">
               Click 'Add New Meeting' to get started!
             </p>
           </div>

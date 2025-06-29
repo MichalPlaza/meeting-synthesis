@@ -70,7 +70,7 @@ function ProjectListPage() {
 
   return (
     <div className="relative">
-      <h2 className="text-3xl font-bold mb-6">My Projects</h2>
+      <h2 className="mb-6">My Projects</h2>
 
       <AddProjectButton />
 
@@ -82,9 +82,9 @@ function ProjectListPage() {
       {!loading && !error && (
         <>
           {projects.length === 0 ? (
-            <div className="text-center py-10 border-2 border-dashed border-border rounded-lg">
+            <div className="text-center py-10 border-2 border-dashed border-border rounded-[var(--radius-container)]">
               <p className="text-muted-foreground">📂 No projects found.</p>
-              <p className="mt-2 text-sm text-muted-foreground">
+              <p className="mt-2 subtle">
                 Click the '+' button to get started!
               </p>
             </div>

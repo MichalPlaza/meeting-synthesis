@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate, Link } from "react-router-dom";
 import { z } from "zod";
@@ -79,7 +78,7 @@ function RegisterPage() {
   return (
     <div className="flex flex-col items-center justify-center">
       <div className="w-full max-w-sm space-y-6">
-        <h2 className="text-3xl font-bold text-center">Create an account</h2>
+        <h2 className="text-center">Create an account</h2>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
@@ -148,7 +147,7 @@ function RegisterPage() {
             </Button>
           </form>
         </Form>
-        <p className="text-center text-sm text-muted-foreground">
+        <p className="text-center subtle">
           Already have an account?{" "}
           <Link
             to="/login"

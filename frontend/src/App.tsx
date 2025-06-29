@@ -1,15 +1,16 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 
-import HomePage from './pages/HomePage'
-import LoginPage from './pages/LoginPage'
-import RegisterPage from './pages/RegisterPage'
-import PublicLayout from './layouts/PublicLayout'
-import ProtectedRoute from './components/ProtectedRoute'
-import ProjectListPage from './pages/ProjectListPage'
-import { useAuth } from './AuthContext'
-import CreateProjectPage from './pages/CreateProjectPage'
-import ProjectDetailsPage from './pages/ProjectDetailsPage'
-import MeetingDetailsPage from './pages/MeetingDetailsPage'
+import HomePage from "./pages/HomePage";
+import LoginPage from "./pages/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
+import PublicLayout from "./layouts/PublicLayout";
+import ProtectedRoute from "./components/ProtectedRoute";
+import ProjectListPage from "./pages/ProjectListPage";
+import { useAuth } from "./AuthContext";
+import CreateProjectPage from "./pages/CreateProjectPage";
+import ProjectDetailsPage from "./pages/ProjectDetailsPage";
+import MeetingDetailsPage from "./pages/MeetingDetailsPage";
+// Usunięto import DesignSystemPage
 
 function App() {
   const { isAuthenticated } = useAuth();
@@ -30,11 +31,18 @@ function App() {
           />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          {/* Usunięto trasę /design-system-preview */}
           <Route element={<ProtectedRoute />}>
             <Route path="/projects" element={<ProjectListPage />} />
             <Route path="/projects/new" element={<CreateProjectPage />} />
-            <Route path="/projects/:projectId" element={<ProjectDetailsPage />} />
-            <Route path="/meetings/:meetingId" element={<MeetingDetailsPage />} />
+            <Route
+              path="/projects/:projectId"
+              element={<ProjectDetailsPage />}
+            />
+            <Route
+              path="/meetings/:meetingId"
+              element={<MeetingDetailsPage />}
+            />
           </Route>
         </Route>
 
@@ -44,8 +52,7 @@ function App() {
             <div className="text-center mt-10 text-xl">404 Not Found</div>
           }
         />
-
-    </Routes>
+      </Routes>
     </>
   );
 }
