@@ -1,25 +1,21 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import FeatureCard from "@/components/FeatureCard";
+import React from "react";
 
+// Dane są teraz maksymalnie proste
 const features = [
   {
-    title: "Automatic Transcription",
-    description:
-      "Get accurate text transcripts from your audio recordings automatically.",
-    icon: "🎤",
+    title: "Transcription",
+    description: "Get accurate transcripts from your audio recordings.",
   },
   {
-    title: "AI Summarization",
-    description:
-      "Quickly understand the main points with AI-powered summaries.",
-    icon: "📝",
+    title: "Summarization",
+    description: "Quickly understand the main points of your meeting.",
   },
   {
-    title: "Action Item Extraction",
-    description:
-      "Identify and track actionable tasks and decisions from meetings.",
-    icon: "✅",
+    title: "Action Items",
+    description: "Identify and track actionable tasks and decisions.",
   },
 ];
 
