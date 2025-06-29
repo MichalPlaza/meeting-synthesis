@@ -61,4 +61,6 @@ export interface Meeting {
   processing_status: ProcessingStatus;
   transcription: Transcription | null;
   ai_analysis: AiAnalysis | null;
+  duration_seconds: number | null;
+  tags: string[];
 }

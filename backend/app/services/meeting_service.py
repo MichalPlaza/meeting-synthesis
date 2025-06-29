@@ -56,6 +56,16 @@ async def get_meetings_for_project(
     return await crud_meetings.get_meetings_by_project(db, project_id)
 
 
+async def get_meetings_with_filters(
+    db: AsyncIOMotorDatabase,
+    q: str | None,
+    project_ids: list[str] | None,
+    tags: list[str] | None,
+    sort_by: str,
+) -> list[Meeting]:
+    return await crud_meetings.get_meetings_filtered(db, q, project_ids, tags, sort_by)
+
+
 async def update_existing_meeting(
     db: AsyncIOMotorDatabase, meeting_id: str, update_data: MeetingUpdate
 ) -> Meeting | None:
