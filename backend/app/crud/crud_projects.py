@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 
 from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorDatabase
+import re
 
 from ..models.project import Project
 from ..schemas.project_schema import ProjectCreate, ProjectUpdate
@@ -17,14 +18,28 @@ async def get_project_by_id(
         return Project(**project_doc)
     return None
 
+async def get_projects_filtered(
+    db: AsyncIOMotorDatabase,
+    q: str | None = None,
+    sort_by: str = "newest",
+) -> list[Project]:
+    query = {}
+    if q:
+        query["name"] = {"$regex": re.escape(q), "$options": "i"}
+    
+    sort_options = {
+        "newest": [("created_at", -1)],
+        "oldest": [("created_at", 1)],
+        "name-asc": [("name", 1)],
+        "name-desc": [("name", -1)],
+    }
+    sort_order = sort_options.get(sort_by, sort_options["newest"])
 
-async def get_all_projects(db: AsyncIOMotorDatabase) -> list[Project]:
+    cursor = db["projects"].find(query).sort(sort_order)
     projects = []
-    cursor = db["projects"].find()
-    async for project_doc in cursor:
-        projects.append(Project(**project_doc))
+    async for doc in cursor:
+        projects.append(Project(**doc))
     return projects
-
 
 async def get_projects_by_owner(
     db: AsyncIOMotorDatabase, owner_id: str
@@ -37,7 +52,6 @@ async def get_projects_by_owner(
         projects.append(Project(**doc))
     return projects
 
-
 async def get_projects_by_member(
     db: AsyncIOMotorDatabase, member_id: str
 ) -> list[Project]:
@@ -48,7 +62,6 @@ async def get_projects_by_member(
     async for doc in cursor:
         projects.append(Project(**doc))
     return projects
-
 
 async def create_project(
     db: AsyncIOMotorDatabase, project_data: ProjectCreate
@@ -67,7 +80,6 @@ async def create_project(
 
     return Project(**project_doc)
 
-
 async def update_project(
     db: AsyncIOMotorDatabase, project_id: str, project_data: ProjectUpdate
 ) -> Project | None:
@@ -75,7 +87,7 @@ async def update_project(
         return None
     update_data = {k: v for k, v in project_data.dict(exclude_unset=True).items()}
     if not update_data:
-        return await get_project_by_id(db, project_id)  # Nic do aktualizacji
+        return await get_project_by_id(db, project_id)
     update_data["updated_at"] = datetime.now(UTC)
     result = await db["projects"].update_one(
         {"_id": ObjectId(project_id)}, {"$set": update_data}
@@ -83,7 +95,6 @@ async def update_project(
     if result.modified_count == 1:
         return await get_project_by_id(db, project_id)
     return None
-
 
 async def delete_project(db: AsyncIOMotorDatabase, project_id: str) -> bool:
     if not ObjectId.is_valid(project_id):
