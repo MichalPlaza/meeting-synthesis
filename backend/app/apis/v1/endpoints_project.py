@@ -1,6 +1,6 @@
-
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from motor.motor_asyncio import AsyncIOMotorDatabase
+from typing import List
 
 from ...db.mongodb_utils import get_database
 from ...schemas.project_schema import ProjectCreate, ProjectResponse, ProjectUpdate
@@ -16,12 +16,14 @@ async def create_project(
     project = await project_service.create_new_project(db, project_in)
     return project
 
-
-@router.get("/", response_model=list[ProjectResponse])
-async def list_projects(db: AsyncIOMotorDatabase = Depends(get_database)):
-    projects = await project_service.get_projects(db)
+@router.get("/", response_model=List[ProjectResponse])
+async def list_projects(
+    q: str = Query(None, description="Search term for project name"),
+    sort_by: str = Query("newest", description="Sort order"),
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    projects = await project_service.get_projects_filtered(db, q=q, sort_by=sort_by)
     return projects
-
 
 @router.get("/{project_id}", response_model=ProjectResponse)
 async def get_project(
@@ -32,7 +34,6 @@ async def get_project(
         raise HTTPException(status_code=404, detail="Project not found")
     return project
 
-
 @router.get("/owner/{owner_id}", response_model=list[ProjectResponse])
 async def projects_by_owner(
     owner_id: str, db: AsyncIOMotorDatabase = Depends(get_database)
@@ -40,14 +41,12 @@ async def projects_by_owner(
     projects = await project_service.get_projects_owned_by_user(db, owner_id)
     return projects
 
-
 @router.get("/member/{member_id}", response_model=list[ProjectResponse])
 async def projects_by_member(
     member_id: str, db: AsyncIOMotorDatabase = Depends(get_database)
 ):
     projects = await project_service.get_projects_with_member(db, member_id)
     return projects
-
 
 @router.put("/{project_id}", response_model=ProjectResponse)
 async def update_project(
@@ -59,7 +58,6 @@ async def update_project(
     if not project:
         raise HTTPException(status_code=404, detail="Project not found or no changes")
     return project
-
 
 @router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_project(
