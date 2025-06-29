@@ -50,9 +50,7 @@
   --accent: oklch(0.96 0.01 240);
   --accent-foreground: oklch(0.15 0 0);
   --destructive: oklch(0.5 0.2 20);
-  --border: oklch(
-    0.7 0.01 240
-  ); /* ZMIANA: Jasność z 0.8 na 0.7 - ramka będzie bardzo wyraźna. */
+  --border: oklch(0.8 0.02 240);
   --input: oklch(0.97 0.01 230);
   --ring: oklch(0.35 0.05 260);
 }

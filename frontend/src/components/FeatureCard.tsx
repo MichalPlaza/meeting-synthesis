@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useRef, useMemo } from "react";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 
 interface Feature {
@@ -10,56 +10,170 @@ interface FeatureCardProps {
   feature: Feature;
 }
 
-// Helper function to generate a hyper-randomized multi-layer gradient
-const generateRandomGradientStyle = () => {
-  // 1. Generate 4 random base colors from the entire color wheel
-  const cardPalette = [];
-  for (let i = 0; i < 4; i++) {
-    const hue = Math.floor(Math.random() * 360);
-    // Use HSL for vibrant colors (high saturation, medium-high lightness)
-    const lightness = Math.floor(Math.random() * 20) + 60;
-    const saturation = Math.floor(Math.random() * 20) + 70;
-    cardPalette.push(`hsl(${hue}, ${saturation}%, ${lightness}%)`);
+// --- Helper Functions ---
+function hslToRgb(h: number, s: number, l: number): number[] {
+  s /= 100;
+  l /= 100;
+  let c = (1 - Math.abs(2 * l - 1)) * s,
+    x = c * (1 - Math.abs(((h / 60) % 2) - 1)),
+    m = l - c / 2,
+    r = 0,
+    g = 0,
+    b = 0;
+  if (0 <= h && h < 60) {
+    r = c;
+    g = x;
+    b = 0;
+  } else if (60 <= h && h < 120) {
+    r = x;
+    g = c;
+    b = 0;
+  } else if (120 <= h && h < 180) {
+    r = 0;
+    g = c;
+    b = x;
+  } else if (180 <= h && h < 240) {
+    r = 0;
+    g = x;
+    b = c;
+  } else if (240 <= h && h < 300) {
+    r = x;
+    g = 0;
+    b = c;
+  } else if (300 <= h && h < 360) {
+    r = c;
+    g = 0;
+    b = x;
   }
+  r = Math.round((r + m) * 255);
+  g = Math.round((g + m) * 255);
+  b = Math.round((b + m) * 255);
+  return [r, g, b];
+}
 
-  // 2. Create 20 gradient layers
-  const gradients = [];
-  for (let i = 0; i < 50; i++) {
-    // 3. For each layer, pick a random color from the card's 4-color palette
-    const randomColor =
-      cardPalette[Math.floor(Math.random() * cardPalette.length)];
-
-    // Random position
-    const x = Math.floor(Math.random() * 150) - 25;
-    const y = Math.floor(Math.random() * 150) - 25;
-
-    // Random size
-    const size = Math.floor(Math.random() * 50) + 50; // 30% to 90%5
-
-    gradients.push(
-      `radial-gradient(circle at ${x}% ${y}%, ${randomColor}, transparent ${size}%)`
-    );
-  }
-
-  return { backgroundImage: gradients.join(", ") };
-};
+function lerpColor(a: number[], b: number[], amount: number) {
+  return a.map((c, i) => c + amount * (b[i] - c));
+}
 
 function FeatureCard({ feature }: FeatureCardProps) {
-  const gradientStyle = useMemo(() => generateRandomGradientStyle(), []);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  const randomParams = useMemo(() => {
+    const baseHue = Math.random() * 360;
+    const colorPalette = [...Array(4)].map((_, i) => {
+      const hue = (baseHue + i * (Math.random() * 10 + 20)) % 360;
+      return hslToRgb(hue, 100, 70);
+    });
+    const colorStops = [
+      0,
+      ...[...Array(2)].map(() => Math.random() * 0.6 + 0.2),
+      1,
+    ].sort();
+
+    // Generate more blobs with varied sizes and opacity for an organic feel
+    const heightmapGradients = [];
+    for (let i = 0; i < 12; i++) {
+      heightmapGradients.push({
+        rotation: Math.random() * 360,
+        translateX: (Math.random() - 0.5) * 300,
+        translateY: (Math.random() - 0.5) * 300,
+        scale: Math.random() * 0.8 + 0.5, // Scale from 0.5x to 1.3x
+        opacity: Math.random() * 0.4 + 0.3, // Opacity from 0.3 to 0.7
+      });
+    }
+    return { colorPalette, colorStops, heightmapGradients };
+  }, []);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    if (!ctx) return;
+
+    const { colorPalette, colorStops, heightmapGradients } = randomParams;
+    const width = canvas.width;
+    const height = canvas.height;
+
+    const heightmapCanvas = document.createElement("canvas");
+    heightmapCanvas.width = width;
+    heightmapCanvas.height = height;
+    const heightmapCtx = heightmapCanvas.getContext("2d");
+    if (!heightmapCtx) return;
+
+    heightmapCtx.fillStyle = "black";
+    heightmapCtx.fillRect(0, 0, width, height);
+    heightmapCtx.globalCompositeOperation = "lighter";
+
+    heightmapGradients.forEach((t) => {
+      heightmapCtx.save();
+      heightmapCtx.translate(t.translateX, t.translateY);
+      heightmapCtx.rotate((t.rotation * Math.PI) / 180);
+      heightmapCtx.scale(t.scale, t.scale);
+      const gradient = heightmapCtx.createRadialGradient(
+        width / 2,
+        height / 2,
+        0,
+        width / 2,
+        height / 2,
+        width
+      );
+      gradient.addColorStop(0, `rgba(255,255,255,${t.opacity})`);
+      gradient.addColorStop(1, "rgba(255,255,255,0)");
+      heightmapCtx.fillStyle = gradient;
+      heightmapCtx.fillRect(0, 0, width, height);
+      heightmapCtx.restore();
+    });
+
+    const heightmapData = heightmapCtx.getImageData(0, 0, width, height).data;
+    const imageData = ctx.createImageData(width, height);
+
+    for (let i = 0; i < heightmapData.length; i += 4) {
+      const heightValue = heightmapData[i] / 255;
+      let rgb;
+      if (heightValue < colorStops[1])
+        rgb = lerpColor(
+          colorPalette[0],
+          colorPalette[1],
+          heightValue / colorStops[1]
+        );
+      else if (heightValue < colorStops[2])
+        rgb = lerpColor(
+          colorPalette[1],
+          colorPalette[2],
+          (heightValue - colorStops[1]) / (colorStops[2] - colorStops[1])
+        );
+      else
+        rgb = lerpColor(
+          colorPalette[2],
+          colorPalette[3],
+          (heightValue - colorStops[2]) / (colorStops[3] - colorStops[2])
+        );
+
+      const noise = (Math.random() - 0.5) * 15;
+      imageData.data[i] = rgb[0] + noise;
+      imageData.data[i + 1] = rgb[1] + noise;
+      imageData.data[i + 2] = rgb[2] + noise;
+      imageData.data[i + 3] = 255;
+    }
+    ctx.putImageData(imageData, 0, 0);
+  }, [randomParams]);
 
   return (
-    <Card
-      className="relative flex flex-col justify-center items-center text-center p-8 border-0 rounded-lg shadow hover:shadow-2xl transition-all duration-300 min-h-[280px]"
-      style={gradientStyle}
-    >
-      <div className="relative z-10 text-foreground">
-        <CardTitle className="text-2xl font-bold mb-3 drop-shadow-sm">
+    <Card className="relative flex flex-col justify-center items-center text-center p-8 border-0 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 min-h-[280px] overflow-hidden">
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0 w-full h-full"
+        width="200"
+        height="200"
+      ></canvas>
+      <div className="absolute inset-0 bg-black/10 backdrop-blur-sm"></div>
+
+      <div className="relative z-10 text-white">
+        <CardTitle className="text-2xl font-bold mb-3 drop-shadow-md">
           {feature.title}
         </CardTitle>
         <CardContent className="p-0">
-          <p className="text-foreground/80 drop-shadow-sm">
-            {feature.description}
-          </p>
+          <p className="text-white/80 drop-shadow-sm">{feature.description}</p>
         </CardContent>
       </div>
     </Card>
