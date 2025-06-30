@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import type { Meeting } from "@/types/meeting";
 import { useAuth } from "@/AuthContext";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -18,30 +19,26 @@ import {
   Sparkles,
   ListTree,
   FolderOpen,
-  Mic,
   AlertTriangle,
   FileAudio,
-  RotateCcw,
-  RotateCw,
-  Gauge,
   Download,
+  Volume2,
+  Volume1,
+  VolumeX,
+  Rewind,
+  FastForward,
+  RotateCcw,
 } from "lucide-react";
 import ErrorState from "@/components/ErrorState";
 import EmptyState from "@/components/EmptyState";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
 
+const PLAYBACK_RATES = [1, 1.25, 1.5, 2, 0.5, 0.75];
+
 const formatTime = (seconds: number): string => {
+  if (isNaN(seconds) || seconds < 0) return "00:00";
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = Math.floor(seconds % 60);
   return `${minutes.toString().padStart(2, "0")}:${remainingSeconds
@@ -52,7 +49,7 @@ const formatTime = (seconds: number): string => {
 function MeetingDetailsPage() {
   const { meetingId } = useParams<{ meetingId: string }>();
   const navigate = useNavigate();
-  const { token, logout } = useAuth();
+  const { token } = useAuth();
 
   const [meeting, setMeeting] = useState<Meeting | null>(null);
   const [loading, setLoading] = useState(true);
@@ -63,6 +60,11 @@ function MeetingDetailsPage() {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
+  const [volume, setVolume] = useState(1);
+  const [isMuted, setIsMuted] = useState(false);
+  const [showRemainingTime, setShowRemainingTime] = useState(false);
+  const [isSeeking, setIsSeeking] = useState(false);
+  const animationFrameIdRef = useRef<number>();
 
   const audioSrc = meeting?.audio_file.storage_path_or_url
     ? `${BACKEND_API_BASE_URL}${meeting.audio_file.storage_path_or_url}`
@@ -99,7 +101,7 @@ function MeetingDetailsPage() {
     } finally {
       setLoading(false);
     }
-  }, [meetingId, token, logout, navigate]);
+  }, [meetingId, token]);
 
   useEffect(() => {
     fetchData();
@@ -113,25 +115,50 @@ function MeetingDetailsPage() {
       setDuration(audio.duration);
       setCurrentTime(audio.currentTime);
     };
-    const setAudioTime = () => setCurrentTime(audio.currentTime);
-    const togglePlayPause = () => setIsPlaying(!audio.paused);
+    const handlePlayPause = () => setIsPlaying(!audio.paused);
     const handleEnded = () => setIsPlaying(false);
 
     audio.addEventListener("loadedmetadata", setAudioData);
-    audio.addEventListener("timeupdate", setAudioTime);
-    audio.addEventListener("play", togglePlayPause);
-    audio.addEventListener("pause", togglePlayPause);
+    audio.addEventListener("play", handlePlayPause);
+    audio.addEventListener("pause", handlePlayPause);
     audio.addEventListener("ended", handleEnded);
+
     audio.playbackRate = playbackRate;
+    audio.volume = volume;
+    audio.muted = isMuted;
 
     return () => {
       audio.removeEventListener("loadedmetadata", setAudioData);
-      audio.removeEventListener("timeupdate", setAudioTime);
-      audio.removeEventListener("play", togglePlayPause);
-      audio.removeEventListener("pause", togglePlayPause);
+      audio.removeEventListener("play", handlePlayPause);
+      audio.removeEventListener("pause", handlePlayPause);
       audio.removeEventListener("ended", handleEnded);
     };
-  }, [audioSrc, playbackRate]);
+  }, [audioSrc, playbackRate, volume, isMuted]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const animate = () => {
+      if (audio.paused) return;
+      setCurrentTime(audio.currentTime);
+      animationFrameIdRef.current = requestAnimationFrame(animate);
+    };
+
+    if (isPlaying && !isSeeking) {
+      animationFrameIdRef.current = requestAnimationFrame(animate);
+    } else {
+      if (animationFrameIdRef.current) {
+        cancelAnimationFrame(animationFrameIdRef.current);
+      }
+    }
+
+    return () => {
+      if (animationFrameIdRef.current) {
+        cancelAnimationFrame(animationFrameIdRef.current);
+      }
+    };
+  }, [isPlaying, isSeeking]);
 
   const togglePlay = () => {
     const audio = audioRef.current;
@@ -141,7 +168,6 @@ function MeetingDetailsPage() {
     } else {
       audio.play();
     }
-    setIsPlaying(!isPlaying);
   };
 
   const handleSliderChange = (value: number[]) => {
@@ -162,13 +188,33 @@ function MeetingDetailsPage() {
   const handleForward = () => {
     const audio = audioRef.current;
     if (audio) {
-      audio.currentTime = Math.min(audio.duration, audio.currentTime + 10);
+      audio.currentTime = Math.min(duration, audio.currentTime + 10);
     }
   };
 
-  const handlePlaybackRateChange = (rate: string) => {
-    const newRate = parseFloat(rate);
-    setPlaybackRate(newRate);
+  const handleRestart = () => {
+    const audio = audioRef.current;
+    if (audio) {
+      audio.currentTime = 0;
+    }
+  };
+
+  const handleVolumeChange = (value: number[]) => {
+    const newVolume = value[0];
+    setVolume(newVolume);
+    if (newVolume > 0) {
+      setIsMuted(false);
+    }
+  };
+
+  const toggleMute = () => {
+    setIsMuted(!isMuted);
+  };
+
+  const handlePlaybackRateCycle = () => {
+    const currentIndex = PLAYBACK_RATES.indexOf(playbackRate);
+    const nextIndex = (currentIndex + 1) % PLAYBACK_RATES.length;
+    setPlaybackRate(PLAYBACK_RATES[nextIndex]);
   };
 
   if (loading) {
@@ -225,102 +271,128 @@ function MeetingDetailsPage() {
         )}
       </div>
 
-      <div className="p-4 bg-card rounded-[var(--radius-container)] border shadow-sm space-y-3">
-        <h4 className="font-semibold flex items-center gap-2">
-          <FileAudio size={16} /> Meeting Recording
+      <div className="space-y-4">
+        <h4 className="font-semibold flex items-center gap-2 text-lg">
+          <FileAudio size={20} /> Recording
         </h4>
-        <div className="flex items-center gap-4">
-          <Button
-            size="icon"
-            onClick={togglePlay}
-            className="flex-shrink-0 h-10 w-10 rounded-full bg-muted border border-muted-foreground/30 text-foreground hover:bg-muted/80"
-            aria-label={isPlaying ? "Pause recording" : "Play recording"}
-          >
-            {isPlaying ? (
-              <PauseIcon className="h-5 w-5" />
-            ) : (
-              <PlayIcon className="h-5 w-5" />
-            )}
-          </Button>
+        <div className="p-4 bg-card rounded-[var(--radius-container)] border shadow-sm">
+          <div className="flex items-center gap-4 w-full">
+            <div className="flex items-center gap-2">
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={handleRewind}
+                className="flex-shrink-0"
+                aria-label="Rewind 10 seconds"
+              >
+                <Rewind className="h-5 w-5" fill="currentColor" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={togglePlay}
+                className={cn("flex-shrink-0", !isPlaying)}
+                aria-label={isPlaying ? "Pause recording" : "Play recording"}
+              >
+                {isPlaying ? (
+                  <PauseIcon className="h-5 w-5" fill="currentColor" />
+                ) : (
+                  <PlayIcon className="h-5 w-5" fill="currentColor" />
+                )}
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={handleForward}
+                className="flex-shrink-0"
+                aria-label="Forward 10 seconds"
+              >
+                <FastForward className="h-5 w-5" fill="currentColor" />
+              </Button>
+            </div>
 
-          <Button
-            size="icon"
-            onClick={handleRewind}
-            className="flex-shrink-0 h-10 w-10 rounded-full bg-muted border border-muted-foreground/30 text-foreground hover:bg-muted/80"
-            aria-label="Rewind 10 seconds"
-          >
-            <RotateCcw className="h-4 w-4" />
-          </Button>
+            <div className="flex-grow flex items-center gap-2">
+              <span className="text-xs text-muted-foreground w-14 text-right font-mono">
+                {formatTime(currentTime)}
+              </span>
+              <Slider
+                value={[currentTime]}
+                max={duration || 1}
+                step={1}
+                onValueChange={handleSliderChange}
+                onSeeking={setIsSeeking}
+                className="flex-grow"
+                disabled={duration === 0 || !audioSrc}
+              />
+              <span
+                className="text-xs text-muted-foreground w-14 text-left cursor-pointer hover:text-foreground transition-colors font-mono"
+                onClick={() => setShowRemainingTime((prev) => !prev)}
+                title="Toggle remaining time"
+              >
+                {showRemainingTime
+                  ? `-${formatTime(duration - currentTime)}`
+                  : formatTime(duration)}
+              </span>
+            </div>
 
-          <div className="flex-grow space-y-1">
-            <Slider
-              value={[currentTime]}
-              max={duration || 1}
-              step={1}
-              onValueChange={handleSliderChange}
-              className="w-full"
-              disabled={duration === 0 || !audioSrc}
-            />
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>{formatTime(currentTime)}</span>
-              <span>{formatTime(duration)}</span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-full flex-shrink-0"
+                aria-label="Cycle playback speed"
+                onClick={handlePlaybackRateCycle}
+              >
+                <span className="text-xs font-semibold">{playbackRate}x</span>
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={handleRestart}
+                className="flex-shrink-0"
+                aria-label="Restart recording"
+              >
+                <RotateCcw className="h-5 w-5" />
+              </Button>
+              <div className="flex items-center gap-1">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={toggleMute}
+                  aria-label={isMuted ? "Unmute" : "Mute"}
+                >
+                  {isMuted || volume === 0 ? (
+                    <VolumeX className="h-5 w-5" />
+                  ) : volume < 0.5 ? (
+                    <Volume1 className="h-5 w-5" />
+                  ) : (
+                    <Volume2 className="h-5 w-5" />
+                  )}
+                </Button>
+                <Slider
+                  value={isMuted ? [0] : [volume]}
+                  max={1}
+                  step={0.05}
+                  onValueChange={handleVolumeChange}
+                  className="w-20"
+                  aria-label="Volume control"
+                />
+              </div>
+              <Button
+                size="icon"
+                variant="ghost"
+                asChild
+                disabled={!audioSrc}
+                aria-label={`Download audio file: ${meeting.audio_file.original_filename}`}
+              >
+                <a href={downloadUrl} download>
+                  <Download className="h-5 w-5" />
+                </a>
+              </Button>
             </div>
           </div>
-
-          <Button
-            size="icon"
-            onClick={handleForward}
-            className="flex-shrink-0 h-10 w-10 rounded-full bg-muted border border-muted-foreground/30 text-foreground hover:bg-muted/80"
-            aria-label="Forward 10 seconds"
-          >
-            <RotateCw className="h-4 w-4" />
-          </Button>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                className="flex-shrink-0 h-10 px-3 rounded-[var(--radius-pill)]"
-                aria-label="Change playback speed"
-              >
-                <Gauge className="h-4 w-4 mr-2" />
-                <span>{playbackRate}x</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-32">
-              <DropdownMenuLabel>Playback Speed</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuRadioGroup
-                value={playbackRate.toString()}
-                onValueChange={handlePlaybackRateChange}
-              >
-                <DropdownMenuRadioItem value="0.75">
-                  0.75x
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="1">
-                  1x (Normal)
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="1.25">
-                  1.25x
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="1.5">1.5x</DropdownMenuRadioItem>
-              </DropdownMenuRadioGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <Button
-            size="icon"
-            asChild
-            className="flex-shrink-0 h-10 w-10 rounded-full bg-muted border border-muted-foreground/30 text-foreground hover:bg-muted/80"
-            disabled={!audioSrc}
-            aria-label={`Download audio file: ${meeting.audio_file.original_filename}`}
-          >
-            <a href={downloadUrl} download>
-              <Download className="h-5 w-5" />
-            </a>
-          </Button>
+          <audio ref={audioRef} src={audioSrc} preload="metadata" />
         </div>
-        <audio ref={audioRef} src={audioSrc} preload="metadata" />
       </div>
 
       <Tabs defaultValue="ai-summary" className="w-full">

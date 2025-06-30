@@ -52,9 +52,7 @@
 
   /* Muted & Accent */
   --muted: oklch(95% 0.01 240);
-  --muted-foreground: oklch(
-    40% 0.015 240
-  ); /* <-- ZMIANA TUTAJ: Przyciemniony dla lepszego kontrastu */
+  --muted-foreground: oklch(40% 0.015 240);
   --accent: oklch(93% 0.02 240);
   --accent-foreground: var(--foreground);
 
@@ -77,6 +75,7 @@
   --info-foreground: oklch(15% 0.05 220);
 
   /* Ring (obwódka focus) */
+  /* --- ZMIANA: Przywracamy przezroczystość do definicji zmiennej --- */
   --ring: oklch(30% 0.02 240 / 50%);
 
   /* --- SYSTEM ZAOKRĄGLEŃ --- */
@@ -125,6 +124,7 @@
   --info-foreground: oklch(98% 0 0);
 
   /* Ring (obwódka focus) */
+  /* --- ZMIANA: Przywracamy przezroczystość do definicji zmiennej --- */
   --ring: oklch(80% 0.02 240 / 50%);
 }
 
@@ -133,7 +133,8 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    /* --- ZMIANA: Usuwamy modyfikator przezroczystości /50 --- */
+    @apply border-border outline-ring;
   }
   body {
     @apply bg-background text-foreground;
