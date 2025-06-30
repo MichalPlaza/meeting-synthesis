@@ -62,7 +62,7 @@ function ProjectListPage() {
       <AddProjectDialog
         isOpen={isAddDialogOpen}
         onOpenChange={setIsAddDialogOpen}
-        onProjectAdded={fetchProjects}
+        onProjectCreated={fetchProjects}
       />
       <div className="space-y-8">
         <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
