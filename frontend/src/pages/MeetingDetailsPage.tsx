@@ -41,7 +41,6 @@ import {
 
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
 
-// Funkcja pomocnicza do formatowania czasu w sekundach na MM:SS
 const formatTime = (seconds: number): string => {
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = Math.floor(seconds % 60);
@@ -59,13 +58,19 @@ function MeetingDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // --- Stany odtwarzacza audio ---
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
-  // --- Koniec stanów odtwarzacza audio ---
+
+  const audioSrc = meeting?.audio_file.storage_path_or_url
+    ? `${BACKEND_API_BASE_URL}${meeting.audio_file.storage_path_or_url}`
+    : "";
+
+  const downloadUrl = meeting
+    ? `${BACKEND_API_BASE_URL}/meetings/${meeting._id}/download`
+    : "";
 
   const fetchData = useCallback(async () => {
     if (!token || !meetingId) {
@@ -100,7 +105,6 @@ function MeetingDetailsPage() {
     fetchData();
   }, [fetchData]);
 
-  // --- Logika odtwarzacza audio ---
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -109,7 +113,6 @@ function MeetingDetailsPage() {
       setDuration(audio.duration);
       setCurrentTime(audio.currentTime);
     };
-
     const setAudioTime = () => setCurrentTime(audio.currentTime);
     const togglePlayPause = () => setIsPlaying(!audio.paused);
     const handleEnded = () => setIsPlaying(false);
@@ -119,7 +122,6 @@ function MeetingDetailsPage() {
     audio.addEventListener("play", togglePlayPause);
     audio.addEventListener("pause", togglePlayPause);
     audio.addEventListener("ended", handleEnded);
-
     audio.playbackRate = playbackRate;
 
     return () => {
@@ -129,7 +131,7 @@ function MeetingDetailsPage() {
       audio.removeEventListener("pause", togglePlayPause);
       audio.removeEventListener("ended", handleEnded);
     };
-  }, [meeting?.audio_file.storage_path_or_url, playbackRate]);
+  }, [audioSrc, playbackRate]);
 
   const togglePlay = () => {
     const audio = audioRef.current;
@@ -154,7 +156,6 @@ function MeetingDetailsPage() {
     const audio = audioRef.current;
     if (audio) {
       audio.currentTime = Math.max(0, audio.currentTime - 10);
-      setCurrentTime(audio.currentTime);
     }
   };
 
@@ -162,7 +163,6 @@ function MeetingDetailsPage() {
     const audio = audioRef.current;
     if (audio) {
       audio.currentTime = Math.min(audio.duration, audio.currentTime + 10);
-      setCurrentTime(audio.currentTime);
     }
   };
 
@@ -170,7 +170,6 @@ function MeetingDetailsPage() {
     const newRate = parseFloat(rate);
     setPlaybackRate(newRate);
   };
-  // --- Koniec logiki odtwarzacza audio ---
 
   if (loading) {
     return (
@@ -184,7 +183,7 @@ function MeetingDetailsPage() {
     return (
       <ErrorState message={error} onRetry={fetchData}>
         <Button variant="outline" asChild>
-          <Link to="/meetings">← Meetings</Link>
+          <Link to="/meetings">← Back to Meetings</Link>
         </Button>
       </ErrorState>
     );
@@ -208,7 +207,7 @@ function MeetingDetailsPage() {
           to={`/meetings`}
           className="subtle hover:text-foreground transition-colors"
         >
-          ← Meetings
+          ← Back to Meetings
         </Link>
       </div>
 
@@ -226,9 +225,9 @@ function MeetingDetailsPage() {
         )}
       </div>
 
-      <div className="p-4 space-y-3 bg-card rounded-[var(--radius-container)] border shadow-sm">
+      <div className="p-4 bg-card rounded-[var(--radius-container)] border shadow-sm space-y-3">
         <h4 className="font-semibold flex items-center gap-2">
-          <FileAudio size={16} /> Recording
+          <FileAudio size={16} /> Meeting Recording
         </h4>
         <div className="flex items-center gap-4">
           <Button
@@ -256,13 +255,11 @@ function MeetingDetailsPage() {
           <div className="flex-grow space-y-1">
             <Slider
               value={[currentTime]}
-              max={duration}
+              max={duration || 1}
               step={1}
               onValueChange={handleSliderChange}
               className="w-full"
-              disabled={
-                duration === 0 || !meeting.audio_file.storage_path_or_url
-              }
+              disabled={duration === 0 || !audioSrc}
             />
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>{formatTime(currentTime)}</span>
@@ -315,49 +312,25 @@ function MeetingDetailsPage() {
             size="icon"
             asChild
             className="flex-shrink-0 h-10 w-10 rounded-full bg-muted border border-muted-foreground/30 text-foreground hover:bg-muted/80"
-            disabled={!meeting.audio_file.storage_path_or_url}
+            disabled={!audioSrc}
             aria-label={`Download audio file: ${meeting.audio_file.original_filename}`}
           >
-            <a
-              href={meeting.audio_file.storage_path_or_url}
-              download={
-                meeting.audio_file.original_filename ||
-                `meeting_audio_${meeting._id}.mp3`
-              }
-            >
+            <a href={downloadUrl} download>
               <Download className="h-5 w-5" />
             </a>
           </Button>
         </div>
-        {/* --- ZMIANA ZACZYNA SIĘ TUTAJ: Usunięto wiersz z nazwą pliku --- */}
-        {/* <p className="text-sm text-muted-foreground mt-2">
-          File: {meeting.audio_file.original_filename}
-        </p> */}
-        {/* --- ZMIANA KOŃCZY SIĘ TUTAJ --- */}
-        <audio
-          ref={audioRef}
-          src={meeting.audio_file.storage_path_or_url}
-          preload="metadata"
-        />
+        <audio ref={audioRef} src={audioSrc} preload="metadata" />
       </div>
 
       <Tabs defaultValue="ai-summary" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
-          <TabsTrigger value="ai-summary" className="gap-2">
-            <Sparkles size={16} /> Summary
-          </TabsTrigger>
-          <TabsTrigger value="action-items" className="gap-2">
-            <CheckSquare size={16} /> Action Items
-          </TabsTrigger>
-          <TabsTrigger value="decisions" className="gap-2">
-            <Flag size={16} /> Decisions
-          </TabsTrigger>
-          <TabsTrigger value="full-transcript" className="gap-2">
-            <FileText size={16} /> Transcript
-          </TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3 mb-4">
+          <TabsTrigger value="ai-summary">Summary</TabsTrigger>
+          <TabsTrigger value="action-items">Action Items</TabsTrigger>
+          <TabsTrigger value="decisions">Decisions</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="ai-summary" className="mt-4 space-y-8">
+        <TabsContent value="ai-summary" className="space-y-6">
           {meeting.ai_analysis?.summary ? (
             <div className="p-6 space-y-4">
               <div className="text-xl font-semibold flex items-center gap-3">

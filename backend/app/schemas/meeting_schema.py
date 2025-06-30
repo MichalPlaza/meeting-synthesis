@@ -50,6 +50,7 @@ class MeetingResponse(MeetingBase):
     last_updated_at: datetime
     duration_seconds: int | None = None
     tags: list[str] = []
+    estimated_processing_time_seconds: int | None = None
 
     class Config:
         from_attributes = True
@@ -64,7 +65,7 @@ class MeetingCreateForm:
         meeting_datetime: datetime = Form(...),
         project_id: str = Form(...),
         uploader_id: str = Form(...),
-        tags: str = Form("")
+        tags: str = Form(""),
     ):
         self.title = title
         self.meeting_datetime = meeting_datetime

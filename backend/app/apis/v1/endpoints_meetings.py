@@ -1,4 +1,7 @@
+import os
+import re
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status, Form, Query
+from fastapi.responses import FileResponse
 from datetime import datetime
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from typing import List
@@ -6,10 +9,15 @@ from typing import List
 from ...db.mongodb_utils import get_database
 from ...schemas.meeting_schema import MeetingCreate, MeetingResponse, MeetingUpdate, MeetingCreateForm
 from ...services import meeting_service
-from ...services.meeting_service import handle_meeting_upload
+from ...crud import crud_meetings
 
 router = APIRouter()
 
+def sanitize_filename(name: str) -> str:
+    """Removes illegal characters from a string to make it a valid filename."""
+    name = re.sub(r'[<>:"/\\|?*]', '_', name)
+    name = re.sub(r'\s+', '_', name)
+    return name
 
 @router.post("/", response_model=MeetingResponse, status_code=status.HTTP_201_CREATED)
 async def create_meeting(
@@ -87,3 +95,33 @@ async def delete_meeting(
     if not deleted:
         raise HTTPException(status_code=404, detail="Meeting not found")
     return
+
+@router.get("/{meeting_id}/download")
+async def download_meeting_audio(
+    meeting_id: str,
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """
+    Endpoint to download a meeting's audio file with a user-friendly name.
+    """
+    meeting = await crud_meetings.get_meeting_by_id(db, meeting_id)
+    if not meeting or not meeting.audio_file or not meeting.audio_file.storage_path_or_url:
+        raise HTTPException(status_code=404, detail="Meeting or audio file not found")
+        
+    storage_filename = os.path.basename(meeting.audio_file.storage_path_or_url)
+    local_file_path = os.path.join("uploads", storage_filename)
+
+    if not os.path.exists(local_file_path):
+        raise HTTPException(status_code=404, detail="Audio file not found on server")
+
+    meeting_date = meeting.meeting_datetime.strftime("%Y-%m-%d")
+    sanitized_title = sanitize_filename(meeting.title)
+    original_extension = os.path.splitext(meeting.audio_file.original_filename)[1]
+    
+    user_friendly_filename = f"{meeting_date}_{sanitized_title}{original_extension}"
+
+    return FileResponse(
+        path=local_file_path, 
+        media_type='application/octet-stream', 
+        filename=user_friendly_filename
+    )

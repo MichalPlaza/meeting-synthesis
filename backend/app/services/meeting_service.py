@@ -9,19 +9,13 @@ from mutagen.mp4 import MP4
 from fastapi import UploadFile
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
-from .ai_analysis_service import analyze_transcription
-from .whisper_service import transcribe_audio
 from ..crud import crud_meetings
 from ..models.audio_file import AudioFile
-from ..models.enums.processing_stage import ProcessingStage
 from ..models.meeting import Meeting
-from ..models.processing_status import ProcessingStatus
-from ..models.transcrpion import Transcription
-from ..schemas.meeting_schema import MeetingCreate, MeetingUpdate, MeetingCreateForm
-
+from ..schemas.meeting_schema import MeetingCreate, MeetingUpdate, MeetingCreateForm, MeetingResponse
+from ..worker.tasks import process_meeting_audio
 
 def get_audio_duration(file_path: str, mimetype: str) -> int | None:
-    """Calculates the duration of an audio file in seconds."""
     try:
         if 'mp3' in mimetype:
             audio = MP3(file_path)
@@ -32,29 +26,32 @@ def get_audio_duration(file_path: str, mimetype: str) -> int | None:
         elif 'mp4' in mimetype or 'm4a' in mimetype:
             audio = MP4(file_path)
         else:
-            return None # Unsupported format
+            return None
         return int(audio.info.length)
     except Exception as e:
         print(f"Could not read duration from {file_path}: {e}")
         return None
 
+def estimate_processing_time(duration_seconds: int | None) -> int | None:
+    if duration_seconds is None:
+        return None
+    
+    FIXED_OVERHEAD_SECONDS = 15
+    TRANSCRIPTION_FACTOR = 1.2
+    AI_ANALYSIS_SECONDS = 25
+    
+    estimated_time = (
+        FIXED_OVERHEAD_SECONDS + 
+        (duration_seconds * TRANSCRIPTION_FACTOR) + 
+        AI_ANALYSIS_SECONDS
+    )
+    return int(estimated_time)
+
 async def create_new_meeting(db: AsyncIOMotorDatabase, data: MeetingCreate) -> Meeting:
     return await crud_meetings.create_meeting(db, data)
 
-
 async def get_meeting(db: AsyncIOMotorDatabase, meeting_id: str) -> Meeting | None:
     return await crud_meetings.get_meeting_by_id(db, meeting_id)
-
-
-async def get_meetings(db: AsyncIOMotorDatabase) -> list[Meeting]:
-    return await crud_meetings.get_all_meetings(db)
-
-
-async def get_meetings_for_project(
-    db: AsyncIOMotorDatabase, project_id: str
-) -> list[Meeting]:
-    return await crud_meetings.get_meetings_by_project(db, project_id)
-
 
 async def get_meetings_with_filters(
     db: AsyncIOMotorDatabase,
@@ -65,24 +62,26 @@ async def get_meetings_with_filters(
 ) -> list[Meeting]:
     return await crud_meetings.get_meetings_filtered(db, q, project_ids, tags, sort_by)
 
+async def get_meetings_for_project(
+    db: AsyncIOMotorDatabase, project_id: str
+) -> list[Meeting]:
+    return await crud_meetings.get_meetings_by_project(db, project_id)
 
 async def update_existing_meeting(
     db: AsyncIOMotorDatabase, meeting_id: str, update_data: MeetingUpdate
 ) -> Meeting | None:
     return await crud_meetings.update_meeting(db, meeting_id, update_data)
 
-
 async def delete_existing_meeting(db: AsyncIOMotorDatabase, meeting_id: str) -> bool:
     return await crud_meetings.delete_meeting(db, meeting_id)
 
-
-UPLOAD_DIR = "./uploads"
+UPLOAD_DIR = "uploads"
+MEDIA_BASE_URL = "/media"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
-
 
 async def handle_meeting_upload(
     db: AsyncIOMotorDatabase, meeting_data: MeetingCreateForm, audio_file: UploadFile
-) -> Meeting:
+) -> MeetingResponse:
     original_filename = audio_file.filename or "uploaded_file"
     extension = original_filename.split(".")[-1]
     generated_filename = f"{uuid.uuid4().hex}.{extension}"
@@ -92,54 +91,23 @@ async def handle_meeting_upload(
         shutil.copyfileobj(audio_file.file, buffer)
     
     duration = get_audio_duration(storage_path, audio_file.content_type or "")
+    estimated_time = estimate_processing_time(duration)
+    
+    public_url = os.path.join(MEDIA_BASE_URL, generated_filename).replace("\\", "/")
 
     audio_data = AudioFile(
         original_filename=original_filename,
-        storage_path_or_url=storage_path,
+        storage_path_or_url=public_url,
         mimetype=audio_file.content_type or "application/octet-stream"
     )
     
     full_data = meeting_data.to_meeting_create(audio_data, duration)
+    
     meeting = await crud_meetings.create_meeting(db, full_data)
 
-    try:
-        await crud_meetings.update_meeting(
-            db, str(meeting.id),
-            MeetingUpdate(processing_status=ProcessingStatus(current_stage=ProcessingStage.PROCESSING))
-        )
-        full_text = await transcribe_audio(storage_path)
-        transcription_obj = Transcription(full_text=full_text)
+    process_meeting_audio.delay(str(meeting.id))
 
-        await crud_meetings.update_meeting(
-            db, str(meeting.id),
-            MeetingUpdate(
-                transcription=transcription_obj,
-                processing_status=ProcessingStatus(current_stage=ProcessingStage.PROCESSING)
-            )
-        )
-        ai_analysis_obj = await analyze_transcription(full_text)
+    response_data = meeting.dict()
+    response_data["estimated_processing_time_seconds"] = estimated_time
 
-        updated_meeting = await crud_meetings.update_meeting(
-            db, str(meeting.id),
-            MeetingUpdate(
-                ai_analysis=ai_analysis_obj,
-                processing_status=ProcessingStatus(current_stage=ProcessingStage.COMPLETED)
-            )
-        )
-        return updated_meeting or meeting
-
-    except Exception as e:
-        print(f"Processing failed for meeting {meeting.id}: {e}")
-        await crud_meetings.update_meeting(
-            db, str(meeting.id),
-            MeetingUpdate(
-                processing_status=ProcessingStatus(
-                    current_stage=ProcessingStage.FAILED,
-                    error_message=str(e)
-                )
-            )
-        )
-        failed_meeting = await crud_meetings.get_meeting_by_id(db, str(meeting.id))
-        if failed_meeting:
-            return failed_meeting
-        return meeting
+    return MeetingResponse(**response_data)
