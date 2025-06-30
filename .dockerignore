@@ -5,10 +5,6 @@
 Dockerfile
 docker-compose.yml
 
-frontend/node_modules/
-frontend/dist/
-frontend/src/
-
 backend/venv/
 backend/__pycache__/
 backend/.pytest_cache/
@@ -26,18 +22,12 @@ backend/.ruff_cache/
 Thumbs.db
 
 backend/.env
-backend/.env
-frontend/.env*
-*.env.*local
+.env
+.env.*local
 
-.DS_Store
-Thumbs.db
 docs/
 
 backend/tests/
-frontend/src/**/*.test.js
-frontend/src/**/*.spec.js
-
 scripts/
 
 README.md
