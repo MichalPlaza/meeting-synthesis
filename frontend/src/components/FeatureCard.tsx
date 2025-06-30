@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useMemo } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardTitle } from "@/components/ui/card";
 
 interface Feature {
   title: string;
@@ -90,17 +90,18 @@ function FeatureCard({ feature }: FeatureCardProps) {
     if (!ctx) return;
 
     const { colorPalette, colorStops, heightmapGradients } = randomParams;
-    const width = canvas.width;
-    const height = canvas.height;
+    const displaySize = 200;
+    canvas.width = displaySize;
+    canvas.height = displaySize;
 
     const heightmapCanvas = document.createElement("canvas");
-    heightmapCanvas.width = width;
-    heightmapCanvas.height = height;
+    heightmapCanvas.width = displaySize;
+    heightmapCanvas.height = displaySize;
     const heightmapCtx = heightmapCanvas.getContext("2d");
     if (!heightmapCtx) return;
 
     heightmapCtx.fillStyle = "black";
-    heightmapCtx.fillRect(0, 0, width, height);
+    heightmapCtx.fillRect(0, 0, displaySize, displaySize);
     heightmapCtx.globalCompositeOperation = "lighter";
 
     heightmapGradients.forEach((t) => {
@@ -109,22 +110,27 @@ function FeatureCard({ feature }: FeatureCardProps) {
       heightmapCtx.rotate((t.rotation * Math.PI) / 180);
       heightmapCtx.scale(t.scale, t.scale);
       const gradient = heightmapCtx.createRadialGradient(
-        width / 2,
-        height / 2,
+        displaySize / 2,
+        displaySize / 2,
         0,
-        width / 2,
-        height / 2,
-        width
+        displaySize / 2,
+        displaySize / 2,
+        displaySize
       );
       gradient.addColorStop(0, `rgba(255,255,255,${t.opacity})`);
       gradient.addColorStop(1, "rgba(255,255,255,0)");
       heightmapCtx.fillStyle = gradient;
-      heightmapCtx.fillRect(0, 0, width, height);
+      heightmapCtx.fillRect(0, 0, displaySize, displaySize);
       heightmapCtx.restore();
     });
 
-    const heightmapData = heightmapCtx.getImageData(0, 0, width, height).data;
-    const imageData = ctx.createImageData(width, height);
+    const heightmapData = heightmapCtx.getImageData(
+      0,
+      0,
+      displaySize,
+      displaySize
+    ).data;
+    const imageData = ctx.createImageData(displaySize, displaySize);
 
     for (let i = 0; i < heightmapData.length; i += 4) {
       const heightValue = heightmapData[i] / 255;
@@ -159,14 +165,14 @@ function FeatureCard({ feature }: FeatureCardProps) {
 
   return (
     <li className="list-none">
-      <Card className="relative flex flex-col justify-center items-center text-center p-8 border-0 shadow-lg hover:shadow-2xl transition-all duration-300 min-h-[280px] overflow-hidden rounded-[var(--radius-container)]">
+      <Card className="relative flex flex-col justify-center items-center text-center p-8 border-0 shadow-lg rounded-[var(--radius-container)] group overflow-hidden aspect-square">
         <canvas
           ref={canvasRef}
-          className="absolute inset-0 w-full h-full"
-          width="200"
-          height="200"
+          className="absolute inset-0 w-full h-full transition-transform duration-300 ease-out group-hover:scale-105"
         ></canvas>
-        <div className="absolute inset-0 bg-black/10 backdrop-blur-sm"></div>
+        <div
+          className="absolute inset-0 bg-black/10 backdrop-blur-sm" // <-- USUNIĘTO KLASY ANIMACJI
+        ></div>
 
         <div className="relative z-10 text-white">
           <h3 className="text-2xl font-bold mb-3 drop-shadow-md">
