@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -10,19 +10,29 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { FileUpload } from "@/components/FileUpload";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import { FileUpload } from "./FileUpload";
 import { useAuth } from "@/AuthContext";
 import { toast } from "sonner";
 import type { Project } from "@/types/project";
+import type { Meeting } from "@/types/meeting";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormMessage,
+} from "@/components/ui/form";
 
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
 
 const addMeetingSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters long."),
-  projectId: z.string().min(1, "You must select a project."),
+  projectId: z.string().refine((val) => val && val !== "add_new_project", {
+    message: "You must select a project.",
+  }),
   tags: z.string().optional(),
   file: z.instanceof(File, { message: "An audio file is required." }),
 });
@@ -33,7 +43,8 @@ interface AddMeetingDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   projects: Project[];
-  onMeetingAdded: () => void; // Callback to refresh the list
+  onMeetingAdded: () => void;
+  onAddNewProject: () => void;
 }
 
 export function AddMeetingDialog({
@@ -41,27 +52,43 @@ export function AddMeetingDialog({
   onOpenChange,
   projects,
   onMeetingAdded,
+  onAddNewProject,
 }: AddMeetingDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user, token } = useAuth();
 
+  const form = useForm<AddMeetingValues>({
+    resolver: zodResolver(addMeetingSchema),
+    // --- ZMIANA TUTAJ: Zapewniamy, że `tags` ma wartość początkową ---
+    defaultValues: {
+      title: "",
+      projectId: "",
+      tags: "",
+      file: undefined,
+    },
+    // --- KONIEC ZMIANY ---
+  });
   const {
     control,
     handleSubmit,
     setValue,
     reset,
     formState: { errors },
-  } = useForm<AddMeetingValues>({
-    resolver: zodResolver(addMeetingSchema),
-  });
-
-  const handleFileSelect = (file: File | null) => {
-    setValue("file", file as File, { shouldValidate: true });
-  };
+  } = form;
 
   const handleClose = () => {
     reset();
     onOpenChange(false);
+  };
+
+  const handleProjectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    if (value === "add_new_project") {
+      onAddNewProject();
+      setValue("projectId", "");
+    } else {
+      setValue("projectId", value, { shouldValidate: true });
+    }
   };
 
   const onSubmit = async (data: AddMeetingValues) => {
@@ -82,9 +109,7 @@ export function AddMeetingDialog({
     try {
       const response = await fetch(`${BACKEND_API_BASE_URL}/meetings/upload`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
 
@@ -93,8 +118,20 @@ export function AddMeetingDialog({
         throw new Error(errorData.detail || "Failed to upload meeting.");
       }
 
-      toast.success("Meeting added successfully! It is now being processed.");
-      onMeetingAdded(); // Trigger list refresh
+      const responseData: Meeting & {
+        estimated_processing_time_seconds?: number;
+      } = await response.json();
+      const estimationMessage = responseData.estimated_processing_time_seconds
+        ? `Estimated processing time: ${formatEstimation(
+            responseData.estimated_processing_time_seconds
+          )}.`
+        : "Processing will start shortly.";
+
+      toast.success("Meeting added successfully!", {
+        description: estimationMessage,
+      });
+
+      onMeetingAdded();
       handleClose();
     } catch (error: any) {
       toast.error(error.message || "An unexpected error occurred.");
@@ -112,89 +149,112 @@ export function AddMeetingDialog({
             Upload a recording to have it transcribed and analyzed.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="title">Meeting Title</Label>
-            <Controller
+        <Form {...form}>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 py-4">
+            <FormField
+              control={control}
               name="title"
-              control={control}
               render={({ field }) => (
-                <Input
-                  id="title"
-                  placeholder="e.g., Q3 Marketing Sync"
-                  {...field}
-                />
+                <FormItem>
+                  <Label htmlFor="title">Meeting Title</Label>
+                  <FormControl>
+                    <Input
+                      id="title"
+                      placeholder="e.g., Q3 Marketing Sync"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
               )}
             />
-            {errors.title && (
-              <p className="text-sm text-destructive">{errors.title.message}</p>
-            )}
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="projectId">Project</Label>
-            <Controller
+            <FormField
+              control={control}
               name="projectId"
-              control={control}
               render={({ field }) => (
-                <select
-                  id="projectId"
-                  {...field}
-                  className="w-full h-10 border-input border rounded-[var(--radius-field)] px-3 bg-background"
-                >
-                  <option value="">Select a project...</option>
-                  {projects.map((p) => (
-                    <option key={p._id} value={p._id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
+                <FormItem>
+                  <Label htmlFor="projectId">Project</Label>
+                  <FormControl>
+                    <select
+                      id="projectId"
+                      {...field}
+                      onChange={(e) => {
+                        field.onChange(e);
+                        handleProjectChange(e);
+                      }}
+                      className="w-full h-10 border-input border rounded-[var(--radius-field)] px-3 bg-background"
+                    >
+                      <option value="">Select a project...</option>
+                      {projects.map((p) => (
+                        <option key={p._id} value={p._id}>
+                          {p.name}
+                        </option>
+                      ))}
+                      <option
+                        value="add_new_project"
+                        className="font-bold text-primary"
+                      >
+                        + Add new project...
+                      </option>
+                    </select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
               )}
             />
-            {errors.projectId && (
-              <p className="text-sm text-destructive">
-                {errors.projectId.message}
-              </p>
-            )}
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="tags">Tags (comma-separated)</Label>
-            <Controller
+            <FormField
+              control={control}
               name="tags"
-              control={control}
               render={({ field }) => (
-                <Input
-                  id="tags"
-                  placeholder="e.g., client-facing, critical, q3"
-                  {...field}
-                />
+                <FormItem>
+                  <Label htmlFor="tags">Tags (comma-separated)</Label>
+                  <FormControl>
+                    <Input
+                      id="tags"
+                      placeholder="e.g., client-facing, critical, q3"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
               )}
             />
-          </div>
 
-          <div className="space-y-2">
-            <Label>Audio File</Label>
-            <Controller
-              name="file"
+            <FormField
               control={control}
-              render={() => <FileUpload onFileSelect={handleFileSelect} />}
+              name="file"
+              render={({ field }) => (
+                <FormItem>
+                  <Label>Audio File</Label>
+                  <FormControl>
+                    <FileUpload onFileSelect={(file) => field.onChange(file)} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-            {errors.file && (
-              <p className="text-sm text-destructive">{errors.file.message}</p>
-            )}
-          </div>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={handleClose}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Uploading..." : "Add Meeting"}
-            </Button>
-          </DialogFooter>
-        </form>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={handleClose}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Uploading..." : "Add Meeting"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );
+}
+
+function formatEstimation(seconds: number): string {
+  if (seconds < 60) {
+    return `~${Math.ceil(seconds)} seconds`;
+  }
+  const minutes = Math.ceil(seconds / 60);
+  return `~${minutes} minute${minutes > 1 ? "s" : ""}`;
 }

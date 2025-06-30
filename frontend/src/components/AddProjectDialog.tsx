@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
-import { useForm, Controller } from "react-hook-form"; // Dodano Controller
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useNavigate } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -25,7 +24,8 @@ import {
 import { useAuth } from "@/AuthContext";
 import type { UserResponse } from "@/types/user";
 import { toast } from "sonner";
-import { MultiSelect } from "@/components/ui/multi-select"; // <-- IMPORTUJEMY MultiSelect
+import { MultiSelect } from "@/components/ui/multi-select";
+import type { Project } from "@/types/project";
 
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
 
@@ -40,18 +40,17 @@ type AddProjectValues = z.infer<typeof addProjectSchema>;
 interface AddProjectDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  onProjectAdded: () => void;
+  onProjectCreated: (newProject: Project) => void;
 }
 
 export function AddProjectDialog({
   isOpen,
   onOpenChange,
-  onProjectAdded,
+  onProjectCreated,
 }: AddProjectDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [allUsers, setAllUsers] = useState<UserResponse[]>([]);
   const { user, token } = useAuth();
-  const navigate = useNavigate();
 
   const form = useForm<AddProjectValues>({
     resolver: zodResolver(addProjectSchema),
@@ -68,7 +67,6 @@ export function AddProjectDialog({
         });
         if (!response.ok) throw new Error("Failed to fetch users.");
         const usersData = await response.json();
-        // Filtrujemy bieżącego użytkownika z listy do wyboru
         setAllUsers(usersData.filter((u: UserResponse) => u._id !== user?._id));
       } catch (error) {
         toast.error("Could not load user list.");
@@ -90,7 +88,6 @@ export function AddProjectDialog({
     setIsSubmitting(true);
 
     const memberIds = data.members_ids || [];
-    // Upewniamy się, że właściciel projektu jest zawsze w members_ids
     if (!memberIds.includes(user._id)) {
       memberIds.unshift(user._id);
     }
@@ -118,8 +115,9 @@ export function AddProjectDialog({
         throw new Error(errorData.detail || "Failed to create project.");
       }
 
+      const newProject: Project = await response.json();
       toast.success("Project created successfully!");
-      onProjectAdded();
+      onProjectCreated(newProject);
       handleClose();
     } catch (error: any) {
       toast.error(error.message || "An unknown error occurred.");
@@ -143,7 +141,7 @@ export function AddProjectDialog({
             className="space-y-6 py-4"
           >
             <FormField
-              control={form.control} // Zmieniono na 'control' zamiast 'form.control'
+              control={form.control}
               name="name"
               render={({ field }) => (
                 <FormItem>
@@ -174,6 +172,7 @@ export function AddProjectDialog({
                 </FormItem>
               )}
             />
+            {/* --- ZMIANA ZACZYNA SIĘ TUTAJ --- */}
             <FormField
               control={form.control}
               name="members_ids"
@@ -182,9 +181,9 @@ export function AddProjectDialog({
                   <FormLabel>Members (Optional)</FormLabel>
                   <FormControl>
                     <MultiSelect
-                      options={allUsers.map((user) => ({
-                        value: user._id,
-                        label: user.full_name || user.username,
+                      options={allUsers.map((u) => ({
+                        value: u._id,
+                        label: u.full_name || u.username,
                       }))}
                       selected={field.value || []}
                       onSelectedChange={field.onChange}
@@ -196,6 +195,7 @@ export function AddProjectDialog({
                 </FormItem>
               )}
             />
+            {/* --- ZMIANA KOŃCZY SIĘ TUTAJ --- */}
             <DialogFooter>
               <Button type="button" variant="outline" onClick={handleClose}>
                 Cancel

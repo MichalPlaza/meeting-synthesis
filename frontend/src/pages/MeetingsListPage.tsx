@@ -10,6 +10,7 @@ import { MeetingListItemSkeleton } from "@/components/MeetingListItemSkeleton";
 import ErrorState from "@/components/ErrorState";
 import EmptyState from "@/components/EmptyState";
 import { AddMeetingDialog } from "@/components/AddMeetingDialog";
+import { AddProjectDialog } from "@/components/AddProjectDialog"; // <-- IMPORTUJEMY AddProjectDialog
 
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
 
@@ -20,7 +21,10 @@ function MeetingsListPage() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+
+  // --- ZARZĄDZANIE DIALOGAMI ---
+  const [isAddMeetingDialogOpen, setIsAddMeetingDialogOpen] = useState(false);
+  const [isAddProjectDialogOpen, setIsAddProjectDialogOpen] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
@@ -66,10 +70,10 @@ function MeetingsListPage() {
     fetchData();
   }, [fetchData]);
 
-  // Tworzymy mapę projektów dla szybkiego dostępu
-  const projectsMap = useMemo(() => {
-    return new Map(projects.map((p) => [p._id, p]));
-  }, [projects]);
+  const projectsMap = useMemo(
+    () => new Map(projects.map((p) => [p._id, p])),
+    [projects]
+  );
 
   const filteredMeetings = useMemo(() => {
     return meetings
@@ -106,6 +110,15 @@ function MeetingsListPage() {
       });
   }, [meetings, searchTerm, selectedProjects, selectedTags, sortBy]);
 
+  const handleProjectCreated = (newProject: Project) => {
+    // Odświeżamy listę projektów, aby zawierała nowy element
+    setProjects((prev) => [...prev, newProject]);
+    // Zamykamy dialog projektu i wracamy do dialogu spotkania
+    setIsAddProjectDialogOpen(false);
+    setIsAddMeetingDialogOpen(true);
+    // TODO: Automatycznie ustawić nowo dodany projekt w formularzu spotkania
+  };
+
   if (error) {
     return <ErrorState message={error} onRetry={fetchData} />;
   }
@@ -113,15 +126,24 @@ function MeetingsListPage() {
   return (
     <>
       <AddMeetingDialog
-        isOpen={isAddDialogOpen}
-        onOpenChange={setIsAddDialogOpen}
+        isOpen={isAddMeetingDialogOpen}
+        onOpenChange={setIsAddMeetingDialogOpen}
         projects={projects}
         onMeetingAdded={fetchData}
+        onAddNewProject={() => {
+          setIsAddMeetingDialogOpen(false);
+          setIsAddProjectDialogOpen(true);
+        }}
+      />
+      <AddProjectDialog
+        isOpen={isAddProjectDialogOpen}
+        onOpenChange={setIsAddProjectDialogOpen}
+        onProjectCreated={handleProjectCreated}
       />
       <div className="space-y-8">
         <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
           <h1 className="text-3xl font-bold tracking-tight">Meetings</h1>
-          <Button onClick={() => setIsAddDialogOpen(true)}>
+          <Button onClick={() => setIsAddMeetingDialogOpen(true)}>
             <PlusIcon className="mr-2 h-4 w-4" />
             Add Meeting
           </Button>
@@ -162,7 +184,7 @@ function MeetingsListPage() {
                 <MeetingListItem
                   key={meeting._id}
                   meeting={meeting}
-                  project={projectsMap.get(meeting.project_id)} // <-- Przekazujemy projekt
+                  project={projectsMap.get(meeting.project_id)}
                 />
               ))}
             </ul>
