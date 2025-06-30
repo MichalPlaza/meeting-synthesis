@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import {
@@ -25,14 +25,14 @@ import {
   FormItem,
   FormMessage,
 } from "@/components/ui/form";
+import { Combobox } from "@/components/ui/combobox";
+import { Plus } from "lucide-react";
 
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
 
 const addMeetingSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters long."),
-  projectId: z.string().refine((val) => val && val !== "add_new_project", {
-    message: "You must select a project.",
-  }),
+  projectId: z.string({ required_error: "You must select a project." }),
   tags: z.string().optional(),
   file: z.instanceof(File, { message: "An audio file is required." }),
 });
@@ -59,36 +59,19 @@ export function AddMeetingDialog({
 
   const form = useForm<AddMeetingValues>({
     resolver: zodResolver(addMeetingSchema),
-    // --- ZMIANA TUTAJ: Zapewniamy, że `tags` ma wartość początkową ---
     defaultValues: {
       title: "",
       projectId: "",
       tags: "",
       file: undefined,
     },
-    // --- KONIEC ZMIANY ---
   });
-  const {
-    control,
-    handleSubmit,
-    setValue,
-    reset,
-    formState: { errors },
-  } = form;
+
+  const { control, handleSubmit, reset } = form;
 
   const handleClose = () => {
     reset();
     onOpenChange(false);
-  };
-
-  const handleProjectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value;
-    if (value === "add_new_project") {
-      onAddNewProject();
-      setValue("projectId", "");
-    } else {
-      setValue("projectId", value, { shouldValidate: true });
-    }
   };
 
   const onSubmit = async (data: AddMeetingValues) => {
@@ -173,32 +156,34 @@ export function AddMeetingDialog({
               control={control}
               name="projectId"
               render={({ field }) => (
-                <FormItem>
-                  <Label htmlFor="projectId">Project</Label>
-                  <FormControl>
-                    <select
-                      id="projectId"
-                      {...field}
-                      onChange={(e) => {
-                        field.onChange(e);
-                        handleProjectChange(e);
-                      }}
-                      className="w-full h-10 border-input border rounded-[var(--radius-field)] px-3 bg-background"
+                <FormItem className="flex flex-col">
+                  <Label>Project</Label>
+                  <div className="flex items-center gap-2">
+                    <FormControl>
+                      <Combobox
+                        options={projects.map((p) => ({
+                          value: p._id,
+                          label: p.name,
+                        }))}
+                        value={field.value}
+                        onChange={field.onChange}
+                        placeholder="Select a project..."
+                        searchPlaceholder="Search projects..."
+                        emptyMessage="No projects found."
+                        triggerClassName="flex-grow"
+                      />
+                    </FormControl>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="flex-shrink-0"
+                      onClick={onAddNewProject}
+                      aria-label="Add new project"
                     >
-                      <option value="">Select a project...</option>
-                      {projects.map((p) => (
-                        <option key={p._id} value={p._id}>
-                          {p.name}
-                        </option>
-                      ))}
-                      <option
-                        value="add_new_project"
-                        className="font-bold text-primary"
-                      >
-                        + Add new project...
-                      </option>
-                    </select>
-                  </FormControl>
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}

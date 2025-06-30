@@ -7,7 +7,6 @@ import PublicLayout from "./layouts/PublicLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ProjectListPage from "./pages/ProjectListPage";
 import { useAuth } from "./AuthContext";
-// import CreateProjectPage from "./pages/CreateProjectPage"; // <-- USUWAMY
 import ProjectDetailsPage from "./pages/ProjectDetailsPage";
 import MeetingDetailsPage from "./pages/MeetingDetailsPage";
 import MeetingsListPage from "./pages/MeetingsListPage";
