@@ -18,16 +18,41 @@ Asystent do analizy i zarządzania wiedzą ze spotkań wykorzystujący narzędzi
 
 ## Technologie
 
-- **Backend:** Python 3.11+, FastAPI, Poetry
-- **Frontend:** TypeScript, React (z Vite), PNPM
-- **Baza Danych:** MongoDB
-- **Broker Zadań:** Redis
-- **Przetwarzanie w Tle:** Celery
-- **Przetwarzanie Audio/AI:**
-  - Transkrypcja: OpenAI Whisper
-  - Identyfikacja Mówców: `pyannote-audio`
-  - Analiza Treści (LLM): OpenAI API (docelowo również modele lokalne)
-- **Konteneryzacja:** Docker, Docker Compose
+Poniżej przedstawiono kluczowe technologie użyte w projekcie wraz z krótkim uzasadnieniem wyboru:
+
+### Backend
+
+*   **Python 3.11+:** Wybrany ze względu na wszechstronność, dojrzałość ekosystemu ML (dla Whisper, Ollama) oraz dobrą obsługę operacji asynchronicznych.
+*   **FastAPI:** Nowoczesny, szybki (oparty na Starlette i Pydantic) framework webowy do budowania API. Zapewnia automatyczną walidację danych, serializację i interaktywną dokumentację (Swagger UI/ReDoc), co przyspiesza rozwój.
+*   **Poetry:** Narzędzie do zarządzania zależnościami i wirtualnymi środowiskami Pythona. Zapewnia deterministyczne i izolowane środowiska, co ułatwia zarządzanie projektem i jego reprodukowalność.
+*   **MongoDB:** Elastyczna baza danych NoSQL, idealna do przechowywania różnorodnych i dynamicznych danych, takich jak transkrypcje, analizy AI oraz dokumenty użytkowników/projektów, gdzie schemat może ewoluować.
+*   **Redis:** Używany jako broker komunikatów dla Celery oraz jako szybka pamięć podręczna. Kluczowy dla obsługi zadań w tle.
+*   **Celery:** Rozproszony system kolejek zadań, który pozwala na wykonywanie długotrwałych operacji (np. transkrypcja audio, analiza AI) asynchronicznie, bez blokowania głównego API aplikacji.
+*   **OpenAI Whisper:** State-of-the-art model do transkrypcji mowy na tekst. Wybrany ze względu na wysoką dokładność i wsparcie dla wielu języków.
+*   **Ollama:** Umożliwia uruchamianie modeli językowych (LLM) lokalnie. Wykorzystywany do analizy AI spotkań, co oferuje większą prywatność i kontrolę nad danymi w porównaniu do usług chmurowych.
+*   **Mutagen:** Biblioteka do odczytu i zapisu metadanych audio. Używana do automatycznego określania czasu trwania przesłanych plików dźwiękowych.
+
+### Frontend
+
+*   **TypeScript:** Statycznie typowany język programowania, który kompiluje się do JavaScriptu. Zapewnia lepszą jakość kodu, wykrywanie błędów na etapie developmentu i ułatwia refaktoryzację dużych projektów.
+*   **React:** Popularna biblioteka JavaScript do budowania interfejsów użytkownika opartych na komponentach. Umożliwia efektywne tworzenie dynamicznych i interaktywnych aplikacji.
+*   **Vite:** Szybki i nowoczesny narzędzie do budowania frontendów. Oferuje błyskawiczne odświeżanie na żywo (HMR) i zoptymalizowany bundling, co znacznie przyspiesza cykl deweloperski.
+*   **PNPM:** Efektywny menedżer pakietów JavaScript. Oszczędza miejsce na dysku i przyspiesza instalację zależności dzięki współdzielonej pamięci podręcznej.
+*   **Tailwind CSS:** Framework CSS oparty na klasach narzędziowych. Pozwala na szybkie i elastyczne stylowanie bez konieczności pisania własnego CSS, promując spójność wizualną.
+*   **shadcn/ui:** Kolekcja reużywalnych komponentów UI zbudowanych na Radix UI i Tailwind CSS. Zapewnia piękne, gotowe do użycia, ale jednocześnie w pełni konfigurowalne i dostępne komponenty.
+*   **Radix UI:** Zestaw niskopoziomowych, bezstylowych komponentów dla Reacta. Skupia się na dostępności (WCAG) i funkcjonalności, stanowiąc fundament dla komponentów shadcn/ui.
+*   **React Router DOM:** Standardowa biblioteka do zarządzania routingiem w aplikacjach React SPA (Single Page Application), zapewniająca płynne przejścia między widokami.
+*   **React Hook Form & Zod:** Połączenie do efektywnego zarządzania formularzami i ich walidacji. `React Hook Form` minimalizuje rerendery i upraszcza logikę formularzy, a `Zod` zapewnia potężne i bezpieczne schematy walidacji typu-first.
+*   **Sonner:** Nowoczesna biblioteka do tworzenia pięknych i konfigurowalnych powiadomień typu "toast".
+*   **Lucide React:** Lekki i spójny zestaw ikon do wykorzystania w interfejsie użytkownika.
+*   **date-fns:** Lekka biblioteka do operacji na datach, oferująca szeroki zakres funkcji formatowania i manipulacji.
+*   **clsx & tailwind-merge:** Narzędzia pomagające w dynamicznym konstruowaniu i łączeniu klas Tailwind CSS, eliminując konflikty.
+*   **cmdk:** Komponent do budowania palet komend i zaawansowanych selektorów, wykorzystany do stworzenia ulepszonego multi-selecta dla wyboru członków projektu.
+*   **react-dropzone:** Hook do łatwego implementowania funkcji przeciągnij-i-upuść dla przesyłania plików.
+
+### Konteneryzacja
+
+*   **Docker & Docker Compose:** Służą do konteneryzacji całej aplikacji. Zapewniają spójne środowiska deweloperskie i produkcyjne, izolują usługi od siebie i znacznie upraszczają proces wdrażania, eliminując problemy "u mnie działa".
 
 ## Struktura Projektu
 
