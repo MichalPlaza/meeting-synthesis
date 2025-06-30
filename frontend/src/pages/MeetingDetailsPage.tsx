@@ -395,21 +395,23 @@ function MeetingDetailsPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="ai-summary" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-4">
-          <TabsTrigger value="ai-summary">Summary</TabsTrigger>
+      <Tabs defaultValue="summary" className="w-full">
+        <TabsList className="grid w-full grid-cols-5 mb-4">
+          <TabsTrigger value="summary">Summary</TabsTrigger>
+          <TabsTrigger value="topics">Topics</TabsTrigger>
           <TabsTrigger value="action-items">Action Items</TabsTrigger>
           <TabsTrigger value="decisions">Decisions</TabsTrigger>
+          <TabsTrigger value="transcript">Transcript</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="ai-summary" className="space-y-6">
+        <TabsContent value="summary">
           {meeting.ai_analysis?.summary ? (
             <div className="p-6 space-y-4">
               <div className="text-xl font-semibold flex items-center gap-3">
                 <Sparkles size={20} /> <h4>Summary</h4>
               </div>
               <p className="text-foreground/80 leading-relaxed">
-                {meeting.ai_analysis?.summary}
+                {meeting.ai_analysis.summary}
               </p>
             </div>
           ) : (
@@ -420,7 +422,9 @@ function MeetingDetailsPage() {
               className="py-8"
             />
           )}
+        </TabsContent>
 
+        <TabsContent value="topics">
           {meeting.ai_analysis?.key_topics &&
           meeting.ai_analysis.key_topics.length > 0 ? (
             <div className="p-6 space-y-4">
@@ -448,7 +452,7 @@ function MeetingDetailsPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="action-items" className="mt-4">
+        <TabsContent value="action-items">
           {meeting.ai_analysis?.action_items &&
           meeting.ai_analysis.action_items.length > 0 ? (
             <div className="space-y-4 p-6">
@@ -486,7 +490,7 @@ function MeetingDetailsPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="decisions" className="mt-4">
+        <TabsContent value="decisions">
           {meeting.ai_analysis?.decisions_made &&
           meeting.ai_analysis.decisions_made.length > 0 ? (
             <div className="p-6 space-y-4">
@@ -511,7 +515,7 @@ function MeetingDetailsPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="full-transcript" className="mt-4 space-y-8">
+        <TabsContent value="transcript">
           {meeting.transcription?.full_text ? (
             <div className="whitespace-pre-wrap text-foreground/90 leading-relaxed p-6">
               <div className="text-xl font-semibold flex items-center gap-3 mb-4">
