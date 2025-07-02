@@ -1,8 +1,10 @@
 import json
 import ollama
+import os
 from ..models.ai_analysis import AIAnalysis
 
 LOCAL_LLM_MODEL = "gemma2:2b"
+OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
 
 PROMPT_TEMPLATE = """
 You are a highly intelligent meeting analysis assistant. Your primary function is to meticulously analyze the meeting transcription provided and extract specific, structured information.
@@ -48,8 +50,10 @@ Now, generate the JSON response based on the transcription provided.
 async def analyze_transcription(transcription: str) -> AIAnalysis:
     try:
         prompt = PROMPT_TEMPLATE.format(transcription_text=transcription)
+        
+        async_client = ollama.AsyncClient(host=OLLAMA_HOST)
 
-        response = await ollama.AsyncClient().chat(
+        response = await async_client.chat(
             model=LOCAL_LLM_MODEL,
             messages=[{"role": "user", "content": prompt}],
             format="json",
