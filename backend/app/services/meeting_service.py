@@ -13,7 +13,10 @@ from ..crud import crud_meetings
 from ..models.audio_file import AudioFile
 from ..models.meeting import Meeting
 from ..schemas.meeting_schema import MeetingCreate, MeetingUpdate, MeetingCreateForm, MeetingResponse
+# --- POCZĄTEK ZMIANY ---
+# Dodajemy brakujący import zadania Celery
 from ..worker.tasks import process_meeting_audio
+# --- KONIEC ZMIANY ---
 
 def get_audio_duration(file_path: str, mimetype: str) -> int | None:
     try:
@@ -36,9 +39,9 @@ def estimate_processing_time(duration_seconds: int | None) -> int | None:
     if duration_seconds is None:
         return None
     
-    FIXED_OVERHEAD_SECONDS = 15
-    TRANSCRIPTION_FACTOR = 1.2
-    AI_ANALYSIS_SECONDS = 25
+    FIXED_OVERHEAD_SECONDS = 10
+    TRANSCRIPTION_FACTOR = 0.5
+    AI_ANALYSIS_SECONDS = 20
     
     estimated_time = (
         FIXED_OVERHEAD_SECONDS + 
@@ -50,8 +53,16 @@ def estimate_processing_time(duration_seconds: int | None) -> int | None:
 async def create_new_meeting(db: AsyncIOMotorDatabase, data: MeetingCreate) -> Meeting:
     return await crud_meetings.create_meeting(db, data)
 
-async def get_meeting(db: AsyncIOMotorDatabase, meeting_id: str) -> Meeting | None:
-    return await crud_meetings.get_meeting_by_id(db, meeting_id)
+async def get_meeting(db: AsyncIOMotorDatabase, meeting_id: str) -> MeetingResponse | None:
+    meeting = await crud_meetings.get_meeting_by_id(db, meeting_id)
+    if not meeting:
+        return None
+    
+    estimated_time = estimate_processing_time(meeting.duration_seconds)
+    meeting_dict = meeting.model_dump(by_alias=True)
+    meeting_dict["estimated_processing_time_seconds"] = estimated_time
+    
+    return MeetingResponse(**meeting_dict)
 
 async def get_meetings_with_filters(
     db: AsyncIOMotorDatabase,
@@ -107,7 +118,7 @@ async def handle_meeting_upload(
 
     process_meeting_audio.delay(str(meeting.id))
 
-    response_data = meeting.dict()
+    response_data = meeting.model_dump(by_alias=True)
     response_data["estimated_processing_time_seconds"] = estimated_time
 
     return MeetingResponse(**response_data)

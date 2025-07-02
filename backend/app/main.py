@@ -1,21 +1,30 @@
+import os
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from .apis.v1.endpoints_auth import router as auth_router
-from .apis.v1.endpoints_meetings import router as meetings_router
-from .apis.v1.endpoints_project import router as project_router
-from .apis.v1.endpoints_users import router as users_router
-from .db.mongodb_utils import close_mongo_connection, connect_to_mongo
 from fastapi.middleware.cors import CORSMiddleware
-import os
+from .apis.v1 import (
+    endpoints_auth,
+    endpoints_meetings,
+    endpoints_project,
+    endpoints_users,
+)
+from .db.mongodb_utils import close_mongo_connection, connect_to_mongo
+
+# Sprawdź zmienną środowiskową, aby zdecydować o polityce CORS
+PYTHON_ENV = os.getenv("PYTHON_ENV", "production")
 
 app = FastAPI(title="Meeting Synthesis API")
 
-origins = [
-    "http://localhost:5173",  
-    "http://127.0.0.1:5173", 
-    "http://localhost:3000",  
-    "http://127.0.0.1:3000"
-]
+if PYTHON_ENV == "development":
+    # W trybie deweloperskim zezwalamy na wszystko dla wygody
+    origins = ["*"]
+else:
+    # W trybie produkcyjnym używamy ścisłej listy zdefiniowanej w .env
+    allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "")
+    origins = [
+        origin.strip() for origin in allowed_origins_str.split(",") if origin.strip()
+    ]
+    # Jeśli lista jest pusta, nic nie zostanie dopuszczone (bezpieczny domyślny)
 
 app.add_middleware(
     CORSMiddleware,
@@ -33,11 +42,13 @@ app.mount("/media", StaticFiles(directory="uploads"), name="media")
 async def startup_db_client():
     await connect_to_mongo()
 
+
 @app.on_event("shutdown")
 async def shutdown_db_client():
     await close_mongo_connection()
 
-app.include_router(auth_router, prefix="/auth", tags=["auth"])
-app.include_router(project_router, prefix="/project", tags=["project"])
-app.include_router(meetings_router, prefix="/meetings", tags=["meetings"])
-app.include_router(users_router, prefix="/users", tags=["users"])
+
+app.include_router(endpoints_auth.router, prefix="/auth", tags=["auth"])
+app.include_router(endpoints_project.router, prefix="/project", tags=["project"])
+app.include_router(endpoints_meetings.router, prefix="/meetings", tags=["meetings"])
+app.include_router(endpoints_users.router, prefix="/users", tags=["users"])
