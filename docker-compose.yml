@@ -23,14 +23,17 @@ services:
       - "8000:8000"
     environment:
       - PYTHON_ENV=production
-      - MONGO_URI=mongodb://mongo:27017/meeting_synthesis_db
+      - MONGO_DETAILS=mongodb://mongo:27017/meeting_synthesis_db
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OLLAMA_HOST=http://ollama:11434
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
+    volumes:
+      - ./backend/uploads:/app/uploads
     depends_on:
       - mongo
       - redis
+      - ollama
     restart: unless-stopped
     networks:
       - app-network
@@ -41,7 +44,7 @@ services:
       - "27017:27017"
     volumes:
       - mongodb_data:/data/db
-      - ./mongo-init:/docker-entrypoint-initdb.d # <-- Montuje cały katalog
+      - ./mongo-init:/docker-entrypoint-initdb.d
     environment:
       MONGO_INITDB_DATABASE: meeting_synthesis_db
     restart: unless-stopped
@@ -65,13 +68,16 @@ services:
     command: celery -A app.worker.celery_app worker --loglevel=info
     environment:
       - PYTHON_ENV=production
-      - MONGO_URI=mongodb://mongo:27017/meeting_synthesis_db
+      - MONGO_DETAILS=mongodb://mongo:27017/meeting_synthesis_db
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OLLAMA_HOST=http://ollama:11434
+    volumes:
+      - ./backend/uploads:/app/uploads
     depends_on:
       - backend
       - redis
+      - ollama
     restart: unless-stopped
     networks:
       - app-network
@@ -83,12 +89,22 @@ services:
     command: celery -A app.worker.celery_app beat --loglevel=info
     environment:
       - PYTHON_ENV=production
-      - MONGO_URI=mongodb://mongo:27017/meeting_synthesis_db
+      - MONGO_DETAILS=mongodb://mongo:27017/meeting_synthesis_db
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
     depends_on:
       - backend
       - redis
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ./local_models:/root/.ollama
     restart: unless-stopped
     networks:
       - app-network
