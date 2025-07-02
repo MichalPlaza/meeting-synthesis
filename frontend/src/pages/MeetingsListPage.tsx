@@ -10,7 +10,7 @@ import { MeetingListItemSkeleton } from "@/components/MeetingListItemSkeleton";
 import ErrorState from "@/components/ErrorState";
 import EmptyState from "@/components/EmptyState";
 import { AddMeetingDialog } from "@/components/AddMeetingDialog";
-import { AddProjectDialog } from "@/components/AddProjectDialog"; // <-- IMPORTUJEMY AddProjectDialog
+// Usunięto import AddProjectDialog, bo nie jest już tutaj potrzebny
 
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
 
@@ -22,9 +22,7 @@ function MeetingsListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // --- ZARZĄDZANIE DIALOGAMI ---
   const [isAddMeetingDialogOpen, setIsAddMeetingDialogOpen] = useState(false);
-  const [isAddProjectDialogOpen, setIsAddProjectDialogOpen] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
@@ -110,15 +108,6 @@ function MeetingsListPage() {
       });
   }, [meetings, searchTerm, selectedProjects, selectedTags, sortBy]);
 
-  const handleProjectCreated = (newProject: Project) => {
-    // Odświeżamy listę projektów, aby zawierała nowy element
-    setProjects((prev) => [...prev, newProject]);
-    // Zamykamy dialog projektu i wracamy do dialogu spotkania
-    setIsAddProjectDialogOpen(false);
-    setIsAddMeetingDialogOpen(true);
-    // TODO: Automatycznie ustawić nowo dodany projekt w formularzu spotkania
-  };
-
   if (error) {
     return <ErrorState message={error} onRetry={fetchData} />;
   }
@@ -130,15 +119,6 @@ function MeetingsListPage() {
         onOpenChange={setIsAddMeetingDialogOpen}
         projects={projects}
         onMeetingAdded={fetchData}
-        onAddNewProject={() => {
-          setIsAddMeetingDialogOpen(false);
-          setIsAddProjectDialogOpen(true);
-        }}
-      />
-      <AddProjectDialog
-        isOpen={isAddProjectDialogOpen}
-        onOpenChange={setIsAddProjectDialogOpen}
-        onProjectCreated={handleProjectCreated}
       />
       <div className="space-y-8">
         <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
