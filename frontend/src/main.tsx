@@ -5,13 +5,16 @@ import App from "./App.tsx";
 import { BrowserRouter } from "react-router-dom";
 import { AuthProvider } from "./AuthContext.tsx";
 import { ThemeProvider } from "./components/ThemeProvider.tsx";
+import { WebSocketProvider } from "./WebSocketContext.tsx";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <BrowserRouter>
       <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
         <AuthProvider>
-          <App />
+          <WebSocketProvider>
+            <App />
+          </WebSocketProvider>
         </AuthProvider>
       </ThemeProvider>
     </BrowserRouter>

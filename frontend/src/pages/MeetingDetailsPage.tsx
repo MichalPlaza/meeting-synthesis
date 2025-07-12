@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
-import { useMeetingPolling } from "@/hooks/useMeetingPolling";
-import { ProcessingStatusIndicator } from "@/components/ProcessingStatusIndicator";
+import { useAuth } from "@/AuthContext";
+import type { Meeting } from "@/types/meeting";
 
 import { format } from "date-fns";
-import { cn } from "@/lib/utils";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -28,6 +27,7 @@ import {
   Rewind,
   FastForward,
   RotateCcw,
+  AlertTriangle,
 } from "lucide-react";
 import ErrorState from "@/components/ErrorState";
 import EmptyState from "@/components/EmptyState";
@@ -45,10 +45,49 @@ const formatTime = (seconds: number): string => {
     .padStart(2, "0")}`;
 };
 
+// Nowy, uproszczony hook do pobierania danych spotkania
+function useMeetingData(meetingId: string | undefined) {
+  const { token } = useAuth();
+  const [meeting, setMeeting] = useState<Meeting | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchMeeting = useCallback(async () => {
+    if (!token || !meetingId) {
+      setError("Authentication token or Meeting ID is missing.");
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(
+        `${BACKEND_API_BASE_URL}/meetings/${meetingId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (!response.ok) {
+        throw new Error(`Failed to fetch meeting (Status: ${response.status})`);
+      }
+      const data: Meeting = await response.json();
+      setMeeting(data);
+    } catch (err: any) {
+      setError(err.message || "Failed to connect to the server.");
+    } finally {
+      setLoading(false);
+    }
+  }, [meetingId, token]);
+
+  useEffect(() => {
+    fetchMeeting();
+  }, [fetchMeeting]);
+
+  return { meeting, loading, error, refetch: fetchMeeting };
+}
+
 function MeetingDetailsPage() {
   const { meetingId } = useParams<{ meetingId: string }>();
-  const { meeting, loading, error, refetch, progress } =
-    useMeetingPolling(meetingId);
+  const { meeting, loading, error, refetch } = useMeetingData(meetingId);
 
   const audioRef = useRef<HTMLAudioElement>(null);
   const animationFrameIdRef = useRef<number>();
@@ -64,6 +103,9 @@ function MeetingDetailsPage() {
   const isProcessing =
     meeting?.processing_status.current_stage !== "completed" &&
     meeting?.processing_status.current_stage !== "failed";
+
+  const processingFailed =
+    meeting?.processing_status.current_stage === "failed";
 
   const audioSrc = meeting?.audio_file.storage_path_or_url
     ? `${BACKEND_API_BASE_URL}${meeting.audio_file.storage_path_or_url}`
@@ -310,10 +352,35 @@ function MeetingDetailsPage() {
       </div>
 
       {isProcessing ? (
-        <ProcessingStatusIndicator
-          status={meeting.processing_status}
-          progress={progress}
-        />
+        <div className="p-6 rounded-[var(--radius-container)] border-2 border-dashed flex flex-col items-center justify-center text-center gap-3">
+          {processingFailed ? (
+            <>
+              <AlertTriangle className="h-8 w-8 text-destructive" />
+              <div>
+                <h3 className="font-semibold text-destructive">
+                  Processing Failed!
+                </h3>
+                <p className="text-sm text-destructive/80 mt-1">
+                  {meeting.processing_status.error_message ||
+                    "An unknown error occurred."}
+                </p>
+              </div>
+            </>
+          ) : (
+            <>
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              <div>
+                <h3 className="font-semibold text-foreground">
+                  Processing in Progress
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  The analysis for this meeting is underway. You will be
+                  notified when it's ready.
+                </p>
+              </div>
+            </>
+          )}
+        </div>
       ) : (
         <Tabs defaultValue="summary" className="w-full">
           <TabsList className="grid w-full grid-cols-5 mb-4">
