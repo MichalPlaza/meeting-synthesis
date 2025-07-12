@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import axios, { AxiosError } from "axios";
 import {
   Dialog,
   DialogContent,
@@ -25,14 +26,14 @@ import {
   FormItem,
   FormMessage,
 } from "@/components/ui/form";
-import { Combobox } from "@/components/ui/combobox";
-import { Plus } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
 
+// Schemat walidacji pozostaje bez zmian
 const addMeetingSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters long."),
-  projectId: z.string({ required_error: "You must select a project." }),
+  projectId: z.string().min(1, "You must select a project."), // Zmieniamy na min(1) dla pewności
   tags: z.string().optional(),
   file: z.instanceof(File, { message: "An audio file is required." }),
 });
@@ -44,7 +45,6 @@ interface AddMeetingDialogProps {
   onOpenChange: (open: boolean) => void;
   projects: Project[];
   onMeetingAdded: () => void;
-  onAddNewProject: () => void;
 }
 
 export function AddMeetingDialog({
@@ -52,16 +52,16 @@ export function AddMeetingDialog({
   onOpenChange,
   projects,
   onMeetingAdded,
-  onAddNewProject,
 }: AddMeetingDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const { user, token } = useAuth();
 
   const form = useForm<AddMeetingValues>({
     resolver: zodResolver(addMeetingSchema),
     defaultValues: {
       title: "",
-      projectId: "",
+      projectId: "", // Pusta wartość początkowa
       tags: "",
       file: undefined,
     },
@@ -69,8 +69,16 @@ export function AddMeetingDialog({
 
   const { control, handleSubmit, reset } = form;
 
+  // Prosty reset formularza przy otwarciu
+  useEffect(() => {
+    if (isOpen) {
+      reset();
+      setUploadProgress(null);
+      setIsSubmitting(false);
+    }
+  }, [isOpen, reset]);
+
   const handleClose = () => {
-    reset();
     onOpenChange(false);
   };
 
@@ -80,6 +88,7 @@ export function AddMeetingDialog({
       return;
     }
     setIsSubmitting(true);
+    setUploadProgress(0);
 
     const formData = new FormData();
     formData.append("title", data.title);
@@ -90,20 +99,26 @@ export function AddMeetingDialog({
     formData.append("file", data.file);
 
     try {
-      const response = await fetch(`${BACKEND_API_BASE_URL}/meetings/upload`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "Failed to upload meeting.");
-      }
+      const response = await axios.post(
+        `${BACKEND_API_BASE_URL}/meetings/upload`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+          onUploadProgress: (progressEvent) => {
+            const percentCompleted = Math.round(
+              (progressEvent.loaded * 100) / (progressEvent.total ?? 1)
+            );
+            setUploadProgress(percentCompleted);
+          },
+        }
+      );
 
       const responseData: Meeting & {
         estimated_processing_time_seconds?: number;
-      } = await response.json();
+      } = response.data;
       const estimationMessage = responseData.estimated_processing_time_seconds
         ? `Estimated processing time: ${formatEstimation(
             responseData.estimated_processing_time_seconds
@@ -117,9 +132,15 @@ export function AddMeetingDialog({
       onMeetingAdded();
       handleClose();
     } catch (error: any) {
-      toast.error(error.message || "An unexpected error occurred.");
+      const axiosError = error as AxiosError<any>;
+      const errorMessage =
+        axiosError.response?.data?.detail ||
+        axiosError.message ||
+        "An unexpected error occurred.";
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
+      setUploadProgress(null);
     }
   };
 
@@ -134,95 +155,96 @@ export function AddMeetingDialog({
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 py-4">
-            <FormField
-              control={control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <Label htmlFor="title">Meeting Title</Label>
-                  <FormControl>
-                    <Input
-                      id="title"
-                      placeholder="e.g., Q3 Marketing Sync"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={control}
-              name="projectId"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <Label>Project</Label>
-                  <div className="flex items-center gap-2">
+            <fieldset disabled={isSubmitting} className="space-y-6">
+              <FormField
+                control={control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <Label htmlFor="title">Meeting Title</Label>
                     <FormControl>
-                      <Combobox
-                        options={projects.map((p) => ({
-                          value: p._id,
-                          label: p.name,
-                        }))}
-                        value={field.value}
-                        onChange={field.onChange}
-                        placeholder="Select a project..."
-                        searchPlaceholder="Search projects..."
-                        emptyMessage="No projects found."
-                        triggerClassName="flex-grow"
+                      <Input
+                        id="title"
+                        placeholder="e.g., Q3 Marketing Sync"
+                        {...field}
                       />
                     </FormControl>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      className="flex-shrink-0"
-                      onClick={onAddNewProject}
-                      aria-label="Add new project"
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={control}
-              name="tags"
-              render={({ field }) => (
-                <FormItem>
-                  <Label htmlFor="tags">Tags (comma-separated)</Label>
-                  <FormControl>
-                    <Input
-                      id="tags"
-                      placeholder="e.g., client-facing, critical, q3"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={control}
-              name="file"
-              render={({ field }) => (
-                <FormItem>
-                  <Label>Audio File</Label>
-                  <FormControl>
-                    <FileUpload onFileSelect={(file) => field.onChange(file)} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              {/* --- POCZĄTEK ZMIANY: ZASTĄPIENIE COMBOBOXA --- */}
+              <FormField
+                control={control}
+                name="projectId"
+                render={({ field }) => (
+                  <FormItem>
+                    <Label>Project</Label>
+                    <FormControl>
+                      <select
+                        {...field}
+                        className={cn(
+                          "flex h-10 w-full items-center justify-between rounded-[var(--radius-field)] border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+                          // Pokaż tekst zastępczy, jeśli nic nie jest wybrane
+                          field.value === "" && "text-muted-foreground"
+                        )}
+                      >
+                        <option value="" disabled>
+                          Select a project...
+                        </option>
+                        {projects.map((project) => (
+                          <option key={project._id} value={project._id}>
+                            {project.name}
+                          </option>
+                        ))}
+                      </select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              {/* --- KONIEC ZMIANY --- */}
+              <FormField
+                control={control}
+                name="tags"
+                render={({ field }) => (
+                  <FormItem>
+                    <Label htmlFor="tags">Tags (comma-separated)</Label>
+                    <FormControl>
+                      <Input
+                        id="tags"
+                        placeholder="e.g., client-facing, critical, q3"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={control}
+                name="file"
+                render={({ field }) => (
+                  <FormItem>
+                    <Label>Audio File</Label>
+                    <FormControl>
+                      <FileUpload
+                        onFileSelect={(file) => field.onChange(file)}
+                        progress={uploadProgress}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </fieldset>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={handleClose}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleClose}
+                disabled={isSubmitting}
+              >
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting}>

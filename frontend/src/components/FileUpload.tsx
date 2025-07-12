@@ -7,9 +7,14 @@ import { cn } from "@/lib/utils";
 interface FileUploadProps {
   onFileSelect: (file: File | null) => void;
   className?: string;
+  progress: number | null;
 }
 
-export function FileUpload({ onFileSelect, className }: FileUploadProps) {
+export function FileUpload({
+  onFileSelect,
+  className,
+  progress,
+}: FileUploadProps) {
   const [file, setFile] = useState<File | null>(null);
 
   const onDrop = useCallback(
@@ -30,6 +35,7 @@ export function FileUpload({ onFileSelect, className }: FileUploadProps) {
         "audio/*": [".mp3", ".wav", ".m4a", ".flac", ".ogg"],
       },
       multiple: false,
+      disabled: progress !== null,
     });
 
   const removeFile = (e: React.MouseEvent) => {
@@ -37,6 +43,33 @@ export function FileUpload({ onFileSelect, className }: FileUploadProps) {
     setFile(null);
     onFileSelect(null);
   };
+
+  if (file && progress !== null) {
+    return (
+      <div
+        className={cn(
+          "p-4 rounded-[var(--radius-container)] border border-dashed flex items-center justify-between",
+          className
+        )}
+      >
+        <div className="flex items-center gap-3 w-full">
+          <FileIcon className="h-8 w-8 text-primary" />
+          <div className="flex-grow">
+            <p className="font-medium truncate">{file.name}</p>
+            <div className="w-full bg-muted rounded-full h-2 mt-1.5 overflow-hidden">
+              <div
+                className="bg-primary h-full rounded-full transition-all duration-150"
+                style={{ width: `${progress}%` }}
+              ></div>
+            </div>
+          </div>
+          <span className="text-sm font-semibold text-muted-foreground w-12 text-right">
+            {Math.round(progress)}%
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   if (file) {
     return (

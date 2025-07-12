@@ -58,7 +58,7 @@ export function Combobox({
           role="combobox"
           aria-expanded={open}
           className={cn(
-            "w-full justify-between rounded-[var(--radius-field)]", // <-- ZMIANA TUTAJ
+            "w-full justify-between rounded-[var(--radius-field)]",
             triggerClassName
           )}
         >
@@ -75,15 +75,20 @@ export function Combobox({
               {options.map((option) => (
                 <CommandItem
                   key={option.value}
-                  value={option.label}
+                  value={option.label} // Wartość dla wyszukiwania to nazwa projektu
+                  // --- OSTATECZNA POPRAWKA ---
+                  // Ignorujemy argument z `onSelect` i używamy bezpośrednio
+                  // obiektu `option` z funkcji `map`.
+                  // To gwarantuje, że przekazujemy właściwe ID.
                   onSelect={() => {
-                    onChange(option.value);
-                    setOpen(false);
+                    onChange(option.value); // Przekaż ID do react-hook-form
+                    setOpen(false); // Ręcznie zamknij popover
                   }}
                 >
                   <Check
                     className={cn(
                       "mr-2 h-4 w-4",
+                      // Porównujemy ID z formularza z ID opcji
                       value === option.value ? "opacity-100" : "opacity-0"
                     )}
                   />

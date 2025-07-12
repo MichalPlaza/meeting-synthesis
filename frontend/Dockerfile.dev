@@ -1,26 +1,22 @@
-# Ścieżka pliku: ./frontend/Dockerfile.dev
+# frontend/Dockerfile.dev
 
-# Użyj oficjalnego obrazu Node.js jako bazy
 FROM node:20-alpine
 
-# Ustaw katalog roboczy w kontenerze
 WORKDIR /app
 
-# Skopiuj pliki manifestu zależności
+# Kopiujemy tylko pliki potrzebne do instalacji zależności
 COPY package.json pnpm-lock.yaml ./
 
-# Włącz pnpm za pomocą corepack (standard w nowszych wersjach Node.js)
-RUN corepack enable
+# Instalujemy pnpm i zależności
+RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN pnpm install --shamefully-hoist
 
-# Zainstaluj zależności projektu
-RUN pnpm install
+# --- USUNIĘTO LINIĘ "COPY . ." ---
+# Kod źródłowy zostanie dostarczony przez volume mount w docker-compose.dev.yml,
+# więc nie kopiujemy go do obrazu. To zapobiega konfliktom.
 
-# Skopiuj resztę plików aplikacji (chociaż wolumen je nadpisze, to dobra praktyka)
-COPY . .
-
-# Wystaw port, na którym działa serwer deweloperski Vite
+# Port, na którym działa serwer deweloperski Vite
 EXPOSE 5173
 
-# Komenda startowa jest zdefiniowana w docker-compose.dev.yml,
-# ale możemy ją tu umieścić jako domyślną.
+# Definiujemy domyślną komendę (chociaż jest nadpisywana w docker-compose)
 CMD ["pnpm", "run", "dev", "--host"]

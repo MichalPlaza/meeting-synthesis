@@ -63,4 +63,5 @@ export interface Meeting {
   ai_analysis: AiAnalysis | null;
   duration_seconds: number | null;
   tags: string[];
+  estimated_processing_time_seconds?: number | null;
 }

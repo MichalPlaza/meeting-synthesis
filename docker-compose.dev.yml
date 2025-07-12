@@ -1,3 +1,5 @@
+# docker-compose.dev.yml
+
 services:
   frontend:
     build:
@@ -8,20 +10,43 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
+    environment:
+      - VITE_BACKEND_API_BASE_URL=http://localhost:8000
     command: pnpm run dev --host
 
   backend:
-    ports:
-      - "8000:8000"
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: dev-dependencies
     volumes:
       - ./backend:/app
+    environment:
+      - PYTHON_ENV=development
+      # --- KLUCZOWA ZMIANA ---
+      - PYTHONPATH=/app
     command: uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
   celery_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: dev-dependencies
     volumes:
       - ./backend:/app
+    environment:
+      # --- KLUCZOWA ZMIANA ---
+      - PYTHONPATH=/app
     command: celery -A app.worker.celery_app worker --loglevel=info
 
   celery_beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: dev-dependencies
     volumes:
       - ./backend:/app
+    environment:
+      # --- KLUCZOWA ZMIANA ---
+      - PYTHONPATH=/app
+    command: celery -A app.worker.celery_app beat --loglevel=info
