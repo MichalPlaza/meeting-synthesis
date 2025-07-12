@@ -4,6 +4,7 @@ import os
 from datetime import datetime, UTC
 
 from ..core.config import MONGO_DETAILS, DATABASE_NAME
+from ..core.redis_client import publish_event
 from ..crud import crud_meetings
 from ..models.enums.processing_stage import ProcessingStage
 from ..models.processing_status import ProcessingStatus
@@ -17,6 +18,7 @@ UPLOAD_DIR = "uploads"
 
 async def run_processing(meeting_id: str):
     motor_client = None
+    meeting = None
     try:
         motor_client = AsyncIOMotorClient(MONGO_DETAILS)
         db = motor_client[DATABASE_NAME]
@@ -31,6 +33,7 @@ async def run_processing(meeting_id: str):
         )
 
         meeting = await crud_meetings.get_meeting_by_id(db, meeting_id)
+
         if not meeting or not meeting.audio_file:
             raise ValueError(f"Meeting or audio file not found for ID: {meeting_id}")
             
@@ -63,6 +66,11 @@ async def run_processing(meeting_id: str):
         )
         print(f"[{meeting_id}] AI analysis finished.")
 
+        meeting = await crud_meetings.get_meeting_by_id(db, meeting_id)
+
+        if not meeting:
+            raise ValueError(f"Meeting or audio file not found for ID: {meeting_id}")
+
         # --- KROK 4: Zakończenie ---
         await crud_meetings.update_meeting(
             db,
@@ -90,6 +98,19 @@ async def run_processing(meeting_id: str):
                 ),
             )
     finally:
+        if meeting:
+            final_status = await crud_meetings.get_meeting_by_id(db, meeting_id)
+            if final_status:
+                event = {
+                    "event_type": "meeting_processed",
+                    "meeting_id": str(final_status.id),
+                    "project_id": str(final_status.project_id),
+                    "uploader_id": str(final_status.uploader_id),
+                    "status": final_status.processing_status.current_stage.value,
+                    "title": final_status.title,
+                }
+                await publish_event(event)
+
         if motor_client:
             motor_client.close()
 
