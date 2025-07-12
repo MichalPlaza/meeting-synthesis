@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "notification-service"
+version = "0.1.0"
+description = "Real-time notification service for Meeting Synthesis"
+authors = ["Michal Plaza <michalplaza9@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.111.0"
+uvicorn = {extras = ["standard"], version = "^0.30.1"}
+websockets = "^12.0"
+redis = {extras = ["hiredis"], version = "^5.0.7"}
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.maina:api"
