@@ -13,21 +13,21 @@ router = APIRouter()
     "/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED
 )
 async def register_user(
-    user_in: UserCreate, db: AsyncIOMotorDatabase = Depends(get_database)
+    user: UserCreate, database: AsyncIOMotorDatabase = Depends(get_database)
 ):
-    return await user_service.register_new_user(db=db, user_data=user_in)
+    return await user_service.register_new_user(database=database, user_data=user)
 
 
 @router.post("/login", response_model=Token)
 async def login_for_access_token(
-    form_data: UserLogin = Body(...), db: AsyncIOMotorDatabase = Depends(get_database)
+    form_data: UserLogin = Body(...), database: AsyncIOMotorDatabase = Depends(get_database)
 ):
-    return await user_service.authenticate_user(db=db, form_data=form_data)
+    return await user_service.authenticate_user(database=database, form_data=form_data)
 
 
 @router.post("/refresh-token", response_model=Token)
 async def refresh_access_token(
-    request: RefreshTokenRequest, db: AsyncIOMotorDatabase = Depends(get_database)
+    request: RefreshTokenRequest, database: AsyncIOMotorDatabase = Depends(get_database)
 ):
     token_data = security.decode_token(request.refresh_token)
     if not token_data or not token_data.username:
@@ -37,7 +37,7 @@ async def refresh_access_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    user = await crud_users.get_user_by_username(db, username=token_data.username)
+    user = await crud_users.get_user_by_username(database, username=token_data.username)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

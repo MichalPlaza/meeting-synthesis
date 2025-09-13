@@ -7,18 +7,18 @@ class MongoDB:
     client: AsyncIOMotorClient = None
 
 
-db = MongoDB()
+mongo_db = MongoDB()
 
 
 async def connect_to_mongo():
-    db.client = AsyncIOMotorClient(MONGO_DETAILS)
+    mongo_db.client = AsyncIOMotorClient(MONGO_DETAILS)
 
 
 async def close_mongo_connection():
-    db.client.close()
+    mongo_db.client.close()
 
 
 async def get_database():
-    if db.client is None:
+    if mongo_db.client is None:
         await connect_to_mongo()
-    return db.client[DATABASE_NAME]
+    return mongo_db.client[DATABASE_NAME]

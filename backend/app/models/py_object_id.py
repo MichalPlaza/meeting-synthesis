@@ -15,7 +15,7 @@ class PyObjectId(ObjectId):
         )
 
     @classmethod
-    def validate(cls, value: Any, _info: Any) -> "PyObjectId":
+    def validate(cls, value: Any, _info: Any) -> ObjectId:
         if isinstance(value, ObjectId):
             return value
         if not ObjectId.is_valid(value):

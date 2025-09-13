@@ -16,7 +16,7 @@ python-jose = {extras = ["cryptography"], version = "^3.5.0"}
 passlib = {extras = ["bcrypt"], version = "^1.7.4"}
 python-multipart = "^0.0.9"
 python-dotenv = "^1.0.0"
-celery = {extras = ["redis"], version = "^5.3.6"}
+celery = {extras = ["redis"], version = "^5.5.3"}
 redis = "^5.0.1"
 future = "^1.0.0"
 openai-whisper = "^20240930"

@@ -16,45 +16,43 @@ from .celery_app import celery_app
 
 UPLOAD_DIR = "uploads"
 
+
 async def run_processing(meeting_id: str):
     motor_client = None
     meeting = None
     try:
         motor_client = AsyncIOMotorClient(MONGO_DETAILS)
-        db = motor_client[DATABASE_NAME]
+        database = motor_client[DATABASE_NAME]
 
-        # --- KROK 1: Poinformuj, że zadanie zostało podjęte ---
         await crud_meetings.update_meeting(
-            db,
+            database,
             meeting_id,
             MeetingUpdate(
                 processing_status=ProcessingStatus(current_stage=ProcessingStage.TRANSCRIBING)
             ),
         )
 
-        meeting = await crud_meetings.get_meeting_by_id(db, meeting_id)
+        meeting = await crud_meetings.get_meeting_by_id(database, meeting_id)
 
         if not meeting or not meeting.audio_file:
             raise ValueError(f"Meeting or audio file not found for ID: {meeting_id}")
-            
+
         filename = os.path.basename(meeting.audio_file.storage_path_or_url)
         local_file_path = os.path.join(UPLOAD_DIR, filename)
         if not os.path.exists(local_file_path):
-             raise FileNotFoundError(f"Audio file not found at path: {local_file_path}")
+            raise FileNotFoundError(f"Audio file not found at path: {local_file_path}")
 
-        # --- KROK 2: Transkrypcja ---
         print(f"[{meeting_id}] Starting transcription...")
         full_text = await transcribe_audio(local_file_path)
         transcription_obj = Transcription(full_text=full_text)
         await crud_meetings.update_meeting(
-            db, meeting_id, MeetingUpdate(transcription=transcription_obj)
+            database, meeting_id, MeetingUpdate(transcription=transcription_obj)
         )
         print(f"[{meeting_id}] Transcription finished.")
 
-        # --- KROK 3: Analiza AI ---
         print(f"[{meeting_id}] Starting AI analysis...")
         await crud_meetings.update_meeting(
-            db,
+            database,
             meeting_id,
             MeetingUpdate(
                 processing_status=ProcessingStatus(current_stage=ProcessingStage.ANALYZING)
@@ -62,18 +60,17 @@ async def run_processing(meeting_id: str):
         )
         ai_analysis_obj = await analyze_transcription(full_text)
         await crud_meetings.update_meeting(
-            db, meeting_id, MeetingUpdate(ai_analysis=ai_analysis_obj)
+            database, meeting_id, MeetingUpdate(ai_analysis=ai_analysis_obj)
         )
         print(f"[{meeting_id}] AI analysis finished.")
 
-        meeting = await crud_meetings.get_meeting_by_id(db, meeting_id)
+        meeting = await crud_meetings.get_meeting_by_id(database, meeting_id)
 
         if not meeting:
             raise ValueError(f"Meeting or audio file not found for ID: {meeting_id}")
 
-        # --- KROK 4: Zakończenie ---
         await crud_meetings.update_meeting(
-            db,
+            database,
             meeting_id,
             MeetingUpdate(
                 processing_status=ProcessingStatus(
@@ -87,9 +84,9 @@ async def run_processing(meeting_id: str):
     except Exception as e:
         print(f"Error processing meeting ID {meeting_id}: {e}")
         if motor_client:
-            db = motor_client[DATABASE_NAME]
+            database = motor_client[DATABASE_NAME]
             await crud_meetings.update_meeting(
-                db,
+                database,
                 meeting_id,
                 MeetingUpdate(
                     processing_status=ProcessingStatus(
@@ -99,7 +96,7 @@ async def run_processing(meeting_id: str):
             )
     finally:
         if meeting:
-            final_status = await crud_meetings.get_meeting_by_id(db, meeting_id)
+            final_status = await crud_meetings.get_meeting_by_id(database, meeting_id)
             if final_status:
                 event = {
                     "event_type": "meeting_processed",
@@ -117,18 +114,14 @@ async def run_processing(meeting_id: str):
 
 @celery_app.task(name="process_meeting_audio")
 def process_meeting_audio(meeting_id: str):
-    # Ustawiamy status QUEUED zaraz po wywołaniu zadania
-    # (ta część kodu wykona się niemal natychmiast)
     motor_client = AsyncIOMotorClient(MONGO_DETAILS)
-    db = motor_client[DATABASE_NAME]
+    database = motor_client[DATABASE_NAME]
     asyncio.run(crud_meetings.update_meeting(
-        db,
+        database,
         meeting_id,
         MeetingUpdate(
             processing_status=ProcessingStatus(current_stage=ProcessingStage.QUEUED)
         )
     ))
     motor_client.close()
-
-    # Następnie uruchamiamy główną logikę przetwarzania
     asyncio.run(run_processing(meeting_id))
