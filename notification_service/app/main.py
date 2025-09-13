@@ -1,11 +1,12 @@
 import asyncio
-import json
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends
 from typing import Dict, List
+
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends
 
 from .redis_listener import redis_listener
 
 app = FastAPI(title="Notification Service")
+
 
 class ConnectionManager:
     def __init__(self):
@@ -31,19 +32,19 @@ class ConnectionManager:
             for connection in connections:
                 await connection.send_text(message)
 
+
 manager = ConnectionManager()
 
-# Uruchamiamy nasłuchiwanie Redis w tle przy starcie aplikacji
+
 @app.on_event("startup")
 async def startup_event():
     asyncio.create_task(redis_listener(manager))
 
-# Prosty dependency do "dekodowania" tokena. W przyszłości to będzie JWT.
-# Na razie user_id będzie przekazywany wprost jako token dla uproszczenia.
+
 async def get_user_id_from_token(token: str) -> str:
     # TODO: W przyszłości zaimplementować pełną walidację JWT tokena
-    # Na teraz, token to po prostu user_id.
     return token
+
 
 @app.websocket("/ws/{token}")
 async def websocket_endpoint(websocket: WebSocket, user_id: str = Depends(get_user_id_from_token)):

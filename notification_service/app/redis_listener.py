@@ -6,11 +6,12 @@ import redis.asyncio as redis
 REDIS_URL = os.getenv("CELERY_BROKER_URL", "redis://redis:6379/0")
 NOTIFICATION_CHANNEL = "meeting_events"
 
+
 async def redis_listener(manager):
     r = redis.from_url(REDIS_URL, decode_responses=True)
     pubsub = r.pubsub()
     await pubsub.subscribe(NOTIFICATION_CHANNEL)
-    
+
     print("Redis listener started...")
     while True:
         try:

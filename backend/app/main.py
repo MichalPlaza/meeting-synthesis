@@ -10,21 +10,17 @@ from .apis.v1 import (
 )
 from .db.mongodb_utils import close_mongo_connection, connect_to_mongo
 
-# Sprawdź zmienną środowiskową, aby zdecydować o polityce CORS
 PYTHON_ENV = os.getenv("PYTHON_ENV", "production")
 
 app = FastAPI(title="Meeting Synthesis API")
 
 if PYTHON_ENV == "development":
-    # W trybie deweloperskim zezwalamy na wszystko dla wygody
     origins = ["*"]
 else:
-    # W trybie produkcyjnym używamy ścisłej listy zdefiniowanej w .env
     allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "")
     origins = [
         origin.strip() for origin in allowed_origins_str.split(",") if origin.strip()
     ]
-    # Jeśli lista jest pusta, nic nie zostanie dopuszczone (bezpieczny domyślny)
 
 app.add_middleware(
     CORSMiddleware,

@@ -3,7 +3,7 @@ from dataclasses import Field
 from bson import ObjectId
 from pydantic import BaseModel, field_validator
 
-from backend.app.models.py_object_id import PyObjectId
+from .py_object_id import PyObjectId
 
 
 class GlobalConfig(BaseModel):
@@ -14,7 +14,7 @@ class GlobalConfig(BaseModel):
     maintenance_mode_active: bool = False
     maintenance_message: str | None = None
 
-    @field_validator("id")  # Pydantic v2 field_validator
+    @field_validator("id")
     @classmethod
     def id_must_be_global_config(cls, v):
         if v != "global_config":

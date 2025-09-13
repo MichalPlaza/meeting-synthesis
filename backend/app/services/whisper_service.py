@@ -1,11 +1,7 @@
 import whisper
 import os
 
-# --- POCZĄTEK ZMIANY ---
-# Zmieniamy model "base" na "tiny". Jest znacznie szybszy i zużywa
-# o wiele mniej pamięci RAM, co zapobiegnie awariom w kontenerze Docker.
-model = whisper.load_model("tiny")
-# --- KONIEC ZMIANY ---
+model = whisper.load_model("base")
 
 
 async def transcribe_audio(file_path: str) -> str:
@@ -13,7 +9,6 @@ async def transcribe_audio(file_path: str) -> str:
         raise FileNotFoundError(f"Plik nie istnieje: {file_path}")
 
     try:
-        # Logika transkrypcji pozostaje bez zmian
         result = model.transcribe(file_path)
         return result.get("text", "").strip()
     except Exception as e:
