@@ -58,14 +58,15 @@ class MeetingResponse(MeetingBase):
         json_encoders = {PyObjectId: str}
         arbitrary_types_allowed = True
 
+
 class MeetingCreateForm:
     def __init__(
-        self,
-        title: str = Form(...),
-        meeting_datetime: datetime = Form(...),
-        project_id: str = Form(...),
-        uploader_id: str = Form(...),
-        tags: str = Form(""),
+            self,
+            title: str = Form(...),
+            meeting_datetime: datetime = Form(...),
+            project_id: str = Form(...),
+            uploader_id: str = Form(...),
+            tags: str = Form(""),
     ):
         self.title = title
         self.meeting_datetime = meeting_datetime
@@ -74,10 +75,10 @@ class MeetingCreateForm:
         self.tags = [tag.strip() for tag in tags.split(',') if tag.strip()]
 
     def to_meeting_create(
-        self, 
-        audio_file: AudioFile, 
-        duration: int | None,
-        config: ProcessingConfig | None = None
+            self,
+            audio_file: AudioFile,
+            duration: int | None,
+            config: ProcessingConfig | None = None
     ):
         return MeetingCreate(
             title=self.title,
