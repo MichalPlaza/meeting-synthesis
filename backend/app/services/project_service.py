@@ -40,4 +40,4 @@ async def get_projects_owned_by_user(
 async def get_projects_with_member(
         database: AsyncIOMotorDatabase, member_id: str
 ) -> list[Project]:
-    return await crud_projects.get_projects_with_member(database, member_id)
+    return await crud_projects.get_projects_by_member(database, member_id)
