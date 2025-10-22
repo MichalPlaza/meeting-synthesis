@@ -9,6 +9,7 @@ from ..models.processing_config import ProcessingConfig
 from ..models.processing_status import ProcessingStatus
 from ..models.py_object_id import PyObjectId
 from ..models.transcrpion import Transcription
+from ..models.enums.proccessing_mode import ProcessingMode
 
 
 class MeetingBase(BaseModel):
@@ -20,9 +21,7 @@ class MeetingBase(BaseModel):
 
 class MeetingCreate(MeetingBase):
     audio_file: AudioFile
-    processing_config: ProcessingConfig | None = (
-        None
-    )
+    processing_config: ProcessingConfig | None = None
     duration_seconds: int | None = None
     tags: list[str] = []
 
@@ -61,24 +60,29 @@ class MeetingResponse(MeetingBase):
 
 class MeetingCreateForm:
     def __init__(
-            self,
-            title: str = Form(...),
-            meeting_datetime: datetime = Form(...),
-            project_id: str = Form(...),
-            uploader_id: str = Form(...),
-            tags: str = Form(""),
+        self,
+        title: str = Form(...),
+        meeting_datetime: datetime = Form(...),
+        project_id: str = Form(...),
+        uploader_id: str = Form(...),
+        tags: str = Form(""),
+
+        processing_mode_selected: str = Form("local"), # or remote
+        language: str = Form("pl"), # or en
     ):
         self.title = title
         self.meeting_datetime = meeting_datetime
         self.project_id = PyObjectId(project_id)
         self.uploader_id = PyObjectId(uploader_id)
-        self.tags = [tag.strip() for tag in tags.split(',') if tag.strip()]
+        self.tags = [tag.strip() for tag in tags.split(",") if tag.strip()]
+
+        self.processing_mode_selected = ProcessingMode(processing_mode_selected)
+        self.language = language
 
     def to_meeting_create(
-            self,
-            audio_file: AudioFile,
-            duration: int | None,
-            config: ProcessingConfig | None = None
+        self,
+        audio_file: AudioFile,
+        duration: int | None,
     ):
         return MeetingCreate(
             title=self.title,
@@ -86,7 +90,10 @@ class MeetingCreateForm:
             project_id=self.project_id,
             uploader_id=self.uploader_id,
             audio_file=audio_file,
-            processing_config=config or ProcessingConfig(),
+            processing_config=ProcessingConfig(
+                language=self.language,
+                processing_mode_selected=self.processing_mode_selected
+            ),
             duration_seconds=duration,
             tags=self.tags
         )

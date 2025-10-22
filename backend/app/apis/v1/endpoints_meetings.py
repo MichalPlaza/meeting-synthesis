@@ -7,6 +7,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from typing import List
 
 from ...db.mongodb_utils import get_database
+from ...models.enums.proccessing_mode import ProcessingMode
 from ...schemas.meeting_schema import MeetingCreate, MeetingResponse, MeetingUpdate, MeetingCreateForm
 from ...services import meeting_service
 from ...crud import crud_meetings
@@ -44,21 +45,27 @@ async def list_meetings(
 
 @router.post("/upload", response_model=MeetingResponse, status_code=status.HTTP_201_CREATED)
 async def upload_meeting_with_file(
-        title: str = Form(...),
-        meeting_datetime: datetime = Form(...),
-        project_id: str = Form(...),
-        uploader_id: str = Form(...),
-        tags: str = Form(""),
-        file: UploadFile = File(...),
-        database: AsyncIOMotorDatabase = Depends(get_database),
-):
+    title: str = Form(...),
+    meeting_datetime: datetime = Form(...),
+    project_id: str = Form(...),
+    uploader_id: str = Form(...),
+    tags: str = Form(""),
+    file: UploadFile = File(...),
+    processing_mode_selected: ProcessingMode = Form(ProcessingMode.LOCAL),
+    language: str = Form("pl"),
+    database: AsyncIOMotorDatabase = Depends(get_database),
+    ):
+
     form_data = MeetingCreateForm(
         title=title,
         meeting_datetime=meeting_datetime,
         project_id=project_id,
         uploader_id=uploader_id,
         tags=tags,
+        processing_mode_selected=processing_mode_selected.value,
+        language=language,
     )
+
     return await meeting_service.handle_meeting_upload(database, form_data, file)
 
 
