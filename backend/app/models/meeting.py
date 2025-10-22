@@ -19,7 +19,7 @@ class Meeting(BaseModel):
     uploader_id: PyObjectId
     uploaded_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     audio_file: AudioFile
-    processing_config: ProcessingConfig = Field(default_factory=ProcessingConfig)
+    processing_config: ProcessingConfig
     processing_status: ProcessingStatus = Field(default_factory=ProcessingStatus)
     transcription: Transcription | None = None
     ai_analysis: AIAnalysis | None = None
