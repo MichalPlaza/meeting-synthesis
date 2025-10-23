@@ -38,7 +38,7 @@ async def list_meetings(
         database: AsyncIOMotorDatabase = Depends(get_database)
 ):
     meetings = await meeting_service.get_meetings_with_filters(
-        database=database, query=query, project_ids=project_ids, tags=tags, sort_by=sort_by
+        database=database, q=query, project_ids=project_ids, tags=tags, sort_by=sort_by
     )
     return meetings
 

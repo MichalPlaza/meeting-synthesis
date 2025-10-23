@@ -22,7 +22,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - PYTHON_ENV=production
+      - PYTHON_ENV=${PYTHON_ENV}
       - MONGO_DETAILS=mongodb://mongo:27017/meeting_synthesis_db
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
@@ -67,7 +67,7 @@ services:
       dockerfile: Dockerfile
     command: celery -A app.worker.celery_app worker --loglevel=info
     environment:
-      - PYTHON_ENV=production
+      - PYTHON_ENV=${PYTHON_ENV}
       - MONGO_DETAILS=mongodb://mongo:27017/meeting_synthesis_db
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
@@ -88,7 +88,7 @@ services:
       dockerfile: Dockerfile
     command: celery -A app.worker.celery_app beat --loglevel=info
     environment:
-      - PYTHON_ENV=production
+      - PYTHON_ENV=${PYTHON_ENV}
       - MONGO_DETAILS=mongodb://mongo:27017/meeting_synthesis_db
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
