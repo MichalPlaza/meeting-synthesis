@@ -6,6 +6,9 @@ import { BrowserRouter } from "react-router-dom";
 import { AuthProvider } from "./AuthContext.tsx";
 import { ThemeProvider } from "./components/ThemeProvider.tsx";
 import { WebSocketProvider } from "./WebSocketContext.tsx";
+import log from "./services/logging";
+
+log.info("Application starting...");
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

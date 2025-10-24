@@ -5,6 +5,7 @@ import { Checkbox } from "./ui/checkbox";
 import { Clock, Folder } from "lucide-react";
 import { getTagColor } from "@/lib/utils";
 import type { Project } from "@/types/project";
+import log from "../services/logging";
 
 interface MeetingListItemProps {
   meeting: Meeting;
@@ -25,6 +26,7 @@ function formatDuration(seconds: number): string {
 }
 
 function MeetingListItem({ meeting, project }: MeetingListItemProps) {
+  log.debug("MeetingListItem rendered for meeting:", meeting.title);
   const formattedDate = format(
     new Date(meeting.meeting_datetime),
     "dd-MM-yyyy"

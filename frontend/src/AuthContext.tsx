@@ -6,6 +6,7 @@ import {
   type ReactNode,
 } from "react";
 import { useNavigate } from "react-router-dom";
+import log from "./services/logging";
 
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
 
@@ -23,6 +24,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
+    log.error("useAuth must be used within an AuthProvider");
     throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
@@ -40,13 +42,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   useEffect(() => {
     const tryToLogin = async () => {
+      log.debug("Attempting to refresh session...");
       const refreshToken = localStorage.getItem("refresh_token");
       if (!refreshToken) {
+        log.debug("No refresh token found. Skipping session refresh.");
         setIsLoading(false);
         return;
       }
 
       try {
+        log.debug("Sending refresh token request...");
         const response = await fetch(
           `${BACKEND_API_BASE_URL}/auth/refresh-token`,
           {
@@ -57,24 +62,28 @@ export function AuthProvider({ children }: AuthProviderProps) {
         );
 
         if (!response.ok) {
+          log.warn("Refresh token failed. Status:", response.status);
           throw new Error("Refresh token failed");
         }
 
         const tokenData = await response.json();
         const newAccessToken = tokenData.access_token;
+        log.debug("Successfully obtained new access token.");
 
         const userResponse = await fetch(`${BACKEND_API_BASE_URL}/users/me`, {
           headers: { Authorization: `Bearer ${newAccessToken}` },
         });
 
         if (!userResponse.ok) {
+          log.warn("Failed to fetch user after refresh. Status:", userResponse.status);
           throw new Error("Failed to fetch user after refresh");
         }
 
         const userData = await userResponse.json();
+        log.info("Session refreshed successfully for user:", userData.username);
         login(newAccessToken, userData, refreshToken);
       } catch (error) {
-        console.error("Session refresh failed:", error);
+        log.error("Session refresh failed:", error);
         logout(); // Wyczyść stare, nieprawidłowe tokeny
       } finally {
         setIsLoading(false);
@@ -89,6 +98,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     newUser: any,
     newRefreshToken?: string
   ) => {
+    log.info("User logged in:", newUser.username);
     localStorage.setItem("access_token", newAccessToken);
     setToken(newAccessToken);
 
@@ -103,6 +113,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const logout = () => {
+    log.info("User logged out.");
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
     localStorage.removeItem("user");
@@ -124,6 +135,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Podczas gdy aplikacja próbuje odświeżyć sesję, można pokazać ekran ładowania
   if (isLoading) {
+    log.debug("AuthContext: Loading session...");
     return (
       <div className="flex h-screen items-center justify-center">
         Loading session...

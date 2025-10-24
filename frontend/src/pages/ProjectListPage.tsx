@@ -11,10 +11,12 @@ import { FolderOpen, PlusIcon } from "lucide-react";
 import { ProjectsToolbar } from "@/components/ProjectsToolbar";
 import { useDebounce } from "@/hooks/useDebounce";
 import { AddProjectDialog } from "@/components/AddProjectDialog"; // <-- IMPORT
+import log from "../services/logging";
 
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
 
 function ProjectListPage() {
+  log.info("ProjectListPage rendered.");
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +29,11 @@ function ProjectListPage() {
   const { token } = useAuth();
 
   const fetchProjects = useCallback(async () => {
-    if (!token) return;
+    log.debug("Fetching projects data...");
+    if (!token) {
+      log.warn("Cannot fetch projects: Authentication token is missing.");
+      return;
+    }
     setLoading(true);
     setError(null);
 
@@ -41,15 +47,22 @@ function ProjectListPage() {
       const response = await fetch(projectsApiUrl, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!response.ok)
+      if (!response.ok) {
+        const errorData = await response.json();
+        log.error("Failed to fetch projects. Status:", response.status, "Error:", errorData.detail || response.statusText);
         throw new Error(
-          (await response.json()).detail || "Failed to fetch projects."
+          errorData.detail || "Failed to fetch projects."
         );
-      setProjects(await response.json());
+      }
+      const data = await response.json();
+      setProjects(data);
+      log.info(`Fetched ${data.length} projects.`);
     } catch (err: any) {
+      log.error("Error fetching projects:", err.message);
       setError(err.message || "Could not connect to the server.");
     } finally {
       setLoading(false);
+      log.debug("Projects fetching completed. Loading set to false.");
     }
   }, [token, debouncedSearchTerm, sortBy]);
 
@@ -67,7 +80,10 @@ function ProjectListPage() {
       <div className="space-y-8">
         <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
           <h1 className="text-3xl font-bold tracking-tight">Projects</h1>
-          <Button onClick={() => setIsAddDialogOpen(true)}>
+          <Button onClick={() => {
+            setIsAddDialogOpen(true);
+            log.debug("Add Project dialog opened.");
+            }}>
             <PlusIcon className="mr-2 h-4 w-4" />
             Add Project
           </Button>
@@ -94,7 +110,10 @@ function ProjectListPage() {
             title="No projects found"
             description="No projects match your current filters, or you haven't created any yet."
           >
-            <Button onClick={() => setIsAddDialogOpen(true)}>
+            <Button onClick={() => {
+              setIsAddDialogOpen(true);
+              log.debug("Create Project button clicked from empty state.");
+              }}>
               <PlusIcon className="mr-2 h-4 w-4" />
               Create Project
             </Button>

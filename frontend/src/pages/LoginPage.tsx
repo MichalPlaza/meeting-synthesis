@@ -15,6 +15,7 @@ import { useForm } from "react-hook-form";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
 import z from "zod";
+import log from "../services/logging";
 
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
 
@@ -45,6 +46,7 @@ function LoginPage() {
   const { isSubmitting } = form.formState;
 
   async function onSubmit(values: LoginFormValues) {
+    log.info("Login attempt for user:", values.username_or_email);
     const loginApiUrl = `${BACKEND_API_BASE_URL}/auth/login`;
     const userApiUrl = `${BACKEND_API_BASE_URL}/users/me`;
 
@@ -57,6 +59,7 @@ function LoginPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
+        log.warn("Login failed for user:", values.username_or_email, "Error:", errorData.detail || response.statusText);
         toast.error(
           errorData.detail || "Login failed. Please check your credentials."
         );
@@ -66,12 +69,14 @@ function LoginPage() {
       const tokenData = await response.json();
       const accessToken = tokenData.access_token;
       const refreshToken = tokenData.refresh_token;
+      log.debug("Successfully obtained tokens for user:", values.username_or_email);
 
       const userResponse = await fetch(userApiUrl, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
 
       if (!userResponse.ok) {
+        log.error("Login successful, but could not fetch user info for:", values.username_or_email, "Status:", userResponse.status);
         toast.error("Login successful, but could not fetch user info.");
         return;
       }
@@ -79,11 +84,12 @@ function LoginPage() {
       const userData = await userResponse.json();
       login(accessToken, userData, refreshToken);
       navigate("/");
+      log.info("User logged in and redirected to dashboard:", userData.username);
       toast.success(
         `Welcome back, ${userData.full_name || userData.username}!`
       );
     } catch (error) {
-      console.error("Error sending login request:", error);
+      log.error("Error sending login request:", error);
       toast.error("An error occurred while connecting to the server.");
     }
   }

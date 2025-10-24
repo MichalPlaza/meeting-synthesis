@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import FeatureCard from "@/components/FeatureCard";
 import React from "react";
+import log from "../services/logging";
 
 const features = [
   {
@@ -19,6 +20,7 @@ const features = [
 ];
 
 function HomePage() {
+  log.info("HomePage rendered.");
   return (
     <div className="flex flex-col items-center text-center space-y-24">
       <section className="w-full">

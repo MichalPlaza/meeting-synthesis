@@ -1,3 +1,5 @@
+
+import logging
 import os
 import re
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status, Form, Query
@@ -13,7 +15,7 @@ from ...services import meeting_service
 from ...crud import crud_meetings
 
 router = APIRouter()
-
+logger = logging.getLogger(__name__)
 
 def sanitize_filename(name: str) -> str:
     name = re.sub(r'[<>:"/\\|?*]', '_', name)
@@ -25,7 +27,9 @@ def sanitize_filename(name: str) -> str:
 async def create_meeting(
         meeting_in: MeetingCreate, database: AsyncIOMotorDatabase = Depends(get_database)
 ):
+    logger.info(f"Creating new meeting: {meeting_in.title}")
     meeting = await meeting_service.create_new_meeting(database, meeting_in)
+    logger.info(f"Successfully created meeting with ID: {meeting.id}")
     return meeting
 
 
@@ -37,9 +41,11 @@ async def list_meetings(
         sort_by: str = Query("newest", description="Sort order"),
         database: AsyncIOMotorDatabase = Depends(get_database)
 ):
+    logger.info(f"Listing meetings with query: {query}, project_ids: {project_ids}, tags: {tags}, sort_by: {sort_by}")
     meetings = await meeting_service.get_meetings_with_filters(
         database=database, q=query, project_ids=project_ids, tags=tags, sort_by=sort_by
     )
+    logger.info(f"Found {len(meetings)} meetings")
     return meetings
 
 
@@ -55,7 +61,7 @@ async def upload_meeting_with_file(
     language: str = Form("pl"),
     database: AsyncIOMotorDatabase = Depends(get_database),
     ):
-
+    logger.info(f"Uploading meeting '{title}' with file: {file.filename}")
     form_data = MeetingCreateForm(
         title=title,
         meeting_datetime=meeting_datetime,
@@ -66,16 +72,21 @@ async def upload_meeting_with_file(
         language=language,
     )
 
-    return await meeting_service.handle_meeting_upload(database, form_data, file)
+    meeting = await meeting_service.handle_meeting_upload(database, form_data, file)
+    logger.info(f"Successfully uploaded meeting with ID: {meeting.id}")
+    return meeting
 
 
 @router.get("/{meeting_id}", response_model=MeetingResponse)
 async def get_meeting(
         meeting_id: str, database: AsyncIOMotorDatabase = Depends(get_database)
 ):
+    logger.info(f"Fetching meeting with ID: {meeting_id}")
     meeting = await meeting_service.get_meeting(database, meeting_id)
     if not meeting:
+        logger.warning(f"Meeting with ID {meeting_id} not found")
         raise HTTPException(status_code=404, detail="Meeting not found")
+    logger.info(f"Successfully fetched meeting with ID: {meeting_id}")
     return meeting
 
 
@@ -83,7 +94,10 @@ async def get_meeting(
 async def meetings_by_project(
         project_id: str, database: AsyncIOMotorDatabase = Depends(get_database)
 ):
-    return await meeting_service.get_meetings_for_project(database, project_id)
+    logger.info(f"Fetching meetings for project with ID: {project_id}")
+    meetings = await meeting_service.get_meetings_for_project(database, project_id)
+    logger.info(f"Found {len(meetings)} meetings for project with ID: {project_id}")
+    return meetings
 
 
 @router.put("/{meeting_id}", response_model=MeetingResponse)
@@ -92,9 +106,12 @@ async def update_meeting(
         update_data: MeetingUpdate,
         database: AsyncIOMotorDatabase = Depends(get_database),
 ):
+    logger.info(f"Updating meeting with ID: {meeting_id}")
     updated = await meeting_service.update_existing_meeting(database, meeting_id, update_data)
     if not updated:
+        logger.warning(f"Meeting with ID {meeting_id} not found or not updated")
         raise HTTPException(status_code=404, detail="Meeting not found or not updated")
+    logger.info(f"Successfully updated meeting with ID: {meeting_id}")
     return updated
 
 
@@ -102,9 +119,12 @@ async def update_meeting(
 async def delete_meeting(
         meeting_id: str, database: AsyncIOMotorDatabase = Depends(get_database)
 ):
+    logger.info(f"Deleting meeting with ID: {meeting_id}")
     deleted = await meeting_service.delete_existing_meeting(database, meeting_id)
     if not deleted:
+        logger.warning(f"Meeting with ID {meeting_id} not found for deletion")
         raise HTTPException(status_code=404, detail="Meeting not found")
+    logger.info(f"Successfully deleted meeting with ID: {meeting_id}")
     return
 
 
@@ -113,14 +133,17 @@ async def download_meeting_audio(
         meeting_id: str,
         database: AsyncIOMotorDatabase = Depends(get_database)
 ):
+    logger.info(f"Downloading audio for meeting with ID: {meeting_id}")
     meeting = await crud_meetings.get_meeting_by_id(database, meeting_id)
     if not meeting or not meeting.audio_file or not meeting.audio_file.storage_path_or_url:
+        logger.warning(f"Meeting or audio file not found for meeting ID: {meeting_id}")
         raise HTTPException(status_code=404, detail="Meeting or audio file not found")
 
     storage_filename = os.path.basename(meeting.audio_file.storage_path_or_url)
     local_file_path = os.path.join("uploads", storage_filename)
 
     if not os.path.exists(local_file_path):
+        logger.error(f"Audio file not found on server for meeting ID: {meeting_id} at path: {local_file_path}")
         raise HTTPException(status_code=404, detail="Audio file not found on server")
 
     meeting_date = meeting.meeting_datetime.strftime("%Y-%m-%d")
@@ -128,9 +151,10 @@ async def download_meeting_audio(
     original_extension = os.path.splitext(meeting.audio_file.original_filename)[1]
 
     user_friendly_filename = f"{meeting_date}_{sanitized_title}{original_extension}"
-
+    logger.info(f"Serving audio file for meeting ID: {meeting_id} with filename: {user_friendly_filename}")
     return FileResponse(
         path=local_file_path,
         media_type='application/octet-stream',
         filename=user_friendly_filename
     )
+

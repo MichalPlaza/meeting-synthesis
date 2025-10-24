@@ -8,11 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Mic, PlusIcon, FolderOpen } from "lucide-react";
 import EmptyState from "@/components/EmptyState";
 import ErrorState from "@/components/ErrorState";
+import log from "../services/logging";
 
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
 
 function ProjectDetailsPage() {
   const { projectId } = useParams<{ projectId: string }>();
+  log.info("ProjectDetailsPage rendered for project ID:", projectId);
   const navigate = useNavigate();
   const { user, token, logout } = useAuth();
 
@@ -22,7 +24,9 @@ function ProjectDetailsPage() {
   const [error, setError] = useState<string | null>(null);
 
   const fetchProjectData = useCallback(async () => {
+    log.debug("Fetching project data for ID:", projectId);
     if (!token || !projectId) {
+      log.warn("Authentication token or Project ID is missing for fetchProjectData.");
       setError("Authentication token or Project ID is missing.");
       setLoading(false);
       return;
@@ -46,22 +50,27 @@ function ProjectDetailsPage() {
 
       if (!projectResponse.ok) {
         if (projectResponse.status === 401) {
+          log.warn("Project details fetch failed with 401. Logging out.");
           logout();
           navigate("/login");
         }
+        log.error(`Failed to fetch project details for ID: ${projectId}. Status: ${projectResponse.status}`);
         throw new Error("Failed to fetch project details.");
       }
       const projectData: Project = await projectResponse.json();
       setProject(projectData);
+      log.info("Successfully fetched project details for ID:", projectId);
 
       if (meetingsResponse.ok) {
         const meetingsData: Meeting[] = await meetingsResponse.json();
         setMeetings(meetingsData);
+        log.info(`Fetched ${meetingsData.length} meetings for project ID: ${projectId}.`);
       } else {
-        console.warn(`Could not fetch meetings for project ${projectId}.`);
+        log.warn(`Could not fetch meetings for project ${projectId}. Status: ${meetingsResponse.status}`);
         setMeetings([]);
       }
     } catch (err: any) {
+      log.error("Error fetching project data:", err.message);
       setError(
         err.message || "Could not connect to the server. Please try again."
       );
@@ -69,6 +78,7 @@ function ProjectDetailsPage() {
       setMeetings([]);
     } finally {
       setLoading(false);
+      log.debug("Project data fetching completed. Loading set to false.");
     }
   }, [projectId, token, logout, navigate]);
 
@@ -77,6 +87,7 @@ function ProjectDetailsPage() {
   }, [fetchProjectData]);
 
   if (loading) {
+    log.debug("ProjectDetailsPage: Loading project details...");
     return (
       <p className="text-center text-muted-foreground">
         Loading project details...
@@ -85,6 +96,7 @@ function ProjectDetailsPage() {
   }
 
   if (error) {
+    log.error("ProjectDetailsPage: Error state displayed.", error);
     return (
       <ErrorState message={error} onRetry={fetchProjectData}>
         <Button variant="outline" asChild>
@@ -95,6 +107,7 @@ function ProjectDetailsPage() {
   }
 
   if (!project) {
+    log.warn("ProjectDetailsPage: Project not found for ID:", projectId);
     return (
       <EmptyState
         icon={FolderOpen}

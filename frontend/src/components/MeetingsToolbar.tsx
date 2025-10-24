@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Search, ChevronDown } from "lucide-react";
+import log from "../services/logging";
 
 // Definicje typów dla opcji filtrów
 type FilterOption = {
@@ -51,6 +52,7 @@ export function MeetingsToolbar({
   sortBy,
   onSortByChange,
 }: MeetingsToolbarProps) {
+  log.debug("MeetingsToolbar rendered.");
   const handleCheckboxChange = (
     currentSelection: string[],
     itemValue: string,
@@ -61,6 +63,7 @@ export function MeetingsToolbar({
       ? [...currentSelection, itemValue]
       : currentSelection.filter((val) => val !== itemValue);
     setter(newSelection);
+    log.debug(`Filter changed: ${itemValue} ${checked ? "added" : "removed"}. New selection:`, newSelection);
   };
 
   return (
@@ -70,7 +73,10 @@ export function MeetingsToolbar({
         <Input
           placeholder="Search meetings..."
           value={searchTerm}
-          onChange={(e) => onSearchChange(e.target.value)}
+          onChange={(e) => {
+            onSearchChange(e.target.value);
+            log.debug("Search term changed to:", e.target.value);
+          }}
           className="pl-10"
         />
       </div>
@@ -158,7 +164,10 @@ export function MeetingsToolbar({
             <DropdownMenuSeparator />
             <DropdownMenuRadioGroup
               value={sortBy}
-              onValueChange={onSortByChange}
+              onValueChange={(value) => {
+                onSortByChange(value);
+                log.debug("Sort by changed to:", value);
+              }}
             >
               <DropdownMenuRadioItem value="newest">
                 Newest
