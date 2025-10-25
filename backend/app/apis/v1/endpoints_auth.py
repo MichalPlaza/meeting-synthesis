@@ -1,4 +1,3 @@
-
 import logging
 from fastapi import APIRouter, Depends, status, Body, HTTPException
 from motor.motor_asyncio import AsyncIOMotorDatabase
@@ -16,7 +15,7 @@ logger = logging.getLogger(__name__)
     "/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED
 )
 async def register_user(
-    user: UserCreate, database: AsyncIOMotorDatabase = Depends(get_database)
+        user: UserCreate, database: AsyncIOMotorDatabase = Depends(get_database)
 ):
     logger.info(f"Registering new user: {user.username}")
     return await user_service.register_new_user(database=database, user_data=user)
@@ -24,117 +23,52 @@ async def register_user(
 
 @router.post("/login", response_model=Token)
 async def login_for_access_token(
-    form_data: UserLogin = Body(...), database: AsyncIOMotorDatabase = Depends(get_database)
+        form_data: UserLogin = Body(...), database: AsyncIOMotorDatabase = Depends(get_database)
 ):
     logger.info(f"User login attempt: {form_data.username_or_email}")
     return await user_service.authenticate_user(database=database, form_data=form_data)
 
 
-
-
-
-
-
 @router.post("/refresh-token", response_model=Token)
-
-
-
 async def refresh_access_token(
 
-
-
-    request: RefreshTokenRequest, database: AsyncIOMotorDatabase = Depends(get_database)
-
-
+        request: RefreshTokenRequest, database: AsyncIOMotorDatabase = Depends(get_database)
 
 ):
-
-
-
     logger.info("Attempting to refresh access token")
-
-
 
     token_data = security.decode_token(request.refresh_token)
 
-
-
     if not token_data or not token_data.username:
-
-
-
         logger.warning("Invalid refresh token provided")
-
-
 
         raise HTTPException(
 
-
-
             status_code=status.HTTP_401_UNAUTHORIZED,
-
-
 
             detail="Invalid refresh token",
 
-
-
             headers={"WWW-Authenticate": "Bearer"},
 
-
-
         )
-
-
-
-    
-
-
 
     user = await crud_users.get_user_by_username(database, username=token_data.username)
 
-
-
     if not user:
-
-
-
         logger.warning(f"User not found for token refresh: {token_data.username}")
-
-
 
         raise HTTPException(
 
-
-
             status_code=status.HTTP_401_UNAUTHORIZED,
-
-
 
             detail="User not found",
 
-
-
             headers={"WWW-Authenticate": "Bearer"},
-
-
 
         )
 
-
-
-        
-
-
-
     new_access_token = security.create_access_token(data={"sub": user.username, "email": user.email})
-
-
 
     logger.info(f"Successfully refreshed access token for user: {user.username}")
 
-
-
     return Token(access_token=new_access_token, token_type="bearer")
-
-
