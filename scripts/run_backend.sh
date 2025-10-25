@@ -10,4 +10,4 @@ cd backend
 poetry install
 
 # Run the backend server
-poetry run uvicorn app.main:app --host 0.0.0.0 --port 8000
+PYTHON_ENV=development poetry run uvicorn app.main:app --host 0.0.0.0 --port 8000
