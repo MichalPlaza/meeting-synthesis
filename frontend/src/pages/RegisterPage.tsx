@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import log from "../services/logging";
 
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
 
@@ -47,6 +48,7 @@ function RegisterPage() {
   const { isSubmitting } = form.formState;
 
   async function onSubmit(values: RegisterFormValues) {
+    log.info("Registration attempt for user:", values.username);
     const backendApiUrl = `${BACKEND_API_BASE_URL}/auth/register`;
 
     try {
@@ -60,17 +62,19 @@ function RegisterPage() {
         const errorData = await response.json();
         const detailMessage =
           errorData.detail || "Registration failed. Please try again.";
+        log.warn("Registration failed for user:", values.username, "Error:", detailMessage);
         toast.error(detailMessage);
         return;
       }
 
+      log.info("Account created successfully for user:", values.username);
       toast.success("Account created successfully! You can now log in.");
 
       setTimeout(() => {
         navigate("/login");
       }, 1500);
     } catch (error) {
-      console.error("Error sending registration request:", error);
+      log.error("Error sending registration request:", error);
       toast.error("An error occurred while connecting to the server.");
     }
   }

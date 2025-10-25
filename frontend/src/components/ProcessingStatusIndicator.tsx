@@ -7,6 +7,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import type { Meeting } from "@/types/meeting";
+import log from "../services/logging";
 
 interface ProcessingStatusIndicatorProps {
   status: Meeting["processing_status"];
@@ -28,12 +29,12 @@ const statusConfig = {
   transcribing: {
     icon: FileText,
     label: "Transcribing audio...",
-    animate: true,
+    animate: true
   },
   analyzing: {
     icon: Sparkles,
     label: "Analyzing transcript...",
-    animate: true,
+    animate: true
   },
   processing: { icon: Loader2, label: "Processing...", animate: true },
 };
@@ -43,11 +44,13 @@ export function ProcessingStatusIndicator({
   progress,
   className,
 }: ProcessingStatusIndicatorProps) {
+  log.debug("ProcessingStatusIndicator rendered with status:", status.current_stage, "and progress:", progress);
   if (status.current_stage === "completed") {
     return null;
   }
 
   if (status.current_stage === "failed") {
+    log.warn("Processing failed for meeting. Error:", status.error_message);
     return (
       <div
         className={cn(

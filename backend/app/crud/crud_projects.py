@@ -1,3 +1,5 @@
+
+import logging
 from datetime import UTC, datetime
 
 from bson import ObjectId
@@ -7,15 +9,21 @@ import re
 from ..models.project import Project
 from ..schemas.project_schema import ProjectCreate, ProjectUpdate
 
+logger = logging.getLogger(__name__)
+
 
 async def get_project_by_id(
         database: AsyncIOMotorDatabase, project_id: str
 ) -> Project | None:
+    logger.debug(f"Attempting to retrieve project with ID: {project_id}")
     if not ObjectId.is_valid(project_id):
+        logger.warning(f"Invalid project ID format: {project_id}")
         return None
     project_doc = await database["projects"].find_one({"_id": ObjectId(project_id)})
     if project_doc:
+        logger.debug(f"Project with ID {project_id} found.")
         return Project(**project_doc)
+    logger.debug(f"Project with ID {project_id} not found.")
     return None
 
 
@@ -24,6 +32,7 @@ async def get_projects_filtered(
         q: str | None = None,
         sort_by: str = "newest",
 ) -> list[Project]:
+    logger.debug(f"Retrieving filtered projects with query='{q}', sort_by='{sort_by}'.")
     query = {}
     if q:
         query["name"] = {"$regex": re.escape(q), "$options": "i"}
@@ -40,36 +49,44 @@ async def get_projects_filtered(
     projects = []
     async for doc in cursor:
         projects.append(Project(**doc))
+    logger.debug(f"Found {len(projects)} filtered projects.")
     return projects
 
 
 async def get_projects_by_owner(
         database: AsyncIOMotorDatabase, owner_id: str
 ) -> list[Project]:
+    logger.debug(f"Retrieving projects for owner with ID: {owner_id}")
     if not ObjectId.is_valid(owner_id):
+        logger.warning(f"Invalid owner ID format: {owner_id}")
         return []
     cursor = database["projects"].find({"owner_id": ObjectId(owner_id)})
     projects = []
     async for doc in cursor:
         projects.append(Project(**doc))
+    logger.debug(f"Found {len(projects)} projects for owner with ID: {owner_id}")
     return projects
 
 
 async def get_projects_by_member(
         database: AsyncIOMotorDatabase, member_id: str
 ) -> list[Project]:
+    logger.debug(f"Retrieving projects for member with ID: {member_id}")
     if not ObjectId.is_valid(member_id):
+        logger.warning(f"Invalid member ID format: {member_id}")
         return []
     cursor = database["projects"].find({"members_ids": ObjectId(member_id)})
     projects = []
     async for doc in cursor:
         projects.append(Project(**doc))
+    logger.debug(f"Found {len(projects)} projects for member with ID: {member_id}")
     return projects
 
 
 async def create_project(
         database: AsyncIOMotorDatabase, project_data: ProjectCreate
 ) -> Project:
+    logger.debug(f"Creating new project with name: {project_data.name}")
     project_doc = {
         "name": project_data.name,
         "description": project_data.description,
@@ -81,6 +98,7 @@ async def create_project(
     }
     result = await database["projects"].insert_one(project_doc)
     project_doc["_id"] = result.inserted_id
+    logger.info(f"Project '{project_data.name}' created with ID: {result.inserted_id}")
 
     return Project(**project_doc)
 
@@ -88,22 +106,34 @@ async def create_project(
 async def update_project(
         database: AsyncIOMotorDatabase, project_id: str, project_data: ProjectUpdate
 ) -> Project | None:
+    logger.debug(f"Attempting to update project with ID: {project_id}")
     if not ObjectId.is_valid(project_id):
+        logger.warning(f"Invalid project ID format for update: {project_id}")
         return None
     update_data = {k: v for k, v in project_data.dict(exclude_unset=True).items()}
     if not update_data:
+        logger.debug(f"No update data provided for project ID: {project_id}")
         return await get_project_by_id(database, project_id)
     update_data["updated_at"] = datetime.now(UTC)
     result = await database["projects"].update_one(
         {"_id": ObjectId(project_id)}, {"$set": update_data}
     )
     if result.modified_count == 1:
+        logger.info(f"Project with ID {project_id} updated successfully.")
         return await get_project_by_id(database, project_id)
+    logger.warning(f"Project with ID {project_id} not found or not modified during update.")
     return None
 
 
 async def delete_project(database: AsyncIOMotorDatabase, project_id: str) -> bool:
+    logger.debug(f"Attempting to delete project with ID: {project_id}")
     if not ObjectId.is_valid(project_id):
+        logger.warning(f"Invalid project ID format for deletion: {project_id}")
         return False
     result = await database["projects"].delete_one({"_id": ObjectId(project_id)})
-    return result.deleted_count == 1
+    if result.deleted_count == 1:
+        logger.info(f"Project with ID {project_id} deleted successfully.")
+        return True
+    logger.warning(f"Project with ID {project_id} not found for deletion.")
+    return False
+

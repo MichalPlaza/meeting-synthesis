@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import ErrorState from "@/components/ErrorState";
 import EmptyState from "@/components/EmptyState";
+import log from "../services/logging";
 
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
 
@@ -53,7 +54,9 @@ function useMeetingData(meetingId: string | undefined) {
   const [error, setError] = useState<string | null>(null);
 
   const fetchMeeting = useCallback(async () => {
+    log.debug("Fetching meeting data for ID:", meetingId);
     if (!token || !meetingId) {
+      log.warn("Authentication token or Meeting ID is missing for fetchMeeting.");
       setError("Authentication token or Meeting ID is missing.");
       setLoading(false);
       return;
@@ -67,11 +70,14 @@ function useMeetingData(meetingId: string | undefined) {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (!response.ok) {
+        log.error(`Failed to fetch meeting ${meetingId}. Status: ${response.status}`);
         throw new Error(`Failed to fetch meeting (Status: ${response.status})`);
       }
       const data: Meeting = await response.json();
       setMeeting(data);
+      log.info("Successfully fetched meeting data for ID:", meetingId);
     } catch (err: any) {
+      log.error("Error fetching meeting data:", err.message);
       setError(err.message || "Failed to connect to the server.");
     } finally {
       setLoading(false);
@@ -87,6 +93,7 @@ function useMeetingData(meetingId: string | undefined) {
 
 function MeetingDetailsPage() {
   const { meetingId } = useParams<{ meetingId: string }>();
+  log.info("MeetingDetailsPage rendered for meeting ID:", meetingId);
   const { meeting, loading, error, refetch } = useMeetingData(meetingId);
 
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -122,9 +129,16 @@ function MeetingDetailsPage() {
     const setAudioData = () => {
       setDuration(audio.duration);
       setCurrentTime(audio.currentTime);
+      log.debug("Audio loaded metadata. Duration:", audio.duration);
     };
-    const handlePlayPause = () => setIsPlaying(!audio.paused);
-    const handleEnded = () => setIsPlaying(false);
+    const handlePlayPause = () => {
+      setIsPlaying(!audio.paused);
+      log.debug("Audio play/pause toggled. Is playing:", !audio.paused);
+    };
+    const handleEnded = () => {
+      setIsPlaying(false);
+      log.debug("Audio playback ended.");
+    };
 
     audio.addEventListener("loadedmetadata", setAudioData);
     audio.addEventListener("play", handlePlayPause);
@@ -135,11 +149,14 @@ function MeetingDetailsPage() {
     audio.volume = volume;
     audio.muted = isMuted;
 
+    log.debug("Audio element event listeners and properties set.");
+
     return () => {
       audio.removeEventListener("loadedmetadata", setAudioData);
       audio.removeEventListener("play", handlePlayPause);
       audio.removeEventListener("pause", handlePlayPause);
       audio.removeEventListener("ended", handleEnded);
+      log.debug("Audio element event listeners cleaned up.");
     };
   }, [audioSrc, playbackRate, volume, isMuted]);
 
@@ -154,10 +171,12 @@ function MeetingDetailsPage() {
     };
 
     if (isPlaying) {
+      log.debug("Starting audio animation frame loop.");
       animationFrameIdRef.current = requestAnimationFrame(animate);
     } else {
       if (animationFrameIdRef.current) {
         cancelAnimationFrame(animationFrameIdRef.current);
+        log.debug("Cancelling audio animation frame loop.");
       }
     }
 
@@ -172,6 +191,7 @@ function MeetingDetailsPage() {
     const audio = audioRef.current;
     if (audio) {
       isPlaying ? audio.pause() : audio.play();
+      log.info("Audio play/pause triggered. Is playing:", !isPlaying);
     }
   };
 
@@ -180,6 +200,7 @@ function MeetingDetailsPage() {
     if (audio) {
       audio.currentTime = value[0];
       setCurrentTime(value[0]);
+      log.debug("Audio seeked to:", value[0]);
     }
   };
 
@@ -187,6 +208,7 @@ function MeetingDetailsPage() {
     const audio = audioRef.current;
     if (audio) {
       audio.currentTime = Math.max(0, audio.currentTime - 10);
+      log.debug("Audio rewinded by 10 seconds. New time:", audio.currentTime);
     }
   };
 
@@ -194,6 +216,7 @@ function MeetingDetailsPage() {
     const audio = audioRef.current;
     if (audio) {
       audio.currentTime = Math.min(duration, audio.currentTime + 10);
+      log.debug("Audio forwarded by 10 seconds. New time:", audio.currentTime);
     }
   };
 
@@ -201,6 +224,7 @@ function MeetingDetailsPage() {
     const audio = audioRef.current;
     if (audio) {
       audio.currentTime = 0;
+      log.debug("Audio restarted.");
     }
   };
 
@@ -210,19 +234,23 @@ function MeetingDetailsPage() {
     if (newVolume > 0) {
       setIsMuted(false);
     }
+    log.debug("Volume changed to:", newVolume, "Muted:", isMuted);
   };
 
   const toggleMute = () => {
     setIsMuted(!isMuted);
+    log.debug("Mute toggled. Is muted:", !isMuted);
   };
 
   const handlePlaybackRateCycle = () => {
     const currentIndex = PLAYBACK_RATES.indexOf(playbackRate);
     const nextIndex = (currentIndex + 1) % PLAYBACK_RATES.length;
     setPlaybackRate(PLAYBACK_RATES[nextIndex]);
+    log.debug("Playback rate cycled to:", PLAYBACK_RATES[nextIndex]);
   };
 
   if (loading) {
+    log.debug("MeetingDetailsPage: Loading meeting details...");
     return (
       <div className="flex items-center justify-center gap-2 text-muted-foreground">
         <Loader2 className="h-5 w-5 animate-spin" />
@@ -232,6 +260,7 @@ function MeetingDetailsPage() {
   }
 
   if (error) {
+    log.error("MeetingDetailsPage: Error loading meeting details:", error);
     return (
       <ErrorState message={error} onRetry={refetch}>
         <Button variant="outline" asChild>
@@ -242,6 +271,7 @@ function MeetingDetailsPage() {
   }
 
   if (!meeting) {
+    log.warn("MeetingDetailsPage: Meeting not found for ID:", meetingId);
     return (
       <EmptyState
         icon={FolderOpen}

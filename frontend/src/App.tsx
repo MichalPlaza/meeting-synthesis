@@ -12,8 +12,11 @@ import MeetingDetailsPage from "./pages/MeetingDetailsPage";
 import MeetingsListPage from "./pages/MeetingsListPage";
 import StyleGuidePage from "./pages/StyleGuidePage";
 
+import log from "./services/logging";
+
 function App() {
   const { isAuthenticated } = useAuth();
+  log.info("App component rendered");
 
   return (
     <>

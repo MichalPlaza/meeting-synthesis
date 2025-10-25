@@ -34,9 +34,12 @@ os.makedirs("uploads", exist_ok=True)
 app.mount("/media", StaticFiles(directory="uploads"), name="media")
 
 
+from .core.logging_config import setup_logging
+
 @app.on_event("startup")
-async def startup_db_client():
+async def startup_event():
     await connect_to_mongo()
+    setup_logging()
 
 
 @app.on_event("shutdown")

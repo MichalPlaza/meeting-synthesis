@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Search, ChevronDown } from "lucide-react";
+import log from "../services/logging";
 
 interface ProjectsToolbarProps {
   searchTerm: string;
@@ -25,6 +26,7 @@ export function ProjectsToolbar({
   sortBy,
   onSortByChange,
 }: ProjectsToolbarProps) {
+  log.debug("ProjectsToolbar rendered.");
   return (
     <div className="flex flex-col md:flex-row items-center gap-4">
       <div className="relative w-full flex-grow">
@@ -32,7 +34,10 @@ export function ProjectsToolbar({
         <Input
           placeholder="Search projects..."
           value={searchTerm}
-          onChange={(e) => onSearchChange(e.target.value)}
+          onChange={(e) => {
+            onSearchChange(e.target.value);
+            log.debug("Search term changed to:", e.target.value);
+          }}
           className="pl-10"
         />
       </div>
@@ -49,7 +54,10 @@ export function ProjectsToolbar({
             <DropdownMenuSeparator />
             <DropdownMenuRadioGroup
               value={sortBy}
-              onValueChange={onSortByChange}
+              onValueChange={(value) => {
+                onSortByChange(value);
+                log.debug("Sort by changed to:", value);
+              }}
             >
               <DropdownMenuRadioItem value="newest">
                 Newest

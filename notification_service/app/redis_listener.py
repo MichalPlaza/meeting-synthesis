@@ -3,7 +3,7 @@ import json
 import os
 import redis.asyncio as redis
 
-REDIS_URL = os.getenv("CELERY_BROKER_URL", "redis://redis:6379/0")
+REDIS_URL = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
 NOTIFICATION_CHANNEL = "meeting_events"
 
 

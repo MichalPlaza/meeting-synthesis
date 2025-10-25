@@ -27,6 +27,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { cn } from "@/lib/utils";
+import log from "../services/logging";
 
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
 
@@ -72,6 +73,7 @@ export function AddMeetingDialog({
   // Prosty reset formularza przy otwarciu
   useEffect(() => {
     if (isOpen) {
+      log.debug("AddMeetingDialog opened. Resetting form.");
       reset();
       setUploadProgress(null);
       setIsSubmitting(false);
@@ -79,11 +81,14 @@ export function AddMeetingDialog({
   }, [isOpen, reset]);
 
   const handleClose = () => {
+    log.debug("AddMeetingDialog closed.");
     onOpenChange(false);
   };
 
   const onSubmit = async (data: AddMeetingValues) => {
+    log.info("Attempting to add new meeting:", data.title);
     if (!user || !token) {
+      log.warn("AddMeetingDialog: User not logged in.");
       toast.error("You must be logged in to add a meeting.");
       return;
     }
@@ -112,6 +117,7 @@ export function AddMeetingDialog({
               (progressEvent.loaded * 100) / (progressEvent.total ?? 1)
             );
             setUploadProgress(percentCompleted);
+            log.debug("Upload progress:", percentCompleted, "%");
           },
         }
       );
@@ -125,6 +131,7 @@ export function AddMeetingDialog({
           )}.`
         : "Processing will start shortly.";
 
+      log.info("Meeting added successfully! Title:", data.title, "Estimation:", estimationMessage);
       toast.success("Meeting added successfully!", {
         description: estimationMessage,
       });
@@ -137,10 +144,12 @@ export function AddMeetingDialog({
         axiosError.response?.data?.detail ||
         axiosError.message ||
         "An unexpected error occurred.";
+      log.error("Error adding meeting:", errorMessage, "Details:", axiosError.response?.data);
       toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
       setUploadProgress(null);
+      log.debug("AddMeetingDialog submission finished.");
     }
   };
 

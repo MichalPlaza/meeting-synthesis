@@ -22,14 +22,14 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - PYTHON_ENV=production
+      - PYTHON_ENV=${PYTHON_ENV}
       - MONGO_DETAILS=mongodb://mongo:27017/meeting_synthesis_db
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - OLLAMA_HOST=http://ollama:11434
-      - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
     volumes:
       - ./backend/uploads:/app/uploads
+      - ./backend/logs:/app/logs
     depends_on:
       - mongo
       - redis
@@ -66,18 +66,11 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     command: celery -A app.worker.celery_app worker --loglevel=info
-    environment:
-      - PYTHON_ENV=production
-      - MONGO_DETAILS=mongodb://mongo:27017/meeting_synthesis_db
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
-      - OLLAMA_HOST=http://ollama:11434
     volumes:
       - ./backend/uploads:/app/uploads
-    depends_on:
-      - backend
-      - redis
-      - ollama
+      - ./backend/logs:/app/logs
+    environment:
+      - MONGO_DETAILS=mongodb://mongo:27017/meeting_synthesis_db
     restart: unless-stopped
     networks:
       - app-network
@@ -88,10 +81,12 @@ services:
       dockerfile: Dockerfile
     command: celery -A app.worker.celery_app beat --loglevel=info
     environment:
-      - PYTHON_ENV=production
+      - PYTHON_ENV=${PYTHON_ENV}
       - MONGO_DETAILS=mongodb://mongo:27017/meeting_synthesis_db
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    volumes:
+      - ./backend/logs:/app/logs
     depends_on:
       - backend
       - redis

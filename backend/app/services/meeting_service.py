@@ -1,3 +1,5 @@
+
+import logging
 import os
 import shutil
 import uuid
@@ -15,8 +17,11 @@ from ..models.meeting import Meeting
 from ..schemas.meeting_schema import MeetingCreate, MeetingUpdate, MeetingCreateForm, MeetingResponse
 from ..worker.tasks import process_meeting_audio
 
+logger = logging.getLogger(__name__)
+
 
 def get_audio_duration(file_path: str, mimetype: str) -> int | None:
+    logger.debug(f"Getting audio duration for file: {file_path} with mimetype: {mimetype}")
     try:
         if 'mp3' in mimetype:
             audio = MP3(file_path)
@@ -27,15 +32,20 @@ def get_audio_duration(file_path: str, mimetype: str) -> int | None:
         elif 'mp4' in mimetype or 'm4a' in mimetype:
             audio = MP4(file_path)
         else:
+            logger.warning(f"Unsupported audio mimetype for duration calculation: {mimetype}")
             return None
-        return int(audio.info.length)
+        duration = int(audio.info.length)
+        logger.debug(f"Audio duration for {file_path}: {duration} seconds.")
+        return duration
     except Exception as e:
-        print(f"Could not read duration from {file_path}: {e}")
+        logger.error(f"Could not read duration from {file_path}: {e}", exc_info=True)
         return None
 
 
 def estimate_processing_time(duration_seconds: int | None) -> int | None:
+    logger.debug(f"Estimating processing time for duration: {duration_seconds} seconds.")
     if duration_seconds is None:
+        logger.debug("Duration is None, returning None for estimated processing time.")
         return None
 
     FIXED_OVERHEAD_SECONDS = 10
@@ -47,22 +57,27 @@ def estimate_processing_time(duration_seconds: int | None) -> int | None:
             (duration_seconds * TRANSCRIPTION_FACTOR) +
             AI_ANALYSIS_SECONDS
     )
+    logger.debug(f"Estimated processing time: {int(estimated_time)} seconds.")
     return int(estimated_time)
 
 
 async def create_new_meeting(database: AsyncIOMotorDatabase, data: MeetingCreate) -> Meeting:
+    logger.info(f"Service: Creating new meeting with title: {data.title}")
     return await crud_meetings.create_meeting(database, data)
 
 
 async def get_meeting(database: AsyncIOMotorDatabase, meeting_id: str) -> MeetingResponse | None:
+    logger.info(f"Service: Getting meeting with ID: {meeting_id}")
     meeting = await crud_meetings.get_meeting_by_id(database, meeting_id)
     if not meeting:
+        logger.warning(f"Service: Meeting with ID {meeting_id} not found.")
         return None
 
     estimated_time = estimate_processing_time(meeting.duration_seconds)
     meeting_dict = meeting.model_dump(by_alias=True)
     meeting_dict["estimated_processing_time_seconds"] = estimated_time
 
+    logger.info(f"Service: Successfully retrieved meeting with ID: {meeting_id}")
     return MeetingResponse(**meeting_dict)
 
 
@@ -73,40 +88,51 @@ async def get_meetings_with_filters(
         tags: list[str] | None,
         sort_by: str,
 ) -> list[Meeting]:
+    logger.info(f"Service: Getting meetings with filters: q={q}, project_ids={project_ids}, tags={tags}, sort_by={sort_by}")
     return await crud_meetings.get_meetings_filtered(database, q, project_ids, tags, sort_by)
 
 
 async def get_meetings_for_project(
         database: AsyncIOMotorDatabase, project_id: str
 ) -> list[Meeting]:
+    logger.info(f"Service: Getting meetings for project ID: {project_id}")
     return await crud_meetings.get_meetings_by_project(database, project_id)
 
 
 async def update_existing_meeting(
         database: AsyncIOMotorDatabase, meeting_id: str, update_data: MeetingUpdate
 ) -> Meeting | None:
+    logger.info(f"Service: Updating meeting with ID: {meeting_id}")
     return await crud_meetings.update_meeting(database, meeting_id, update_data)
 
 
 async def delete_existing_meeting(database: AsyncIOMotorDatabase, meeting_id: str) -> bool:
+    logger.info(f"Service: Deleting meeting with ID: {meeting_id}")
     return await crud_meetings.delete_meeting(database, meeting_id)
 
 
 UPLOAD_DIR = "uploads"
 MEDIA_BASE_URL = "/media"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+logger.info(f"Ensured upload directory exists: {UPLOAD_DIR}")
 
 
 async def handle_meeting_upload(
         database: AsyncIOMotorDatabase, meeting_data: MeetingCreateForm, audio_file: UploadFile
 ) -> MeetingResponse:
+    logger.info(f"Service: Handling meeting upload for file: {audio_file.filename}")
     original_filename = audio_file.filename or "uploaded_file"
     extension = original_filename.split(".")[-1]
     generated_filename = f"{uuid.uuid4().hex}.{extension}"
     storage_path = os.path.join(UPLOAD_DIR, generated_filename)
 
-    with open(storage_path, "wb") as buffer:
-        shutil.copyfileobj(audio_file.file, buffer)
+    try:
+        with open(storage_path, "wb") as buffer:
+            shutil.copyfileobj(audio_file.file, buffer)
+        logger.info(f"File saved to {storage_path}")
+    except Exception as e:
+        logger.error(f"Failed to save uploaded file {original_filename}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to save audio file")
 
     duration = get_audio_duration(storage_path, audio_file.content_type or "")
     estimated_time = estimate_processing_time(duration)
@@ -122,10 +148,13 @@ async def handle_meeting_upload(
     full_data = meeting_data.to_meeting_create(audio_data, duration)
 
     meeting = await crud_meetings.create_meeting(database, full_data)
+    logger.info(f"Meeting entry created in DB for uploaded file, meeting ID: {meeting.id}")
 
     process_meeting_audio.delay(str(meeting.id))
+    logger.info(f"Celery task 'process_meeting_audio' dispatched for meeting ID: {meeting.id}")
 
     response_data = meeting.model_dump(by_alias=True)
     response_data["estimated_processing_time_seconds"] = estimated_time
 
     return MeetingResponse(**response_data)
+

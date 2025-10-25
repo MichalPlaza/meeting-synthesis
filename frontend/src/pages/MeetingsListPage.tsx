@@ -10,11 +10,12 @@ import { MeetingListItemSkeleton } from "@/components/MeetingListItemSkeleton";
 import ErrorState from "@/components/ErrorState";
 import EmptyState from "@/components/EmptyState";
 import { AddMeetingDialog } from "@/components/AddMeetingDialog";
-// Usunięto import AddProjectDialog, bo nie jest już tutaj potrzebny
+import log from "../services/logging";
 
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
 
 function MeetingsListPage() {
+  log.info("MeetingsListPage rendered.");
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [allTags, setAllTags] = useState<string[]>([]);
@@ -32,7 +33,11 @@ function MeetingsListPage() {
   const { token } = useAuth();
 
   const fetchData = useCallback(async () => {
-    if (!token) return;
+    log.debug("Fetching meetings and projects data...");
+    if (!token) {
+      log.warn("Cannot fetch data: Authentication token is missing.");
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -46,6 +51,7 @@ function MeetingsListPage() {
       ]);
 
       if (!meetingsResponse.ok || !projectsResponse.ok) {
+        log.error("Failed to fetch data. Meetings status:", meetingsResponse.status, "Projects status:", projectsResponse.status);
         throw new Error("Failed to fetch data from the server.");
       }
 
@@ -57,10 +63,13 @@ function MeetingsListPage() {
 
       const uniqueTags = new Set(meetingsData.flatMap((m) => m.tags));
       setAllTags(Array.from(uniqueTags));
+      log.info(`Fetched ${meetingsData.length} meetings and ${projectsData.length} projects. Identified ${uniqueTags.size} unique tags.`);
     } catch (e: any) {
+      log.error("Error fetching data:", e.message);
       setError(e.message || "An unknown error occurred.");
     } finally {
       setLoading(false);
+      log.debug("Data fetching completed. Loading set to false.");
     }
   }, [token]);
 
@@ -74,7 +83,8 @@ function MeetingsListPage() {
   );
 
   const filteredMeetings = useMemo(() => {
-    return meetings
+    log.debug("Filtering meetings based on current criteria.");
+    const filtered = meetings
       .filter((meeting) => {
         const searchMatch =
           searchTerm.trim() === "" ||
@@ -106,9 +116,12 @@ function MeetingsListPage() {
             );
         }
       });
+      log.debug(`Filtered down to ${filtered.length} meetings.`);
+      return filtered;
   }, [meetings, searchTerm, selectedProjects, selectedTags, sortBy]);
 
   if (error) {
+    log.error("MeetingsListPage: Error state displayed.", error);
     return <ErrorState message={error} onRetry={fetchData} />;
   }
 
@@ -123,7 +136,10 @@ function MeetingsListPage() {
       <div className="space-y-8">
         <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
           <h1 className="text-3xl font-bold tracking-tight">Meetings</h1>
-          <Button onClick={() => setIsAddMeetingDialogOpen(true)}>
+          <Button onClick={() => {
+            setIsAddMeetingDialogOpen(true);
+            log.debug("Add Meeting dialog opened.");
+            }}>
             <PlusIcon className="mr-2 h-4 w-4" />
             Add Meeting
           </Button>

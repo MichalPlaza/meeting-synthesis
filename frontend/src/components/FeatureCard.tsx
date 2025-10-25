@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useMemo } from "react";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
+import log from "../services/logging";
 
 interface Feature {
   title: string;
@@ -56,6 +57,7 @@ function lerpColor(a: number[], b: number[], amount: number) {
 }
 
 function FeatureCard({ feature }: FeatureCardProps) {
+  log.debug("FeatureCard rendered for feature:", feature.title);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const randomParams = useMemo(() => {

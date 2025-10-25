@@ -9,12 +9,14 @@ import {
 import { Button } from "@/components/ui/button";
 import type { Project } from "@/types/project";
 import { format } from "date-fns";
+import log from "../services/logging";
 
 interface ProjectCardProps {
   project: Project;
 }
 
 function ProjectCard({ project }: ProjectCardProps) {
+  log.debug("ProjectCard rendered for project:", project.name);
   const formattedDate = format(new Date(project.created_at), "PP");
 
   return (

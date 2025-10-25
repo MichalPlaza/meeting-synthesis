@@ -26,6 +26,7 @@ import type { UserResponse } from "@/types/user";
 import { toast } from "sonner";
 import { MultiSelect } from "@/components/ui/multi-select";
 import type { Project } from "@/types/project";
+import log from "../services/logging";
 
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
 
@@ -58,17 +59,26 @@ export function AddProjectDialog({
   });
 
   useEffect(() => {
-    if (!isOpen || !token) return;
+    if (!isOpen || !token) {
+      log.debug("AddProjectDialog: Not open or token missing, skipping user fetch.");
+      return;
+    }
 
     const fetchUsers = async () => {
+      log.debug("AddProjectDialog: Fetching users for member selection.");
       try {
         const response = await fetch(`${BACKEND_API_BASE_URL}/users`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        if (!response.ok) throw new Error("Failed to fetch users.");
+        if (!response.ok) {
+          log.error("AddProjectDialog: Failed to fetch users. Status:", response.status);
+          throw new Error("Failed to fetch users.");
+        }
         const usersData = await response.json();
         setAllUsers(usersData.filter((u: UserResponse) => u._id !== user?._id));
+        log.info(`AddProjectDialog: Fetched ${usersData.length} users.`);
       } catch (error) {
+        log.error("AddProjectDialog: Could not load user list:", error);
         toast.error("Could not load user list.");
       }
     };
@@ -76,12 +86,15 @@ export function AddProjectDialog({
   }, [isOpen, token, user?._id]);
 
   const handleClose = () => {
+    log.debug("AddProjectDialog: Closing dialog and resetting form.");
     form.reset();
     onOpenChange(false);
   };
 
   const onSubmit = async (data: AddProjectValues) => {
+    log.info("AddProjectDialog: Attempting to create new project:", data.name);
     if (!user || !token) {
+      log.warn("AddProjectDialog: User not logged in, cannot create project.");
       toast.error("You must be logged in.");
       return;
     }
@@ -90,6 +103,7 @@ export function AddProjectDialog({
     const memberIds = data.members_ids || [];
     if (!memberIds.includes(user._id)) {
       memberIds.unshift(user._id);
+      log.debug("AddProjectDialog: Added current user to project members.");
     }
 
     const requestBody = {
@@ -112,17 +126,21 @@ export function AddProjectDialog({
 
       if (!response.ok) {
         const errorData = await response.json();
+        log.error("AddProjectDialog: Failed to create project. Status:", response.status, "Error:", errorData.detail || response.statusText);
         throw new Error(errorData.detail || "Failed to create project.");
       }
 
       const newProject: Project = await response.json();
+      log.info("AddProjectDialog: Project created successfully! ID:", newProject._id, "Name:", newProject.name);
       toast.success("Project created successfully!");
       onProjectCreated(newProject);
       handleClose();
     } catch (error: any) {
+      log.error("AddProjectDialog: Error creating project:", error.message);
       toast.error(error.message || "An unknown error occurred.");
     } finally {
       setIsSubmitting(false);
+      log.debug("AddProjectDialog: Project submission finished.");
     }
   };
 

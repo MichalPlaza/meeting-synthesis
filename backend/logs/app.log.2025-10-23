@@ -1,0 +1,119 @@
+2025-10-23 15:02:04,060 - INFO - app.services.whisper_service - Loading Whisper model...
+2025-10-23 15:02:10,065 - INFO - app.services.whisper_service - Whisper model loaded.
+2025-10-23 15:02:11,025 - INFO - app.services.meeting_service - Ensured upload directory exists: uploads
+2025-10-23 15:02:11,062 - INFO - uvicorn.error - Started server process [8]
+2025-10-23 15:02:11,063 - INFO - uvicorn.error - Waiting for application startup.
+2025-10-23 15:02:11,064 - INFO - app.db.mongodb_utils - Connecting to MongoDB...
+2025-10-23 15:02:11,069 - INFO - app.db.mongodb_utils - MongoDB connection established.
+2025-10-23 15:02:11,070 - INFO - uvicorn.error - Application startup complete.
+2025-10-23 15:04:31,160 - INFO - uvicorn.error - Shutting down
+2025-10-23 15:04:31,262 - INFO - uvicorn.error - Waiting for application shutdown.
+2025-10-23 15:04:31,265 - INFO - app.db.mongodb_utils - Closing MongoDB connection...
+2025-10-23 15:04:31,265 - INFO - app.db.mongodb_utils - Closing MongoDB connection...
+2025-10-23 15:04:31,269 - INFO - app.db.mongodb_utils - MongoDB connection closed.
+2025-10-23 15:04:31,269 - INFO - app.db.mongodb_utils - MongoDB connection closed.
+2025-10-23 15:04:31,269 - INFO - uvicorn.error - Application shutdown complete.
+2025-10-23 15:04:31,270 - INFO - uvicorn.error - Finished server process [8]
+2025-10-23 15:04:38,901 - INFO - app.services.meeting_service - Ensured upload directory exists: uploads
+2025-10-23 15:04:38,936 - INFO - uvicorn.error - Started server process [34]
+2025-10-23 15:04:38,936 - INFO - uvicorn.error - Waiting for application startup.
+2025-10-23 15:04:38,939 - INFO - app.db.mongodb_utils - Connecting to MongoDB...
+2025-10-23 15:04:38,953 - INFO - app.db.mongodb_utils - MongoDB connection established.
+2025-10-23 15:04:38,955 - INFO - uvicorn.error - Application startup complete.
+2025-10-23 15:04:49,781 - INFO - uvicorn.error - Shutting down
+2025-10-23 15:04:49,887 - INFO - uvicorn.error - Waiting for application shutdown.
+2025-10-23 15:04:49,889 - INFO - app.db.mongodb_utils - Closing MongoDB connection...
+2025-10-23 15:04:49,889 - INFO - app.db.mongodb_utils - Closing MongoDB connection...
+2025-10-23 15:04:49,891 - INFO - app.db.mongodb_utils - MongoDB connection closed.
+2025-10-23 15:04:49,891 - INFO - app.db.mongodb_utils - MongoDB connection closed.
+2025-10-23 15:04:49,892 - INFO - uvicorn.error - Application shutdown complete.
+2025-10-23 15:04:49,892 - INFO - uvicorn.error - Finished server process [34]
+2025-10-23 15:11:32,472 - INFO - app.services.whisper_service - Loading Whisper model...
+2025-10-23 15:11:35,775 - INFO - app.services.whisper_service - Whisper model loaded.
+2025-10-23 16:55:20,506 - INFO - app.services.whisper_service - Loading Whisper model...
+2025-10-23 16:55:20,776 - INFO - app.services.whisper_service - Loading Whisper model...
+2025-10-23 16:55:25,241 - INFO - app.services.whisper_service - Whisper model loaded.
+2025-10-23 16:55:27,305 - INFO - app.services.whisper_service - Whisper model loaded.
+2025-10-23 16:55:30,084 - INFO - app.services.meeting_service - Ensured upload directory exists: uploads
+2025-10-23 16:55:30,106 - INFO - app.db.mongodb_utils - Connecting to MongoDB...
+2025-10-23 16:55:30,115 - INFO - app.db.mongodb_utils - MongoDB connection established.
+2025-10-23 16:55:45,046 - INFO - app.apis.v1.endpoints_project - Listing projects with query: None, sort_by: newest
+2025-10-23 16:55:45,046 - INFO - app.apis.v1.endpoints_project - Listing projects with query: None, sort_by: newest
+2025-10-23 16:55:45,047 - INFO - app.services.project_service - Service: Getting projects with filters: q=None, sort_by=newest
+2025-10-23 16:55:45,047 - INFO - app.services.project_service - Service: Getting projects with filters: q=None, sort_by=newest
+2025-10-23 16:55:45,054 - INFO - app.apis.v1.endpoints_meetings - Listing meetings with query: None, project_ids: None, tags: None, sort_by: newest
+2025-10-23 16:55:45,054 - INFO - app.apis.v1.endpoints_meetings - Listing meetings with query: None, project_ids: None, tags: None, sort_by: newest
+2025-10-23 16:55:45,055 - INFO - app.services.meeting_service - Service: Getting meetings with filters: q=None, project_ids=None, tags=None, sort_by=newest
+2025-10-23 16:55:45,055 - INFO - app.services.meeting_service - Service: Getting meetings with filters: q=None, project_ids=None, tags=None, sort_by=newest
+2025-10-23 16:55:45,086 - INFO - app.apis.v1.endpoints_meetings - Found 17 meetings
+2025-10-23 16:55:45,086 - INFO - app.apis.v1.endpoints_meetings - Found 17 meetings
+2025-10-23 16:55:45,092 - INFO - app.apis.v1.endpoints_project - Found 3 projects
+2025-10-23 16:55:45,092 - INFO - app.apis.v1.endpoints_project - Found 3 projects
+2025-10-23 16:56:37,824 - INFO - app.apis.v1.endpoints_meetings - Uploading meeting 'test 145' with file: 2025-04-15 13-19-12.mp3
+2025-10-23 16:56:37,824 - INFO - app.apis.v1.endpoints_meetings - Uploading meeting 'test 145' with file: 2025-04-15 13-19-12.mp3
+2025-10-23 16:56:37,826 - INFO - app.services.meeting_service - Service: Handling meeting upload for file: 2025-04-15 13-19-12.mp3
+2025-10-23 16:56:37,826 - INFO - app.services.meeting_service - Service: Handling meeting upload for file: 2025-04-15 13-19-12.mp3
+2025-10-23 16:56:37,831 - INFO - app.services.meeting_service - File saved to uploads/e2cb08403df8418c9e102a65529265c4.mp3
+2025-10-23 16:56:37,831 - INFO - app.services.meeting_service - File saved to uploads/e2cb08403df8418c9e102a65529265c4.mp3
+2025-10-23 16:56:37,832 - WARNING - app.services.meeting_service - Unsupported audio mimetype for duration calculation: audio/mpeg
+2025-10-23 16:56:37,832 - WARNING - app.services.meeting_service - Unsupported audio mimetype for duration calculation: audio/mpeg
+2025-10-23 16:56:37,857 - INFO - app.crud.crud_meetings - Meeting 'test 145' created with ID: 68fa5e4522583ff70a49e572
+2025-10-23 16:56:37,857 - INFO - app.crud.crud_meetings - Meeting 'test 145' created with ID: 68fa5e4522583ff70a49e572
+2025-10-23 16:56:37,859 - INFO - app.services.meeting_service - Meeting entry created in DB for uploaded file, meeting ID: 68fa5e4522583ff70a49e572
+2025-10-23 16:56:37,859 - INFO - app.services.meeting_service - Meeting entry created in DB for uploaded file, meeting ID: 68fa5e4522583ff70a49e572
+2025-10-23 16:56:37,991 - INFO - app.services.meeting_service - Celery task 'process_meeting_audio' dispatched for meeting ID: 68fa5e4522583ff70a49e572
+2025-10-23 16:56:37,991 - INFO - app.services.meeting_service - Celery task 'process_meeting_audio' dispatched for meeting ID: 68fa5e4522583ff70a49e572
+2025-10-23 16:56:37,991 - INFO - app.apis.v1.endpoints_meetings - Successfully uploaded meeting with ID: 68fa5e4522583ff70a49e572
+2025-10-23 16:56:37,991 - INFO - app.apis.v1.endpoints_meetings - Successfully uploaded meeting with ID: 68fa5e4522583ff70a49e572
+2025-10-23 16:56:38,016 - INFO - app.apis.v1.endpoints_meetings - Listing meetings with query: None, project_ids: None, tags: None, sort_by: newest
+2025-10-23 16:56:38,016 - INFO - app.apis.v1.endpoints_meetings - Listing meetings with query: None, project_ids: None, tags: None, sort_by: newest
+2025-10-23 16:56:38,017 - INFO - app.services.meeting_service - Service: Getting meetings with filters: q=None, project_ids=None, tags=None, sort_by=newest
+2025-10-23 16:56:38,017 - INFO - app.services.meeting_service - Service: Getting meetings with filters: q=None, project_ids=None, tags=None, sort_by=newest
+2025-10-23 16:56:38,020 - INFO - app.apis.v1.endpoints_project - Listing projects with query: None, sort_by: newest
+2025-10-23 16:56:38,020 - INFO - app.apis.v1.endpoints_project - Listing projects with query: None, sort_by: newest
+2025-10-23 16:56:38,021 - INFO - app.services.project_service - Service: Getting projects with filters: q=None, sort_by=newest
+2025-10-23 16:56:38,021 - INFO - app.services.project_service - Service: Getting projects with filters: q=None, sort_by=newest
+2025-10-23 16:56:38,025 - INFO - app.apis.v1.endpoints_meetings - Found 18 meetings
+2025-10-23 16:56:38,025 - INFO - app.apis.v1.endpoints_meetings - Found 18 meetings
+2025-10-23 16:56:38,030 - INFO - app.apis.v1.endpoints_project - Found 3 projects
+2025-10-23 16:56:38,030 - INFO - app.apis.v1.endpoints_project - Found 3 projects
+2025-10-23 16:56:57,226 - INFO - app.apis.v1.endpoints_meetings - Fetching meeting with ID: 68fa5e4522583ff70a49e572
+2025-10-23 16:56:57,226 - INFO - app.apis.v1.endpoints_meetings - Fetching meeting with ID: 68fa5e4522583ff70a49e572
+2025-10-23 16:56:57,227 - INFO - app.services.meeting_service - Service: Getting meeting with ID: 68fa5e4522583ff70a49e572
+2025-10-23 16:56:57,227 - INFO - app.services.meeting_service - Service: Getting meeting with ID: 68fa5e4522583ff70a49e572
+2025-10-23 16:56:57,237 - INFO - app.services.meeting_service - Service: Successfully retrieved meeting with ID: 68fa5e4522583ff70a49e572
+2025-10-23 16:56:57,237 - INFO - app.services.meeting_service - Service: Successfully retrieved meeting with ID: 68fa5e4522583ff70a49e572
+2025-10-23 16:56:57,237 - INFO - app.apis.v1.endpoints_meetings - Successfully fetched meeting with ID: 68fa5e4522583ff70a49e572
+2025-10-23 16:56:57,237 - INFO - app.apis.v1.endpoints_meetings - Successfully fetched meeting with ID: 68fa5e4522583ff70a49e572
+2025-10-23 17:19:19,550 - INFO - app.apis.v1.endpoints_auth - Attempting to refresh access token
+2025-10-23 17:19:19,550 - INFO - app.apis.v1.endpoints_auth - Attempting to refresh access token
+2025-10-23 17:19:19,596 - INFO - app.apis.v1.endpoints_auth - Successfully refreshed access token for user: michal
+2025-10-23 17:19:19,596 - INFO - app.apis.v1.endpoints_auth - Successfully refreshed access token for user: michal
+2025-10-23 17:19:19,606 - INFO - app.auth_dependencies - User michal successfully authenticated.
+2025-10-23 17:19:19,606 - INFO - app.auth_dependencies - User michal successfully authenticated.
+2025-10-23 17:19:19,606 - INFO - app.apis.v1.endpoints_users - Fetching current user: michal
+2025-10-23 17:19:19,606 - INFO - app.apis.v1.endpoints_users - Fetching current user: michal
+2025-10-23 17:19:19,737 - INFO - app.apis.v1.endpoints_meetings - Fetching meeting with ID: 68fa5e4522583ff70a49e572
+2025-10-23 17:19:19,737 - INFO - app.apis.v1.endpoints_meetings - Fetching meeting with ID: 68fa5e4522583ff70a49e572
+2025-10-23 17:19:19,738 - INFO - app.services.meeting_service - Service: Getting meeting with ID: 68fa5e4522583ff70a49e572
+2025-10-23 17:19:19,738 - INFO - app.services.meeting_service - Service: Getting meeting with ID: 68fa5e4522583ff70a49e572
+2025-10-23 17:19:19,741 - INFO - app.services.meeting_service - Service: Successfully retrieved meeting with ID: 68fa5e4522583ff70a49e572
+2025-10-23 17:19:19,741 - INFO - app.services.meeting_service - Service: Successfully retrieved meeting with ID: 68fa5e4522583ff70a49e572
+2025-10-23 17:19:19,741 - INFO - app.apis.v1.endpoints_meetings - Successfully fetched meeting with ID: 68fa5e4522583ff70a49e572
+2025-10-23 17:19:19,741 - INFO - app.apis.v1.endpoints_meetings - Successfully fetched meeting with ID: 68fa5e4522583ff70a49e572
+2025-10-23 17:19:21,388 - INFO - app.apis.v1.endpoints_meetings - Listing meetings with query: None, project_ids: None, tags: None, sort_by: newest
+2025-10-23 17:19:21,388 - INFO - app.apis.v1.endpoints_meetings - Listing meetings with query: None, project_ids: None, tags: None, sort_by: newest
+2025-10-23 17:19:21,389 - INFO - app.services.meeting_service - Service: Getting meetings with filters: q=None, project_ids=None, tags=None, sort_by=newest
+2025-10-23 17:19:21,389 - INFO - app.services.meeting_service - Service: Getting meetings with filters: q=None, project_ids=None, tags=None, sort_by=newest
+2025-10-23 17:19:21,390 - INFO - app.apis.v1.endpoints_project - Listing projects with query: None, sort_by: newest
+2025-10-23 17:19:21,390 - INFO - app.apis.v1.endpoints_project - Listing projects with query: None, sort_by: newest
+2025-10-23 17:19:21,390 - INFO - app.services.project_service - Service: Getting projects with filters: q=None, sort_by=newest
+2025-10-23 17:19:21,390 - INFO - app.services.project_service - Service: Getting projects with filters: q=None, sort_by=newest
+2025-10-23 17:19:21,392 - INFO - app.apis.v1.endpoints_meetings - Found 18 meetings
+2025-10-23 17:19:21,392 - INFO - app.apis.v1.endpoints_meetings - Found 18 meetings
+2025-10-23 17:19:21,394 - INFO - app.apis.v1.endpoints_project - Found 3 projects
+2025-10-23 17:19:21,394 - INFO - app.apis.v1.endpoints_project - Found 3 projects
+2025-10-24 09:54:35,260 - INFO - app.db.mongodb_utils - Closing MongoDB connection...
+2025-10-24 09:54:35,260 - INFO - app.db.mongodb_utils - Closing MongoDB connection...
+2025-10-24 09:54:35,288 - INFO - app.db.mongodb_utils - MongoDB connection closed.
+2025-10-24 09:54:35,288 - INFO - app.db.mongodb_utils - MongoDB connection closed.

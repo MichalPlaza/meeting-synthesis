@@ -3,6 +3,7 @@ import { useDropzone } from "react-dropzone";
 import { UploadCloud, File as FileIcon, X } from "lucide-react";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
+import log from "../services/logging";
 
 interface FileUploadProps {
   onFileSelect: (file: File | null) => void;
@@ -23,6 +24,9 @@ export function FileUpload({
         const selectedFile = acceptedFiles[0];
         setFile(selectedFile);
         onFileSelect(selectedFile);
+        log.info("File selected for upload:", selectedFile.name);
+      } else {
+        log.warn("No file accepted or dropped.");
       }
     },
     [onFileSelect]
@@ -42,9 +46,11 @@ export function FileUpload({
     e.stopPropagation();
     setFile(null);
     onFileSelect(null);
+    log.info("File removed from upload selection.");
   };
 
   if (file && progress !== null) {
+    log.debug("FileUpload: Displaying upload progress for file:", file.name, "Progress:", progress);
     return (
       <div
         className={cn(
@@ -72,6 +78,7 @@ export function FileUpload({
   }
 
   if (file) {
+    log.debug("FileUpload: Displaying selected file:", file.name);
     return (
       <div
         className={cn(
@@ -100,6 +107,7 @@ export function FileUpload({
     );
   }
 
+  log.debug("FileUpload: Displaying dropzone.");
   return (
     <div
       {...getRootProps()}
