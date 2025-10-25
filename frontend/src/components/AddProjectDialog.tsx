@@ -190,7 +190,6 @@ export function AddProjectDialog({
                 </FormItem>
               )}
             />
-            {/* --- ZMIANA ZACZYNA SIĘ TUTAJ --- */}
             <FormField
               control={form.control}
               name="members_ids"
@@ -213,7 +212,6 @@ export function AddProjectDialog({
                 </FormItem>
               )}
             />
-            {/* --- ZMIANA KOŃCZY SIĘ TUTAJ --- */}
             <DialogFooter>
               <Button type="button" variant="outline" onClick={handleClose}>
                 Cancel

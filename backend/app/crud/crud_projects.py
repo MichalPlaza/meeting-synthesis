@@ -90,7 +90,6 @@ async def create_project(
     project_doc = {
         "name": project_data.name,
         "description": project_data.description,
-        "meeting_datetime": project_data.meeting_datetime,
         "owner_id": project_data.owner_id,
         "members_ids": project_data.members_ids or [],
         "created_at": datetime.now(UTC),

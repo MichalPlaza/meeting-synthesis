@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import { Link } from "react-router-dom";
 import ProjectCard from "@/components/ProjectCard";
 import type { Project } from "@/types/project";
 import { useAuth } from "@/AuthContext";
@@ -10,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { FolderOpen, PlusIcon } from "lucide-react";
 import { ProjectsToolbar } from "@/components/ProjectsToolbar";
 import { useDebounce } from "@/hooks/useDebounce";
-import { AddProjectDialog } from "@/components/AddProjectDialog"; // <-- IMPORT
+import { AddProjectDialog } from "@/components/AddProjectDialog";
 import log from "../services/logging";
 
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;

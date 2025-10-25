@@ -14,7 +14,6 @@ class Project(BaseModel):
     members_ids: list[PyObjectId] = []
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
-    meeting_datetime: datetime
 
     class Config:
         populate_by_name = True
