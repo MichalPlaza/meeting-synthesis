@@ -164,8 +164,9 @@ async def handle_meeting_upload(
 async def partial_update_meeting(db, meeting_id, update_data: MeetingPartialUpdate):
     update_dict = {}
     for k, v in update_data.model_dump(exclude_unset=True).items():
-        if isinstance(v, BaseModel):
-            update_dict[k] = v.model_dump(exclude_unset=True)
+        if isinstance(v, dict):
+            for nested_k, nested_v in v.items():
+                update_dict[f"{k}.{nested_k}"] = nested_v
         else:
             update_dict[k] = v
 
