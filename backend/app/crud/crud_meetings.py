@@ -1,4 +1,3 @@
-
 import logging
 from datetime import UTC, datetime
 
@@ -44,7 +43,8 @@ async def get_meetings_filtered(
         tags: list[str] | None = None,
         sort_by: str = "newest",
 ) -> list[Meeting]:
-    logger.debug(f"Retrieving filtered meetings with query='{q}', project_ids={project_ids}, tags={tags}, sort_by='{sort_by}'.")
+    logger.debug(
+        f"Retrieving filtered meetings with query='{q}', project_ids={project_ids}, tags={tags}, sort_by='{sort_by}'.")
     query_conditions = []
 
     if q:
@@ -148,3 +148,17 @@ async def delete_meeting(database: AsyncIOMotorDatabase, meeting_id: str) -> boo
     logger.warning(f"Meeting with ID {meeting_id} not found for deletion.")
     return False
 
+
+async def update_meeting_fields(database, meeting_id: str, fields: dict):
+    logger.debug(f"Attempting to update meeting with ID: {meeting_id}")
+    oid = ObjectId(meeting_id)
+    result = await database["meetings"].update_one(
+        {"_id": oid},
+        {"$set": fields}
+    )
+    logger.info(f"result {str(result)}")
+
+    if result.modified_count == 0:
+        return None
+
+    return await database["meetings"].find_one({"_id": oid})

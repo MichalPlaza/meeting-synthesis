@@ -2,9 +2,14 @@ from datetime import datetime
 
 from fastapi import Form
 from pydantic import BaseModel, Field
+from typing import Optional, List
 
+from ..models.action_items import ActionItem
 from ..models.ai_analysis import AIAnalysis
 from ..models.audio_file import AudioFile
+from ..models.decision_made import DecisionMade
+from ..models.key_topic import KeyTopic
+from ..models.mentioned_date import MentionedDate
 from ..models.processing_config import ProcessingConfig
 from ..models.processing_status import ProcessingStatus
 from ..models.py_object_id import PyObjectId
@@ -60,15 +65,15 @@ class MeetingResponse(MeetingBase):
 
 class MeetingCreateForm:
     def __init__(
-        self,
-        title: str = Form(...),
-        meeting_datetime: datetime = Form(...),
-        project_id: str = Form(...),
-        uploader_id: str = Form(...),
-        tags: str = Form(""),
+            self,
+            title: str = Form(...),
+            meeting_datetime: datetime = Form(...),
+            project_id: str = Form(...),
+            uploader_id: str = Form(...),
+            tags: str = Form(""),
 
-        processing_mode_selected: str = Form("local"), # or remote
-        language: str = Form("pl"), # or en
+            processing_mode_selected: str = Form("local"),  # or remote
+            language: str = Form("pl"),  # or en
     ):
         self.title = title
         self.meeting_datetime = meeting_datetime
@@ -80,9 +85,9 @@ class MeetingCreateForm:
         self.language = language
 
     def to_meeting_create(
-        self,
-        audio_file: AudioFile,
-        duration: int | None,
+            self,
+            audio_file: AudioFile,
+            duration: int | None,
     ):
         return MeetingCreate(
             title=self.title,
@@ -97,3 +102,22 @@ class MeetingCreateForm:
             duration_seconds=duration,
             tags=self.tags
         )
+
+
+class TranscriptionUpdate(BaseModel):
+    full_text: Optional[str] = None
+
+
+class AiAnalysisUpdate(BaseModel):
+    summary: Optional[str] = None
+    key_topics: Optional[List[KeyTopic]] = None
+    action_items: Optional[List[ActionItem]] = None
+    decisions_made: Optional[List[DecisionMade]] = None
+    mentioned_dates: Optional[List[MentionedDate]] = None
+
+
+class MeetingPartialUpdate(BaseModel):
+    title: Optional[str] = None
+    tags: Optional[List[str]] = None
+    transcription: Optional[TranscriptionUpdate] = None
+    ai_analysis: Optional[AiAnalysisUpdate] = None

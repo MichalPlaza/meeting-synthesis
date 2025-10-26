@@ -26,7 +26,6 @@ import type { UserResponse } from "@/types/user";
 import { toast } from "sonner";
 import { MultiSelect } from "@/components/ui/multi-select";
 import type { Project } from "@/types/project";
-import log from "../services/logging";
 
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
 
@@ -41,7 +40,7 @@ type EditProjectValues = z.infer<typeof editProjectSchema>;
 interface EditProjectDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  project: Project; // cały obiekt projektu
+  project: Project;
   onProjectUpdated: (updatedProject: Project) => void;
 }
 
@@ -52,7 +51,7 @@ export function EditProjectDialog({
   onProjectUpdated,
 }: EditProjectDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [allUsers, setAllUsers] = useState<UserResponse[]>([]);
+  const [allUsers] = useState<UserResponse[]>([]);
   const { user, token } = useAuth();
 
   const form = useForm<EditProjectValues>({
@@ -72,10 +71,10 @@ export function EditProjectDialog({
         members_ids: project.members_ids || [],
       });
     }
-  }, [project]);
+  }, [form, project]);
 
   const handleClose = () => {
-    form.reset(); // opcjonalnie resetujemy
+    form.reset();
     onOpenChange(false);
   };
 
@@ -88,7 +87,7 @@ export function EditProjectDialog({
 
     try {
       const response = await fetch(`${BACKEND_API_BASE_URL}/project/${project._id}`, {
-        method: "PUT", // PUT zamiast POST
+        method: "PUT",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,

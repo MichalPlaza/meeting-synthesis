@@ -1,4 +1,3 @@
-
 import logging
 import os
 import re
@@ -10,12 +9,14 @@ from typing import List
 
 from ...db.mongodb_utils import get_database
 from ...models.enums.proccessing_mode import ProcessingMode
-from ...schemas.meeting_schema import MeetingCreate, MeetingResponse, MeetingUpdate, MeetingCreateForm
+from ...schemas.meeting_schema import MeetingCreate, MeetingResponse, MeetingUpdate, MeetingCreateForm, \
+    MeetingPartialUpdate
 from ...services import meeting_service
 from ...crud import crud_meetings
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
 
 def sanitize_filename(name: str) -> str:
     name = re.sub(r'[<>:"/\\|?*]', '_', name)
@@ -51,16 +52,16 @@ async def list_meetings(
 
 @router.post("/upload", response_model=MeetingResponse, status_code=status.HTTP_201_CREATED)
 async def upload_meeting_with_file(
-    title: str = Form(...),
-    meeting_datetime: datetime = Form(...),
-    project_id: str = Form(...),
-    uploader_id: str = Form(...),
-    tags: str = Form(""),
-    file: UploadFile = File(...),
-    processing_mode_selected: ProcessingMode = Form(ProcessingMode.LOCAL),
-    language: str = Form("pl"),
-    database: AsyncIOMotorDatabase = Depends(get_database),
-    ):
+        title: str = Form(...),
+        meeting_datetime: datetime = Form(...),
+        project_id: str = Form(...),
+        uploader_id: str = Form(...),
+        tags: str = Form(""),
+        file: UploadFile = File(...),
+        processing_mode_selected: ProcessingMode = Form(ProcessingMode.LOCAL),
+        language: str = Form("pl"),
+        database: AsyncIOMotorDatabase = Depends(get_database),
+):
     logger.info(f"Uploading meeting '{title}' with file: {file.filename}")
     form_data = MeetingCreateForm(
         title=title,
@@ -158,3 +159,14 @@ async def download_meeting_audio(
         filename=user_friendly_filename
     )
 
+
+@router.patch("/{meeting_id}", response_model=MeetingResponse)
+async def partial_update_meeting(
+        meeting_id: str,
+        update_data: MeetingPartialUpdate,
+        database: AsyncIOMotorDatabase = Depends(get_database),
+):
+    updated = await meeting_service.partial_update_meeting(database, meeting_id, update_data)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+    return updated
