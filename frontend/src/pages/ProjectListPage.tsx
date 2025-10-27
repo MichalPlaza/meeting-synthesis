@@ -19,28 +19,23 @@ function ProjectListPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false); // <-- NOWY STAN
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("newest");
-  const debouncedSearchTerm = useDebounce(searchTerm, 300);
-
-  const { token } = useAuth();
+  useDebounce(searchTerm, 300);
+  const { token, user } = useAuth();
 
   const fetchProjects = useCallback(async () => {
-    log.debug("Fetching projects data...");
-    if (!token) {
-      log.warn("Cannot fetch projects: Authentication token is missing.");
+    log.debug("Fetching projects where user is a member...");
+    if (!token || !user?._id) {
+      log.warn("Cannot fetch projects: missing token or user ID.");
       return;
     }
     setLoading(true);
     setError(null);
 
-    const params = new URLSearchParams();
-    if (debouncedSearchTerm) params.append("q", debouncedSearchTerm);
-    params.append("sort_by", sortBy);
-
-    const projectsApiUrl = `${BACKEND_API_BASE_URL}/project?${params.toString()}`;
+    const projectsApiUrl = `${BACKEND_API_BASE_URL}/project/member/${user._id}`;
 
     try {
       const response = await fetch(projectsApiUrl, {
@@ -48,22 +43,20 @@ function ProjectListPage() {
       });
       if (!response.ok) {
         const errorData = await response.json();
-        log.error("Failed to fetch projects. Status:", response.status, "Error:", errorData.detail || response.statusText);
-        throw new Error(
-          errorData.detail || "Failed to fetch projects."
-        );
+        log.error("Failed to fetch member projects. Status:", response.status, "Error:", errorData.detail || response.statusText);
+        throw new Error(errorData.detail || "Failed to fetch member projects.");
       }
       const data = await response.json();
       setProjects(data);
-      log.info(`Fetched ${data.length} projects.`);
+      log.info(`Fetched ${data.length} projects where user is a member.`);
     } catch (err: any) {
-      log.error("Error fetching projects:", err.message);
+      log.error("Error fetching member projects:", err.message);
       setError(err.message || "Could not connect to the server.");
     } finally {
       setLoading(false);
-      log.debug("Projects fetching completed. Loading set to false.");
+      log.debug("Member projects fetching completed.");
     }
-  }, [token, debouncedSearchTerm, sortBy]);
+  }, [token, user?._id]);
 
   useEffect(() => {
     fetchProjects();

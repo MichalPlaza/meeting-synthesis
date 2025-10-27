@@ -30,48 +30,63 @@ function MeetingsListPage() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState("newest");
 
-  const { token } = useAuth();
+  const { token, user } = useAuth();
 
   const fetchData = useCallback(async () => {
-    log.debug("Fetching meetings and projects data...");
-    if (!token) {
-      log.warn("Cannot fetch data: Authentication token is missing.");
+    log.debug("Fetching meetings for member projects...");
+    if (!token || !user?._id) {
+      log.warn("Cannot fetch data: missing token or user ID.");
       return;
     }
+
     setLoading(true);
     setError(null);
-    try {
-      const [meetingsResponse, projectsResponse] = await Promise.all([
-        fetch(`${BACKEND_API_BASE_URL}/meetings`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        fetch(`${BACKEND_API_BASE_URL}/project`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-      ]);
 
-      if (!meetingsResponse.ok || !projectsResponse.ok) {
-        log.error("Failed to fetch data. Meetings status:", meetingsResponse.status, "Projects status:", projectsResponse.status);
-        throw new Error("Failed to fetch data from the server.");
+    try {
+      const projectsResponse = await fetch(`${BACKEND_API_BASE_URL}/project/member/${user._id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!projectsResponse.ok) {
+        log.error("Failed to fetch member projects. Status:", projectsResponse.status);
+        throw new Error("Failed to fetch member projects from the server.");
+      }
+
+      const projectsData: Project[] = await projectsResponse.json();
+      setProjects(projectsData);
+
+      const projectIds = projectsData.map((p) => p._id);
+
+      const meetingsUrl = new URL(`${BACKEND_API_BASE_URL}/meetings`);
+      projectIds.forEach((id) => meetingsUrl.searchParams.append("project_ids", id));
+
+      const meetingsResponse = await fetch(meetingsUrl.toString(), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!meetingsResponse.ok) {
+        log.error("Failed to fetch meetings. Status:", meetingsResponse.status);
+        throw new Error("Failed to fetch meetings from the server.");
       }
 
       const meetingsData: Meeting[] = await meetingsResponse.json();
-      const projectsData: Project[] = await projectsResponse.json();
-
       setMeetings(meetingsData);
-      setProjects(projectsData);
 
       const uniqueTags = new Set(meetingsData.flatMap((m) => m.tags));
       setAllTags(Array.from(uniqueTags));
-      log.info(`Fetched ${meetingsData.length} meetings and ${projectsData.length} projects. Identified ${uniqueTags.size} unique tags.`);
+
+      log.info(
+        `Fetched ${meetingsData.length} meetings for ${projectsData.length} member projects. Found ${uniqueTags.size} unique tags.`
+      );
     } catch (e: any) {
-      log.error("Error fetching data:", e.message);
+      log.error("Error fetching meetings for member projects:", e.message);
       setError(e.message || "An unknown error occurred.");
     } finally {
       setLoading(false);
       log.debug("Data fetching completed. Loading set to false.");
     }
-  }, [token]);
+  }, [token, user?._id]);
+
 
   useEffect(() => {
     fetchData();
