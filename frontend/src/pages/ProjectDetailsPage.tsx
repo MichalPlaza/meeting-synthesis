@@ -9,7 +9,7 @@ import { Mic, PlusIcon, FolderOpen } from "lucide-react";
 import EmptyState from "@/components/EmptyState";
 import ErrorState from "@/components/ErrorState";
 import log from "../services/logging";
-
+import {EditProjectDialog} from "@/components/EditProjectDialog.tsx";
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
 
 function ProjectDetailsPage() {
@@ -22,6 +22,7 @@ function ProjectDetailsPage() {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const fetchProjectData = useCallback(async () => {
     log.debug("Fetching project data for ID:", projectId);
@@ -119,6 +120,13 @@ function ProjectDetailsPage() {
 
   return (
     <div className="space-y-12">
+      <EditProjectDialog
+        isOpen={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        project={project!} // tu przekazujemy cały obiekt projektu
+        onProjectUpdated={(updatedProject) => setProject(updatedProject)}
+      />
+
       <div className="mb-12">
         <Link
           to={`/projects`}
@@ -129,16 +137,49 @@ function ProjectDetailsPage() {
       </div>
 
       <section>
-        <div className="border-b pb-6">
-          <h1 className="text-3xl font-bold tracking-tight">{project.name}</h1>
-          {project.description && (
-            <p className="text-muted-foreground mt-4 max-w-2xl">
-              {project.description}
-            </p>
+        <div className="border-b pb-6 flex flex-col sm:flex-row sm:justify-between sm:items-center">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">{project.name}</h1>
+            {project.description && (
+              <p className="text-muted-foreground mt-4 max-w-2xl">
+                {project.description}
+              </p>
+            )}
+          </div>
+
+          {user && project.owner_id === user._id && (
+            <div className="mt-4 sm:mt-0 flex gap-2">
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  if (confirm("Are you sure you want to delete this project?")) {
+                    fetch(`${BACKEND_API_BASE_URL}/project/${project._id}`, {
+                      method: "DELETE",
+                      headers: { Authorization: `Bearer ${token}` },
+                    })
+                      .then((res) => {
+                        if (res.ok) navigate("/projects");
+                        else alert("Failed to delete project");
+                      })
+                      .catch(() => alert("Error deleting project"));
+                  }
+                }}
+              >
+                Delete Project
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={() => setIsEditDialogOpen(true)}
+              >
+                Edit Project
+              </Button>
+            </div>
           )}
         </div>
       </section>
 
+      {/* Sekcja Meetings */}
       <section>
         <div className="flex justify-between items-center mb-8">
           <h2 className="text-2xl font-semibold tracking-tight">Meetings</h2>

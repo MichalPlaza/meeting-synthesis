@@ -3,8 +3,7 @@ export interface Project {
   name: string;
   description: string;
   owner_id: string; 
-  members_ids: string[]; 
-  meeting_datetime: string;
+  members_ids: string[];
   created_at: string;
   updated_at: string; 
 }

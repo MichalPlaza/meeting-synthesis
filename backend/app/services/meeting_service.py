@@ -8,13 +8,15 @@ from mutagen.wave import WAVE
 from mutagen.flac import FLAC
 from mutagen.mp4 import MP4
 
-from fastapi import UploadFile
+from fastapi import UploadFile, HTTPException
 from motor.motor_asyncio import AsyncIOMotorDatabase
+from pydantic import BaseModel
 
 from ..crud import crud_meetings
 from ..models.audio_file import AudioFile
 from ..models.meeting import Meeting
-from ..schemas.meeting_schema import MeetingCreate, MeetingUpdate, MeetingCreateForm, MeetingResponse
+from ..schemas.meeting_schema import MeetingCreate, MeetingUpdate, MeetingCreateForm, MeetingResponse, \
+    MeetingPartialUpdate
 from ..worker.tasks import process_meeting_audio
 
 logger = logging.getLogger(__name__)
@@ -157,4 +159,18 @@ async def handle_meeting_upload(
     response_data["estimated_processing_time_seconds"] = estimated_time
 
     return MeetingResponse(**response_data)
+
+
+async def partial_update_meeting(db, meeting_id, update_data: MeetingPartialUpdate):
+    update_dict = {}
+    for k, v in update_data.model_dump(exclude_unset=True).items():
+        if isinstance(v, dict):
+            for nested_k, nested_v in v.items():
+                update_dict[f"{k}.{nested_k}"] = nested_v
+        else:
+            update_dict[k] = v
+
+    result = await crud_meetings.update_meeting_fields(db, meeting_id, update_dict)
+    return result
+
 
