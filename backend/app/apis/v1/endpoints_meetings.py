@@ -43,9 +43,19 @@ async def list_meetings(
         database: AsyncIOMotorDatabase = Depends(get_database)
 ):
     logger.info(f"Listing meetings with query: {query}, project_ids: {project_ids}, tags: {tags}, sort_by: {sort_by}")
+
+    if project_ids is not None and len(project_ids) == 0:
+        logger.info("User has no projects assigned -> returning empty meeting list.")
+        return []
+
+    if project_ids is None:
+        logger.info("No project_ids provided -> returning empty meeting list.")
+        return []
+
     meetings = await meeting_service.get_meetings_with_filters(
         database=database, q=query, project_ids=project_ids, tags=tags, sort_by=sort_by
     )
+
     logger.info(f"Found {len(meetings)} meetings")
     return meetings
 
