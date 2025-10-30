@@ -9,14 +9,12 @@ function MainLayout() {
   const { isAuthenticated, user, logout } = useAuth();
   const userName = user?.full_name;
 
-  // Nowa klasa pomocnicza dla NavLink, aby naśladować styl Secondary Button, ale bez aktywnego podświetlenia
   const navLinkButtonClass = () =>
     cn(
-      // Podstawowe style przycisku secondary size="sm"
       buttonVariants({ variant: "secondary", size: "sm" }),
-      "bg-transparent shadow-none", // Ustawiamy tło na transparent i usuwamy cień
-      "hover:bg-secondary hover:text-secondary-foreground", // Efekt hover z secondary
-      "cursor-pointer" // Upewniamy się, że kursor jest poprawny
+      "bg-transparent shadow-none",
+      "hover:bg-secondary hover:text-secondary-foreground",
+      "cursor-pointer"
     );
 
   return (
@@ -27,9 +25,6 @@ function MainLayout() {
         gap={16}
         richColors
         toastOptions={{
-          style: {
-            // Styl inline pozostaje pusty
-          },
           classNames: {
             toast:
               "bg-card text-card-foreground border rounded-[var(--radius-container)] shadow-lg",
@@ -56,44 +51,37 @@ function MainLayout() {
                   Hello, {userName || user?.username}
                 </span>
                 <div className="hidden md:flex items-center gap-2 mr-4">
-                  {/* Używamy nowej funkcji navLinkButtonClass, bez `isActive` */}
                   <NavLink to="/meetings" className={navLinkButtonClass()} end>
                     Meetings
                   </NavLink>
                   <NavLink to="/projects" className={navLinkButtonClass()} end>
                     Projects
                   </NavLink>
+                  {user?.role === "project_manager" && (
+                    <NavLink
+                      to="/manage-access"
+                      className={navLinkButtonClass()}
+                      end
+                    >
+                      Manage Access
+                    </NavLink>
+                  )}
                 </div>
-                {/* Przycisk Log Out już ma size="sm" i variant="secondary" */}
                 <Button variant="secondary" size="sm" onClick={logout}>
                   Log Out
                 </Button>
               </>
             ) : (
               <>
-                {/* Przyciski dla użytkownika niezalogowanego (bez zmian) */}
-                <Button
-                  asChild
-                  variant="ghost"
-                  className="hidden md:inline-flex"
-                >
+                <Button asChild variant="ghost" className="hidden md:inline-flex">
                   <NavLink to="/#features">Features</NavLink>
                 </Button>
-                <Button
-                  asChild
-                  variant="ghost"
-                  className="hidden md:inline-flex"
-                >
+                <Button asChild variant="ghost" className="hidden md:inline-flex">
                   <NavLink to="/about">About</NavLink>
                 </Button>
-                <Button
-                  asChild
-                  variant="ghost"
-                  className="hidden md:inline-flex"
-                >
+                <Button asChild variant="ghost" className="hidden md:inline-flex">
                   <NavLink to="/contact">Contact</NavLink>
                 </Button>
-                {/* Przycisk Log In już ma size="sm" i variant="secondary" */}
                 <NavLink to="/login">
                   <Button variant="secondary" size="sm">
                     Log in

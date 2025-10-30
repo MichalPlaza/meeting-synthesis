@@ -7,6 +7,7 @@ from datetime import datetime
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from typing import List
 
+from ...core.permissions import require_approval, require_edit_permission
 from ...db.mongodb_utils import get_database
 from ...models.enums.proccessing_mode import ProcessingMode
 from ...schemas.meeting_schema import MeetingCreate, MeetingResponse, MeetingUpdate, MeetingCreateForm, \
@@ -14,7 +15,10 @@ from ...schemas.meeting_schema import MeetingCreate, MeetingResponse, MeetingUpd
 from ...services import meeting_service
 from ...crud import crud_meetings
 
-router = APIRouter()
+router = APIRouter(
+    tags=["meetings"],
+    dependencies=[Depends(require_approval), Depends(require_edit_permission)]
+)
 logger = logging.getLogger(__name__)
 
 
