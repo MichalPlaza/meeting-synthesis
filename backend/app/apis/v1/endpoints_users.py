@@ -96,3 +96,13 @@ async def toggle_edit_access_endpoint(
             detail="You do not have permission to change edit access for this user.",
         )
     return updated_user
+
+
+@router.get("/managers", response_model=List[UserResponse])
+async def get_public_managers(
+    database: AsyncIOMotorDatabase = Depends(get_database),
+):
+    logger.info("fetching managers")
+    managers = await user_service.get_users_by_role(database, role="project_manager")
+    return managers
+

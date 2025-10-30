@@ -227,3 +227,24 @@ async def toggle_edit_access(database: AsyncIOMotorDatabase, user_id: str, reque
         created_at=updated_user.created_at,
         updated_at=updated_user.updated_at,
     )
+
+
+async def get_users_by_role(database: AsyncIOMotorDatabase, role: str) -> list[UserResponse]:
+    users_cursor = database["users"].find({"role": role})
+    users_list = await users_cursor.to_list(length=None)
+
+    return [
+        UserResponse(
+            id=u["_id"],
+            username=u["username"],
+            email=u["email"],
+            full_name=u.get("full_name"),
+            role=u["role"],
+            manager_id=u.get("manager_id"),
+            is_approved=u.get("is_approved", False),
+            can_edit=u.get("can_edit", False),
+            created_at=u.get("created_at"),
+            updated_at=u.get("updated_at"),
+        )
+        for u in users_list
+    ]
