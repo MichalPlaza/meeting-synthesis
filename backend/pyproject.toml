@@ -28,6 +28,7 @@ pytest = "^8.4.2"
 openai = "^1.0.0"
 elasticsearch = "^8.11.0"
 sentence-transformers = "^2.2.2"
+aiohttp = "^3.13.2"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.11.12"

@@ -12,6 +12,12 @@ import sys
 import logging
 from pathlib import Path
 
+# Load environment variables BEFORE importing app modules
+from dotenv import load_dotenv
+
+env_path = Path(__file__).parent.parent / ".env"
+load_dotenv(env_path)
+
 # Add backend to path so we can import app modules
 backend_path = Path(__file__).parent.parent
 sys.path.insert(0, str(backend_path))
