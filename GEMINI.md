@@ -24,7 +24,7 @@ Meeting Synthesis is an AI-powered meeting assistant that transcribes audio file
 **Project structure**:
 
 ```
-meeting-syntesis/
+meeting-synthesis/
 ├── backend/              # FastAPI app, Celery workers, tests
 │   ├── app/
 │   │   ├── apis/v1/     # REST endpoints
