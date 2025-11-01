@@ -25,10 +25,7 @@ function AdminLayout() {
     );
 
   return (
-    // -> THAY ĐỔI 1: Định nghĩa một Grid 2 hàng, 2 cột
-    // Hàng trên co giãn theo nội dung (auto), hàng dưới chiếm phần còn lại (1fr)
     <div className="grid h-screen w-full grid-rows-[auto_1fr] md:grid-cols-[220px_1fr] lg:grid-cols-[200px_1fr]">
-      {/* --- HEADER CỦA SIDEBAR (Ô LƯỚI 1) --- */}
       <div className="flex h-14 items-center border-b border-r bg-muted/40 px-4 lg:h-[60px] lg:px-6">
         <NavLink
           to="/admin"
@@ -39,7 +36,6 @@ function AdminLayout() {
         </NavLink>
       </div>
 
-      {/* --- HEADER CỦA MAIN CONTENT (Ô LƯỚI 2) --- */}
       <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
         <div className="w-full flex-1"></div>
         <span className="text-sm text-muted-foreground hidden md:inline">
@@ -52,12 +48,8 @@ function AdminLayout() {
         <ThemeToggle />
       </header>
 
-      {/* --- NAVIGATION CỦA SIDEBAR (Ô LƯỚI 3) --- */}
-      {/* -> THAY ĐỔI 2: Sidebar bây giờ chỉ chứa phần điều hướng */}
       <div className="hidden border-r bg-muted/40 md:block">
         <div className="flex-1 py-4">
-          {" "}
-          {/* Thêm padding top */}
           <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
             <NavLink to="/admin/dashboard" className={sidebarNavLinkClass}>
               <LayoutDashboard className="h-4 w-4" />
@@ -79,8 +71,6 @@ function AdminLayout() {
         </div>
       </div>
 
-      {/* --- NỘI DUNG CHÍNH (Ô LƯỚI 4) --- */}
-      {/* -> THAY ĐỔI 3: Khu vực nội dung chính giờ có nền riêng và cuộn độc lập */}
       <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 overflow-auto bg-background">
         <Outlet />
       </main>
