@@ -6,7 +6,7 @@ from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from ..models.user import User
-from ..schemas.user_schema import UserCreate
+from ..schemas.user_schema import UserCreate, UserUpdate
 from ..services.security import get_password_hash
 
 logger = logging.getLogger(__name__)
@@ -90,3 +90,41 @@ async def get_user_by_id(database: AsyncIOMotorDatabase, user_id: str) -> User |
         logger.error(f"Error getting user by ID {user_id}: {e}", exc_info=True)
         return None
 
+async def update_user(
+    database: AsyncIOMotorDatabase, user_id: str, user_data: UserUpdate
+) -> User | None:
+    logger.debug(f"Attempting to update user with ID: {user_id}")
+    
+    if not (existing_user := await get_user_by_id(database, user_id)):
+        logger.warning(f"Update failed: User with ID {user_id} not found.")
+        return None
+
+    update_data = user_data.dict(exclude_unset=True)
+    
+    if not update_data:
+        logger.debug(f"No fields provided to update for user ID {user_id}.")
+        return existing_user
+    update_data["updated_at"] = datetime.now(UTC)
+    
+    result = await database["users"].update_one(
+        {"_id": ObjectId(user_id)}, {"$set": update_data}
+    )
+
+    if result.modified_count > 0:
+        updated_user = await get_user_by_id(database, user_id)
+        logger.info(f"User with ID {user_id} was updated successfully.")
+        return updated_user
+    
+    logger.debug(f"Data for user ID {user_id} was the same, no update performed.")
+    return existing_user
+
+async def delete_user(database: AsyncIOMotorDatabase, user_id: str) -> bool:
+    logger.debug(f"Attempting to delete user with ID: {user_id}")
+    result = await database["users"].delete_one({"_id": ObjectId(user_id)})
+    
+    if result.deleted_count == 1:
+        logger.info(f"User with ID {user_id} was deleted successfully.")
+        return True
+    
+    logger.warning(f"Delete failed: User with ID {user_id} not found.")
+    return False

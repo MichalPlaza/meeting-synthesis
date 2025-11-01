@@ -5,7 +5,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from typing import List
 
 from ...db.mongodb_utils import get_database
-from ...schemas.user_schema import UserResponse
+from ...schemas.user_schema import UserResponse, UserUpdate
 from ...crud import crud_users
 from ...auth_dependencies import get_current_user
 from ...models.user import User
@@ -31,3 +31,34 @@ async def get_users(
     logger.info(f"Found {len(all_users)} users")
     return all_users
 
+@router.put("/{user_id}", response_model=UserResponse)
+async def update_user_endpoint(
+    user_id: str,
+    user_data: UserUpdate,
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    logger.info(f"Received request to update user ID: {user_id}")
+    updated_user = await crud_users.update_user(db, user_id, user_data)
+    
+    if updated_user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User with ID {user_id} not found",
+        )
+    return updated_user
+
+@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_user_endpoint(
+    user_id: str,
+    db: AsyncIOMotorDatabase = Depends(get_database),
+):
+    logger.info(f"Received request to delete user ID: {user_id}")
+    deleted = await crud_users.delete_user(db, user_id)
+    
+    if not deleted:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User with ID {user_id} not found",
+        )
+
+    return None

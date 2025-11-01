@@ -1,0 +1,1 @@
+export default function MeetingManagementPage() { return <h1>Meeting Management</h1>; }

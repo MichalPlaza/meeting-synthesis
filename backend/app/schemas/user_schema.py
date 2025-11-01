@@ -31,14 +31,19 @@ class UserUpdate(BaseModel):
     username: str | None = None
     email: EmailStr | None = None
     full_name: str | None = None
-    password: str | None = None
+    # password: str | None = None
+    role: str | None = None
 
+# class UserResetPassword(BaseModel):
+#     new_password: str = Field(min_length=8)
+#     old_password: str
 
 class UserResponse(BaseModel):
     id: PyObjectId | None = Field(alias="_id")
     username: str
     email: EmailStr
     full_name: str | None = None
+    role: str
     created_at: datetime
     updated_at: datetime
 

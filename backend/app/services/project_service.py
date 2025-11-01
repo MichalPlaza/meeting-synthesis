@@ -53,3 +53,8 @@ async def get_projects_with_member(
     logger.info(f"Service: Getting projects with member ID: {member_id}")
     return await crud_projects.get_projects_by_member(database, member_id)
 
+async def get_projects_filtered_populated(
+        database: AsyncIOMotorDatabase, q: str | None, sort_by: str
+) -> list[Project]:
+    logger.info(f"Service: Getting projects with filters: q={q}, sort_by={sort_by}")
+    return await crud_projects.get_projects_filtered_populated(database, q=q, sort_by=sort_by)
