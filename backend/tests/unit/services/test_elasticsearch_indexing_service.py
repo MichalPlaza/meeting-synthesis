@@ -137,16 +137,32 @@ class TestElasticsearchIndexingService:
                 }
             }
         }
+        mock_client.search.return_value = {
+            "aggregations": {
+                "by_content_type": {
+                    "buckets": [
+                        {"key": "transcription", "doc_count": 50},
+                        {"key": "summary", "doc_count": 30},
+                        {"key": "action_items", "doc_count": 20},
+                    ]
+                },
+                "unique_meetings": {
+                    "value": 50
+                }
+            }
+        }
         mock_get_client.return_value = mock_client
 
         # Get stats
         stats = await get_index_stats()
 
         # Assertions
-        assert stats["document_count"] == 100
-        assert stats["deleted_count"] == 5
-        assert stats["size_bytes"] == 1048576
-        assert stats["size_mb"] == 1.0
+        assert stats["total_documents"] == 100
+        assert stats["total_meetings"] == 50
+        assert stats["by_content_type"]["transcription"] == 50
+        assert stats["by_content_type"]["summary"] == 30
+        assert stats["index_size_bytes"] == 1048576
+        assert stats["index_size_mb"] == 1.0
 
     @patch("app.services.elasticsearch_indexing_service.get_elasticsearch_client")
     @patch("app.services.elasticsearch_indexing_service.generate_embedding")

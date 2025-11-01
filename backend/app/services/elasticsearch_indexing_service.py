@@ -181,20 +181,47 @@ async def get_index_stats() -> dict:
     """Get statistics about the index.
 
     Returns:
-        Dict with index stats (doc count, size, etc.).
+        Dict with detailed index stats including:
+        - total_documents: Total number of documents
+        - total_meetings: Number of unique meetings
+        - by_content_type: Breakdown by content type
+        - index_size_bytes: Size in bytes
     """
     client = get_elasticsearch_client()
 
     try:
+        # Get basic index stats
         stats = await client.indices.stats(index=ELASTICSEARCH_INDEX)
-        
         index_stats = stats["indices"][ELASTICSEARCH_INDEX]
         
+        # Get aggregations for content type breakdown
+        agg_query = {
+            "size": 0,
+            "aggs": {
+                "by_content_type": {
+                    "terms": {"field": "content_type.keyword", "size": 20}
+                },
+                "unique_meetings": {
+                    "cardinality": {"field": "meeting_id.keyword"}
+                }
+            }
+        }
+        
+        agg_result = await client.search(index=ELASTICSEARCH_INDEX, body=agg_query)
+        
+        # Parse aggregation results
+        content_type_breakdown = {}
+        for bucket in agg_result["aggregations"]["by_content_type"]["buckets"]:
+            content_type_breakdown[bucket["key"]] = bucket["doc_count"]
+        
+        unique_meetings = agg_result["aggregations"]["unique_meetings"]["value"]
+        
         return {
-            "document_count": index_stats["total"]["docs"]["count"],
-            "deleted_count": index_stats["total"]["docs"]["deleted"],
-            "size_bytes": index_stats["total"]["store"]["size_in_bytes"],
-            "size_mb": round(index_stats["total"]["store"]["size_in_bytes"] / (1024 * 1024), 2),
+            "total_documents": index_stats["total"]["docs"]["count"],
+            "total_meetings": unique_meetings,
+            "by_content_type": content_type_breakdown,
+            "index_size_bytes": index_stats["total"]["store"]["size_in_bytes"],
+            "index_size_mb": round(index_stats["total"]["store"]["size_in_bytes"] / (1024 * 1024), 2),
         }
 
     except Exception as e:

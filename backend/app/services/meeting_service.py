@@ -105,7 +105,27 @@ async def update_existing_meeting(
         database: AsyncIOMotorDatabase, meeting_id: str, update_data: MeetingUpdate
 ) -> Meeting | None:
     logger.info(f"Service: Updating meeting with ID: {meeting_id}")
-    return await crud_meetings.update_meeting(database, meeting_id, update_data)
+    
+    # Update the meeting
+    updated_meeting = await crud_meetings.update_meeting(database, meeting_id, update_data)
+    
+    if not updated_meeting:
+        return None
+    
+    # Reindex to Knowledge Base if meeting is completed and has indexable content
+    from .meeting_indexing_service import reindex_meeting
+    from ..models.enums.processing_stage import ProcessingStage
+    
+    if (updated_meeting.processing_status.current_stage == ProcessingStage.COMPLETED and
+        (updated_meeting.transcription or updated_meeting.ai_analysis)):
+        try:
+            logger.info(f"Reindexing meeting {meeting_id} to Knowledge Base after update")
+            await reindex_meeting(updated_meeting)
+        except Exception as e:
+            logger.error(f"Failed to reindex meeting {meeting_id}: {e}", exc_info=True)
+            # Don't fail the update if reindexing fails
+    
+    return updated_meeting
 
 
 async def delete_existing_meeting(database: AsyncIOMotorDatabase, meeting_id: str) -> bool:
