@@ -20,3 +20,7 @@ class CommentResponse(BaseModel):
         from_attributes = True
         populate_by_name = True
         json_encoders = {PyObjectId: str}
+
+
+class CommentUpdate(BaseModel):
+    content: str = Field(..., min_length=1)

@@ -4,9 +4,8 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from ...auth_dependencies import get_current_user
 from ...db.mongodb_utils import get_database
-from ...schemas.comment_schema import CommentResponse, CommentCreate
+from ...schemas.comment_schema import CommentResponse, CommentCreate, CommentUpdate
 from ...services import comment_service
-
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
@@ -30,3 +29,13 @@ async def delete_comment(comment_id: str, database: AsyncIOMotorDatabase = Depen
                          user=Depends(get_current_user)):
     logger.info(f"User {user.username} deleting comment {comment_id}")
     return await comment_service.delete_comment(database, comment_id, str(user.id))
+
+@router.put("/{comment_id}", response_model=CommentResponse)
+async def update_comment(
+    comment_id: str,
+    data: CommentUpdate,
+    database: AsyncIOMotorDatabase = Depends(get_database),
+    user=Depends(get_current_user)
+):
+    logger.info(f"User {user.username} updating comment {comment_id}")
+    return await comment_service.update_comment(database, comment_id, str(user.id), data.content)

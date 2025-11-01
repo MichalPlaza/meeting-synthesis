@@ -1,17 +1,24 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/AuthContext";
-import { Loader2, MessageSquare, Send, MoreVertical } from "lucide-react";
+import {
+  Loader2,
+  MessageSquare,
+  Send,
+  MoreVertical,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { formatDistanceToNow } from "date-fns";
-
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
 
@@ -30,6 +37,9 @@ export function MeetingCommentsSection({ meetingId }: { meetingId: string }) {
   const [newComment, setNewComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [editing, setEditing] = useState<Comment | null>(null);
+  const [editedContent, setEditedContent] = useState("");
 
   const fetchComments = async () => {
     setLoading(true);
@@ -83,6 +93,37 @@ export function MeetingCommentsSection({ meetingId }: { meetingId: string }) {
     }
   };
 
+  const handleEdit = (comment: Comment) => {
+    setEditing(comment);
+    setEditedContent(comment.content);
+  };
+
+  const saveEdit = async () => {
+  if (!editing) return;
+  try {
+    const res = await fetch(`${BACKEND_API_BASE_URL}/comments/${editing._id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ content: editedContent }),
+    });
+    if (!res.ok) throw new Error("Failed to update comment");
+
+    const updatedComment = await res.json();
+
+    setEditing(null);
+
+    setComments((prev) =>
+      prev.map((c) => (c._id === updatedComment._id ? updatedComment : c))
+    );
+  } catch (err: any) {
+    setError(err.message);
+  }
+};
+
+
   useEffect(() => {
     fetchComments();
   }, [meetingId]);
@@ -107,12 +148,17 @@ export function MeetingCommentsSection({ meetingId }: { meetingId: string }) {
       ) : (
         <div className="space-y-4">
           {comments.map((comment) => (
-            <div key={comment._id} className="p-3 border rounded-md bg-muted/20 hover:bg-muted/40 transition-colors">
+            <div
+              key={comment._id}
+              className="p-3 border rounded-md bg-muted/20 hover:bg-muted/40 transition-colors"
+            >
               <div className="flex justify-between items-start">
                 <div>
                   <p className="font-medium text-sm">{comment.author_name}</p>
                   <p className="text-sm text-muted-foreground">
-                    {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
+                    {formatDistanceToNow(new Date(comment.created_at), {
+                      addSuffix: true,
+                    })}
                   </p>
                 </div>
                 {user?._id === comment.author_id && (
@@ -122,15 +168,30 @@ export function MeetingCommentsSection({ meetingId }: { meetingId: string }) {
                         <MoreVertical className="h-4 w-4 text-muted-foreground" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent sideOffset={4} className="bg-white border rounded-md shadow-md">
-                      <DropdownMenuItem onClick={() => alert("Edit " + comment._id)}>Edit</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleDelete(comment._id)}>Delete</DropdownMenuItem>
+                    <DropdownMenuContent
+                      sideOffset={4}
+                      className="bg-card border border-border rounded-md shadow-md text-foreground"
+                    >
+                      <DropdownMenuItem
+                        onClick={() => handleEdit(comment)}
+                        className="hover:bg-muted focus:bg-muted transition-colors"
+                      >
+                        <Pencil className="h-4 w-4 mr-2" /> Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleDelete(comment._id)}
+                        className="hover:bg-destructive/10 focus:bg-destructive/10 text-destructive transition-colors"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" /> Delete
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 )}
               </div>
               <Separator className="my-2" />
-              <p className="text-sm text-foreground/90 whitespace-pre-line">{comment.content}</p>
+              <p className="text-sm text-foreground/90 whitespace-pre-line">
+                {comment.content}
+              </p>
             </div>
           ))}
         </div>
@@ -157,6 +218,25 @@ export function MeetingCommentsSection({ meetingId }: { meetingId: string }) {
           </Button>
         </div>
       </div>
+
+      <Dialog open={!!editing} onOpenChange={() => setEditing(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Comment</DialogTitle>
+          </DialogHeader>
+          <Textarea
+            value={editedContent}
+            onChange={(e) => setEditedContent(e.target.value)}
+            className="resize-none h-32"
+          />
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="ghost" onClick={() => setEditing(null)}>
+              Cancel
+            </Button>
+            <Button onClick={saveEdit}>Save</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

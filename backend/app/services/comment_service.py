@@ -1,4 +1,6 @@
 import logging
+from datetime import datetime, UTC
+
 from fastapi import HTTPException
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from bson import ObjectId
@@ -34,3 +36,27 @@ async def delete_comment(database: AsyncIOMotorDatabase, comment_id: str, user_i
     if not ok:
         raise HTTPException(status_code=403 if msg == "Not authorized to delete this comment" else 404, detail=msg)
     return {"detail": msg}
+
+
+async def update_comment(db, comment_id: str, user_id: str, new_content: str):
+    comment = await db.comments.find_one({"_id": ObjectId(comment_id)})
+    if not comment:
+        raise HTTPException(status_code=404, detail="Comment not found")
+    if str(comment["author_id"]) != user_id:
+        raise HTTPException(status_code=403, detail="Not authorized to edit this comment")
+
+    await db.comments.update_one(
+        {"_id": ObjectId(comment_id)},
+        {"$set": {"content": new_content, "updated_at": datetime.now(UTC)}}
+    )
+    updated = await db.comments.find_one({"_id": ObjectId(comment_id)})
+
+    return {
+        "_id": str(updated["_id"]),
+        "meeting_id": str(updated["meeting_id"]),
+        "author_id": str(updated["author_id"]),
+        "author_name": updated["author_name"],
+        "content": updated["content"],
+        "created_at": updated["created_at"],
+        "updated_at": updated.get("updated_at", datetime.now(UTC)),
+    }
