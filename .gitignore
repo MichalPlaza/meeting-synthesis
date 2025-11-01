@@ -97,3 +97,5 @@ project_source_code.txt
 collect_source_code.sh
 .pnpm-store/
 /backend/uploads/
+
+.github/

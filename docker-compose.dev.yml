@@ -50,3 +50,21 @@ services:
       # --- KLUCZOWA ZMIANA ---
       - PYTHONPATH=/app
     command: celery -A app.worker.celery_app beat --loglevel=info
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: meeting_synthesis_elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - app-network
+
+volumes:
+  elasticsearch_data:
