@@ -63,8 +63,6 @@ services:
       - "9300:9300"
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
-    networks:
-      - app-network
 
 volumes:
   elasticsearch_data:
