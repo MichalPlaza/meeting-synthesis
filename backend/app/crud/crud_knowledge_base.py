@@ -67,10 +67,37 @@ async def get_user_conversations(
 
     conversations = []
     async for doc in cursor:
+        # Handle legacy conversations with None title
+        if doc.get("title") is None:
+            doc["title"] = f"Conversation {doc['created_at'].strftime('%Y-%m-%d %H:%M')}"
         conversations.append(Conversation(**doc))
 
     logger.debug(f"Retrieved {len(conversations)} conversations for user {user_id}")
     return conversations
+
+
+async def get_conversation_by_id(
+    database: AsyncIOMotorDatabase, conversation_id: str
+) -> Conversation | None:
+    """Get conversation by ID.
+
+    Args:
+        database: MongoDB database instance.
+        conversation_id: Conversation's ObjectId as string.
+
+    Returns:
+        Conversation object if found, None otherwise.
+    """
+    doc = await database["conversations"].find_one({"_id": ObjectId(conversation_id)})
+    
+    if not doc:
+        return None
+    
+    # Handle legacy conversations with None title
+    if doc.get("title") is None:
+        doc["title"] = f"Conversation {doc['created_at'].strftime('%Y-%m-%d %H:%M')}"
+    
+    return Conversation(**doc)
 
 
 async def delete_conversation(

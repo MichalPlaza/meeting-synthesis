@@ -40,6 +40,8 @@ pytestdebug.log
 *.mo
 *.pot
 *.log
+logs/
+mongo_data/
 local_settings.py
 db.sqlite3
 db.sqlite3-journal

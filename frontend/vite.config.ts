@@ -13,6 +13,7 @@ export default defineConfig({
   },
   // Required for pnpm
   server: {
+    port: 3000,
     fs: {
       strict: false,
     },

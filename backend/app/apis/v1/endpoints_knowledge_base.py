@@ -2,6 +2,7 @@
 
 from typing import Optional
 import logging
+from datetime import datetime, UTC
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
@@ -50,9 +51,14 @@ class ConversationResponse(BaseModel):
 class ChatRequest(BaseModel):
     """Request to ask a question."""
     conversation_id: Optional[str] = Field(None, description="Existing conversation ID")
-    query: str = Field(..., min_length=1, description="User's question")
+    query: Optional[str] = Field(None, min_length=1, description="User's question")
+    message: Optional[str] = Field(None, min_length=1, description="User's message (alias for query)")
     filters: Optional[FilterContext] = Field(None, description="Search filters")
     stream: bool = Field(False, description="Whether to stream the response")
+    
+    def get_query(self) -> str:
+        """Get the query/message content."""
+        return self.message or self.query or ""
 
 
 class ChatResponse(BaseModel):
@@ -95,10 +101,13 @@ async def create_conversation(
         Created conversation.
     """
     try:
+        # Generate default title if not provided
+        conversation_title = request.title or f"Conversation {datetime.now(UTC).strftime('%Y-%m-%d %H:%M')}"
+        
         conversation = await crud_knowledge_base.create_conversation(
             database=database,
             user_id=str(current_user.id),
-            title=request.title,
+            title=conversation_title,
         )
         
         return ConversationResponse(
@@ -187,9 +196,17 @@ async def chat(
         )
     
     try:
+        # Get query from either 'query' or 'message' field
+        query = request.get_query()
+        if not query:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Either 'query' or 'message' field is required"
+            )
+        
         # Generate RAG response
         answer = await generate_rag_response(
-            query=request.query,
+            query=query,
             user_id=str(current_user.id),
             filters=request.filters,
         )
@@ -198,7 +215,7 @@ async def chat(
         conversation_id = request.conversation_id
         if not conversation_id:
             # Create new conversation with query as title
-            title = request.query[:50] + "..." if len(request.query) > 50 else request.query
+            title = query[:50] + "..." if len(query) > 50 else query
             conversation = await crud_knowledge_base.create_conversation(
                 database=database,
                 user_id=str(current_user.id),
@@ -209,9 +226,10 @@ async def chat(
         # Save user message
         user_message = await crud_knowledge_base.create_message(
             database=database,
+            user_id=str(current_user.id),
             conversation_id=conversation_id,
             role="user",
-            content=request.query,
+            content=query,
             sources=[],
         )
         
@@ -219,6 +237,7 @@ async def chat(
         # TODO: Extract sources from search results
         assistant_message = await crud_knowledge_base.create_message(
             database=database,
+            user_id=str(current_user.id),
             conversation_id=conversation_id,
             role="assistant",
             content=answer,
@@ -230,7 +249,7 @@ async def chat(
             message_id=str(assistant_message.id),
             answer=answer,
             sources=[],  # TODO: Return actual sources
-            query=request.query,
+            query=query,
         )
         
     except Exception as e:
@@ -257,10 +276,16 @@ async def _stream_chat_response(
         Server-Sent Events formatted response chunks.
     """
     try:
+        # Get query from either 'query' or 'message' field
+        query = request.get_query()
+        if not query:
+            yield f"data: {{'type': 'error', 'message': 'Either query or message field is required'}}\n\n"
+            return
+        
         # Get or create conversation
         conversation_id = request.conversation_id
         if not conversation_id:
-            title = request.query[:50] + "..." if len(request.query) > 50 else request.query
+            title = query[:50] + "..." if len(query) > 50 else query
             conversation = await crud_knowledge_base.create_conversation(
                 database=database,
                 user_id=user_id,
@@ -274,9 +299,10 @@ async def _stream_chat_response(
         # Save user message
         await crud_knowledge_base.create_message(
             database=database,
+            user_id=user_id,
             conversation_id=conversation_id,
             role="user",
-            content=request.query,
+            content=query,
             sources=[],
         )
         
@@ -285,7 +311,7 @@ async def _stream_chat_response(
         sources_data = []
         
         async for chunk_data in generate_rag_response_stream(
-            query=request.query,
+            query=query,
             user_id=user_id,
             filters=request.filters,
             include_sources=True,
@@ -308,6 +334,7 @@ async def _stream_chat_response(
         # Save assistant message
         await crud_knowledge_base.create_message(
             database=database,
+            user_id=user_id,
             conversation_id=conversation_id,
             role="assistant",
             content=full_response,

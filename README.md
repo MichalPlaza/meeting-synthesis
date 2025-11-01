@@ -109,16 +109,60 @@ Planowana funkcja **Knowledge Base** to zaawansowany interfejs czatowy wykorzyst
 
 ## Uruchomienie Środowiska Deweloperskiego
 
+### Szybki Start (Rekomendowane) 🚀
+
+**Najłatwiejszy sposób na uruchomienie całej aplikacji:**
+
+```bash
+# Sklonuj repozytorium
+git clone https://github.com/mplazax/meeting-syntesis.git
+cd meeting-syntesis
+
+# Zainstaluj zależności (tylko przy pierwszym uruchomieniu)
+make setup
+
+# Uruchom całą aplikację
+make run
+```
+
+To polecenie:
+
+- ✅ Sprawdza wymagania wstępne
+- ✅ Uruchamia wszystkie usługi Docker (MongoDB, Redis, Elasticsearch, Ollama)
+- ✅ Instaluje zależności jeśli potrzebne
+- ✅ Uruchamia Backend API (http://localhost:8000)
+- ✅ Uruchamia Frontend (http://localhost:5173)
+- ✅ Uruchamia Celery Worker i Beat
+- ✅ Uruchamia Notification Service
+- ✅ Automatycznie inicjalizuje Elasticsearch
+
+**Logi znajdują się w katalogu `logs/`**
+
+**Aby zatrzymać:** Naciśnij `Ctrl+C` lub w innym terminalu: `make stop`
+
+📚 **Więcej komend:** Zobacz [scripts/README.md](./scripts/README.md) lub uruchom `make help`
+
+---
+
 ### Wymagania Wstępne
 
-Główną metodą uruchomienia jest Docker, co minimalizuje wymagania na maszynie hosta.
+Dla metody `make run` potrzebujesz:
+
+- [Git](https://git-scm.com/)
+- [Python 3.11+](https://www.python.org/downloads/)
+- [Poetry](https://python-poetry.org/docs/#installation) - `curl -sSL https://install.python-poetry.org | python3 -`
+- [Node.js 18+](https://nodejs.org/)
+- [pnpm](https://pnpm.io/) - `npm install -g pnpm`
+- [Docker Desktop](https://www.docker.com/get-started)
+
+Dla metody Docker Compose (alternatywa):
 
 - [Git](https://git-scm.com/)
 - [Docker](https://www.docker.com/get-started) i Docker Compose
 
-### Konfiguracja i Start (Docker Compose)
+### Alternatywna Metoda: Docker Compose
 
-Jest to **zalecana i główna metoda** uruchamiania całej aplikacji. Gwarantuje spójne środowisko dla wszystkich usług.
+Jest to druga metoda uruchamiania całej aplikacji w pełni w kontenerach Docker.
 
 1.  **Sklonuj repozytorium:**
 

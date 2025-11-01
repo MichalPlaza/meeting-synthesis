@@ -126,9 +126,9 @@ async def generate_rag_response(
     # Step 1: Retrieve relevant context via hybrid search
     search_results = await hybrid_search(
         query=query,
-        filters=filters,
-        size=top_k,
         user_id=user_id,
+        filters=filters,
+        top_k=top_k,
     )
     
     logger.info(f"Retrieved {len(search_results)} search results")
