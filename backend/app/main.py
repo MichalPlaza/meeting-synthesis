@@ -7,6 +7,7 @@ from .apis.v1 import (
     endpoints_meetings,
     endpoints_project,
     endpoints_users,
+    endpoints_knowledge_base,
 )
 from .db.mongodb_utils import close_mongo_connection, connect_to_mongo
 
@@ -51,3 +52,4 @@ app.include_router(endpoints_auth.router, prefix="/auth", tags=["auth"])
 app.include_router(endpoints_project.router, prefix="/project", tags=["project"])
 app.include_router(endpoints_meetings.router, prefix="/meetings", tags=["meetings"])
 app.include_router(endpoints_users.router, prefix="/users", tags=["users"])
+app.include_router(endpoints_knowledge_base.router, prefix="/api/v1", tags=["knowledge-base"])

@@ -51,6 +51,11 @@ class SearchResult:
         return self._score
 
     @property
+    def source(self) -> dict:
+        """Get the full source document."""
+        return self._source
+
+    @property
     def metadata(self) -> dict:
         """Get additional metadata."""
         return self._source.get("metadata", {})
