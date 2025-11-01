@@ -109,6 +109,10 @@ export function CellActions({ row, onUpdate, onDelete }: CellActionsProps) {
   };
 
   const handleRemoveMember = (memberId: string) => {
+    if (memberId === project.owner._id) {
+      console.warn("Attempted to remove the project owner. Action prevented.");
+      return;
+    }
     setMembers((currentMembers) =>
       currentMembers.filter((m) => m._id !== memberId)
     );
@@ -140,7 +144,7 @@ export function CellActions({ row, onUpdate, onDelete }: CellActionsProps) {
 
   return (
     <>
-      <DropdownMenu>
+      <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="h-8 w-8 p-0">
             <span className="sr-only">Open menu</span>
@@ -203,21 +207,32 @@ export function CellActions({ row, onUpdate, onDelete }: CellActionsProps) {
               <div className="col-span-3 flex flex-col gap-3">
                 {/* list member */}
                 <div className="flex flex-wrap gap-2 p-2 border min-h-[40px] rounded-[16px] !bg-background">
-                  {members.map((member) => (
-                    <Badge
-                      key={member._id}
-                      variant="secondary"
-                      className="flex items-center gap-1"
-                    >
-                      {member.username}
-                      <button
-                        onClick={() => handleRemoveMember(member._id)}
-                        className="rounded-full hover:bg-muted-foreground/20"
+                  {members.map((member) => {
+                    const isOwner = member._id === project.owner._id;
+                    return (
+                      <Badge
+                        key={member._id}
+                        variant={isOwner ? "default" : "secondary"}
+                        className="flex items-center gap-1.5"
                       >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  ))}
+                        {member.username}
+
+                        {isOwner && (
+                          <span className="text-xs opacity-80">(Owner)</span>
+                        )}
+
+                        {!isOwner && (
+                          <button
+                            onClick={() => handleRemoveMember(member._id)}
+                            className="rounded-full hover:bg-background/50"
+                            aria-label={`Remove ${member.username}`}
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        )}
+                      </Badge>
+                    );
+                  })}
                   {members.length === 0 && (
                     <span className="text-sm text-muted-foreground italic">
                       No members assigned.
@@ -252,14 +267,25 @@ export function CellActions({ row, onUpdate, onDelete }: CellActionsProps) {
                           </div>
                         )}
                         <CommandEmpty>
-                          {!isSearching && "No user found."}
+                          {searchQuery && !isSearching
+                            ? "No user found."
+                            : null}
                         </CommandEmpty>
                         <CommandGroup>
                           {searchResults.map((user) => (
                             <CommandItem
                               key={user._id}
                               value={user.username}
-                              onSelect={() => handleSelectMember(user)}
+                              onSelect={(currentValue) => {
+                                const selectedUser = searchResults.find(
+                                  (u) =>
+                                    u.username.toLowerCase() ===
+                                    currentValue.toLowerCase()
+                                );
+                                if (selectedUser) {
+                                  handleSelectMember(selectedUser);
+                                }
+                              }}
                             >
                               <Check className="mr-2 h-4 w-4 opacity-0" />
                               {user.username}

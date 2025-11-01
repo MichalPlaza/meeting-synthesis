@@ -54,7 +54,6 @@ export const getProjectColumns = ({
     accessorKey: "members",
     header: "Members",
     cell: ({ row }) => {
-      // Hiển thị số lượng member trong project
       const memberCount = row.original.members.length;
       return <div>{memberCount}</div>;
     },

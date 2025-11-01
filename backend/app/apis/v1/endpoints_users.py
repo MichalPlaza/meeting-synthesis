@@ -1,6 +1,6 @@
 
 import logging
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from typing import List
 
@@ -24,8 +24,15 @@ async def get_user_me(
 
 @router.get("/", response_model=List[UserResponse])
 async def get_users(
+        search: str | None = Query(None, description="Search term for username"),
         database: AsyncIOMotorDatabase = Depends(get_database)
 ):
+    if search:
+        logger.info(f"Searching for users with term: '{search}'")
+        searched_users = await crud_users.search_users_by_username(database, search)
+        logger.info(f"Found {len(searched_users)} users from search")
+        return searched_users
+
     logger.info("Fetching all users")
     all_users = await crud_users.get_all_users(database)
     logger.info(f"Found {len(all_users)} users")

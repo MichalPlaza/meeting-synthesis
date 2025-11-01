@@ -8,6 +8,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from ..models.user import User
 from ..schemas.user_schema import UserCreate, UserUpdate
 from ..services.security import get_password_hash
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -128,3 +129,22 @@ async def delete_user(database: AsyncIOMotorDatabase, user_id: str) -> bool:
     
     logger.warning(f"Delete failed: User with ID {user_id} not found.")
     return False
+
+async def search_users_by_username(
+    database: AsyncIOMotorDatabase, search_term: str, limit: int = 10
+) -> list[User]:
+    """
+    Finds users whose username contains the search term (case-insensitive).
+    """
+    if not search_term:
+        return []
+
+    query = {"username": {"$regex": re.escape(search_term), "$options": "i"}}
+    
+    cursor = database["users"].find(query).limit(limit)
+    
+    users = []
+    async for doc in cursor:
+        users.append(User(**doc))
+        
+    return users

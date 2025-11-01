@@ -52,35 +52,66 @@ export default function ProjectManagementPage() {
     fetchProjects();
   }, [token]);
 
-  // Mô phỏng việc cập nhật một project
   const handleUpdateProject = async (
     projectId: string,
     data: ProjectUpdate
   ) => {
     console.log(`Updating project ${projectId} with data:`, data);
-    // Mô phỏng độ trễ API
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    try {
+      const response = await fetch(
+        `${BACKEND_API_BASE_URL}/project/${projectId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(data),
+        }
+      );
 
-    setProjects((prevProjects) =>
-      prevProjects.map((p) =>
-        p._id === projectId
-          ? { ...p, ...data, updated_at: new Date().toISOString() }
-          : p
-      )
-    );
-    console.log("Project updated successfully (mock)");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          `Failed to update project: ${errorData.detail || response.statusText}`
+        );
+      }
+
+      console.log("Project updated successfully on server.");
+
+      await fetchProjects();
+    } catch (error) {
+      console.error("Error updating project:", error);
+    }
   };
 
-  // Mô phỏng việc xóa một project
   const handleDeleteProject = async (projectId: string) => {
     console.log(`Deleting project ${projectId}`);
-    // Mô phỏng độ trễ API
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    try {
+      const response = await fetch(
+        `${BACKEND_API_BASE_URL}/project/${projectId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
-    setProjects((prevProjects) =>
-      prevProjects.filter((project) => project._id !== projectId)
-    );
-    console.log("Project deleted successfully (mock)");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          `Failed to delete project: ${errorData.detail || response.statusText}`
+        );
+      }
+
+      console.log("Project deleted successfully on server.");
+      setProjects((prevProjects) =>
+        prevProjects.filter((project) => project._id !== projectId)
+      );
+    } catch (error) {
+      console.error("Error deleting project:", error);
+    }
   };
 
   const columns = getProjectColumns({
