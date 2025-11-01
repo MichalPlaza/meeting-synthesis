@@ -13,6 +13,7 @@ import MeetingsListPage from "./pages/MeetingsListPage";
 import StyleGuidePage from "./pages/StyleGuidePage";
 
 import log from "./services/logging";
+import ManageDeveloperAccessPage from "@/pages/ManageAccessPage.tsx";
 
 function App() {
   const { isAuthenticated } = useAuth();
@@ -40,6 +41,7 @@ function App() {
           <Route element={<ProtectedRoute />}>
             <Route path="/meetings" element={<MeetingsListPage />} />
             <Route path="/projects" element={<ProjectListPage />} />
+            <Route path="/manage-access" element={<ManageDeveloperAccessPage />} />
             <Route
               path="/projects/:projectId"
               element={<ProjectDetailsPage />}

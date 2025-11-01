@@ -3,7 +3,7 @@ import os
 import logging
 from typing import Any
 
-from app.models.ai_analysis import AIAnalysis
+from ....models.ai_analysis import AIAnalysis
 from .base import BaseAIAnalysisStrategy
 
 import ollama
