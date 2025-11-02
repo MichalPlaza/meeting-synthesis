@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, UTC
 
 import pytest
 from bson import ObjectId
@@ -28,7 +28,11 @@ class TestMeetingSchema:
 
     @pytest.fixture
     def processing_config(self):
-        return ProcessingConfig()
+        from app.models.enums.proccessing_mode import ProcessingMode
+        return ProcessingConfig(
+            language="en",
+            processing_mode_selected=ProcessingMode.LOCAL
+        )
 
     @pytest.fixture
     def valid_ids(self):
@@ -38,7 +42,7 @@ class TestMeetingSchema:
         project_id, uploader_id = valid_ids
         meeting = MeetingCreate(
             title="Team Sync",
-            meeting_datetime=datetime.utcnow(),
+            meeting_datetime=datetime.now(UTC),
             project_id=PyObjectId(project_id),
             uploader_id=PyObjectId(uploader_id),
             audio_file=audio_file,
@@ -59,14 +63,14 @@ class TestMeetingSchema:
         meeting_resp = MeetingResponse(
             _id=PyObjectId(),
             title="Sprint Planning",
-            meeting_datetime=datetime.utcnow(),
+            meeting_datetime=datetime.now(UTC),
             project_id=PyObjectId(project_id),
             uploader_id=PyObjectId(uploader_id),
             audio_file=audio_file,
             processing_config=processing_config,
             processing_status=ProcessingStatus(),
-            uploaded_at=datetime.utcnow(),
-            last_updated_at=datetime.utcnow(),
+            uploaded_at=datetime.now(UTC),
+            last_updated_at=datetime.now(UTC),
             tags=["planning"]
         )
 
@@ -90,10 +94,12 @@ class TestMeetingSchema:
         project_id, uploader_id = valid_ids
         form = MeetingCreateForm(
             title="Demo Meeting",
-            meeting_datetime=datetime.utcnow(),
+            meeting_datetime=datetime.now(UTC),
             project_id=project_id,
             uploader_id=uploader_id,
-            tags="tag1, tag2,tag3"
+            tags="tag1, tag2,tag3",
+            processing_mode_selected="local",
+            language="en"
         )
 
         meeting_create = form.to_meeting_create(audio_file=audio_file, duration=2000)
@@ -108,7 +114,7 @@ class TestMeetingSchema:
         with pytest.raises(ValidationError):
             MeetingCreate(
                 title="Invalid",
-                meeting_datetime=datetime.utcnow(),
+                meeting_datetime=datetime.now(UTC),
                 project_id=PyObjectId(project_id),
                 uploader_id=PyObjectId(uploader_id),
                 audio_file=audio_file,
@@ -121,7 +127,7 @@ class TestMeetingSchema:
         with pytest.raises(Exception):
             MeetingCreateForm(
                 title="Demo",
-                meeting_datetime=datetime.utcnow(),
+                meeting_datetime=datetime.now(UTC),
                 project_id="invalid-id",
                 uploader_id=str(PyObjectId()),
                 tags="tag1, tag2"
@@ -136,12 +142,12 @@ class TestMeetingSchema:
         with pytest.raises(ValidationError):
             MeetingResponse(
                 title="Missing _id",
-                meeting_datetime=datetime.utcnow(),
+                meeting_datetime=datetime.now(UTC),
                 project_id=PyObjectId(project_id),
                 uploader_id=PyObjectId(uploader_id),
                 audio_file=audio_file,
                 processing_config=processing_config,
                 processing_status=ProcessingStatus(),
-                uploaded_at=datetime.utcnow(),
-                last_updated_at=datetime.utcnow(),
+                uploaded_at=datetime.now(UTC),
+                last_updated_at=datetime.now(UTC),
             )

@@ -1,6 +1,6 @@
 import pytest
 from httpx import AsyncClient
-from datetime import datetime
+from datetime import datetime, UTC
 from bson import ObjectId
 
 from app.models.ai_analysis import AIAnalysis
@@ -39,7 +39,7 @@ async def test_upload_and_process_flow(client: AsyncClient, mocker, tmp_path):
     # Dane, które normalnie przyszłyby z formularza
     form_data = {
         "title": "Test Meeting",
-        "meeting_datetime": datetime.utcnow().isoformat(),
+        "meeting_datetime": datetime.now(UTC).isoformat(),
         "project_id": str(ObjectId()),
         "uploader_id": str(ObjectId()),
         "tags": "test,important"

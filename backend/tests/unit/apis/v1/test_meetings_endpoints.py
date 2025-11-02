@@ -51,7 +51,7 @@ class TestMeetingsEndpoints:
             uploader_id=meeting_data.uploader_id,
             tags=[],
             audio_file=audio_file,
-            processing_config={},
+            processing_config={"language": "en", "processing_mode_selected": "local"},
             processing_status={},
             uploaded_at=datetime.now(),
             last_updated_at=datetime.now()
@@ -97,7 +97,7 @@ class TestMeetingsEndpoints:
                 uploader_id=str(ObjectId()),
                 tags=[],
                 audio_file=audio_file,
-                processing_config={},
+                processing_config={"language": "en", "processing_mode_selected": "local"},
                 processing_status={},
                 uploaded_at=datetime.now(),
                 last_updated_at=datetime.now()
@@ -110,7 +110,7 @@ class TestMeetingsEndpoints:
                 uploader_id=str(ObjectId()),
                 tags=[],
                 audio_file=audio_file,
-                processing_config={},
+                processing_config={"language": "en", "processing_mode_selected": "local"},
                 processing_status={},
                 uploaded_at=datetime.now(),
                 last_updated_at=datetime.now()
@@ -119,7 +119,7 @@ class TestMeetingsEndpoints:
         with patch("app.apis.v1.endpoints_meetings.meeting_service.get_meetings_with_filters",
                    new=self.mock_meeting_service):
             self.mock_meeting_service.return_value = fake_meetings
-            result = await list_meetings(database=self.mock_db, query="A", project_ids=[], tags=[], sort_by="newest")
+            result = await list_meetings(database=self.mock_db, query="A", project_ids=[str(ObjectId())], tags=[], sort_by="newest")
             assert len(result) == 2
             self.mock_meeting_service.assert_awaited_once()
 
@@ -146,7 +146,7 @@ class TestMeetingsEndpoints:
             uploader_id=uploader_id,
             tags=[],
             audio_file=audio_file,
-            processing_config={},
+            processing_config={"language": "en", "processing_mode_selected": "local"},
             processing_status={},
             uploaded_at=datetime.now(),
             last_updated_at=datetime.now()
@@ -162,6 +162,8 @@ class TestMeetingsEndpoints:
                 uploader_id=uploader_id,
                 tags=tags,
                 file=mock_file,
+                processing_mode_selected="local",
+                language="en",
                 database=self.mock_db
             )
             assert result.title == "Test"
@@ -187,6 +189,8 @@ class TestMeetingsEndpoints:
                     uploader_id=uploader_id,
                     tags=tags,
                     file=mock_file,
+                    processing_mode_selected="local",
+                    language="en",
                     database=self.mock_db
                 )
             assert exc.value.status_code == 415
@@ -205,7 +209,7 @@ class TestMeetingsEndpoints:
             uploader_id=str(ObjectId()),
             tags=[],
             audio_file=audio_file,
-            processing_config={},
+            processing_config={"language": "en", "processing_mode_selected": "local"},
             processing_status={},
             uploaded_at=datetime.now(),
             last_updated_at=datetime.now()
@@ -238,7 +242,7 @@ class TestMeetingsEndpoints:
             uploader_id=str(ObjectId()),
             tags=[],
             audio_file=audio_file,
-            processing_config={},
+            processing_config={"language": "en", "processing_mode_selected": "local"},
             processing_status={},
             uploaded_at=datetime.now(),
             last_updated_at=datetime.now()

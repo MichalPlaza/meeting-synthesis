@@ -7,7 +7,7 @@ from datetime import datetime, UTC
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from motor.motor_asyncio import AsyncIOMotorDatabase
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 from app.db.mongodb_utils import get_database
 from app.auth_dependencies import get_current_user
@@ -38,15 +38,14 @@ class CreateConversationRequest(BaseModel):
 
 class ConversationResponse(BaseModel):
     """Response with conversation data."""
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     user_id: str
     title: str
     created_at: str
     updated_at: str
     message_count: int = 0
-
-    class Config:
-        from_attributes = True
 
 
 class ChatRequest(BaseModel):
@@ -73,15 +72,14 @@ class ChatResponse(BaseModel):
 
 class MessageResponse(BaseModel):
     """Response with a single message."""
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     conversation_id: str
     role: str
     content: str
     sources: list[MessageSource]
     created_at: str
-
-    class Config:
-        from_attributes = True
 
 
 # Endpoints

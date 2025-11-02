@@ -1,6 +1,6 @@
 import pytest
 import mongomock
-from httpx import AsyncClient
+from httpx import AsyncClient, ASGITransport
 from typing import AsyncGenerator
 from unittest.mock import AsyncMock
 
@@ -24,7 +24,8 @@ async def client(db) -> AsyncGenerator[AsyncClient, None]:
 
     app.dependency_overrides[get_database] = override_get_database
     
-    async with AsyncClient(app=app, base_url="http://test") as async_client:
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as async_client:
         yield async_client
 
     app.dependency_overrides.clear()

@@ -2,7 +2,7 @@
 
 import pytest
 from unittest.mock import AsyncMock, patch
-from httpx import AsyncClient
+from httpx import AsyncClient, ASGITransport
 
 from app.main import app
 from app.db.mongodb_utils import get_database
@@ -64,7 +64,8 @@ class TestChatTitleGeneration:
                     }
                     mock_ollama.return_value = mock_client
                     
-                    async with AsyncClient(app=app, base_url="http://test") as client:
+                    transport = ASGITransport(app=app)
+                    async with AsyncClient(transport=transport, base_url="http://test") as client:
                         response = await client.post(
                             "/api/v1/knowledge-base/chat",
                             json={
@@ -110,7 +111,8 @@ class TestChatTitleGeneration:
                     mock_client.generate.return_value = {"response": "Answer"}
                     mock_ollama.return_value = mock_client
                     
-                    async with AsyncClient(app=app, base_url="http://test") as client:
+                    transport = ASGITransport(app=app)
+                    async with AsyncClient(transport=transport, base_url="http://test") as client:
                         response = await client.post(
                             "/api/v1/knowledge-base/chat",
                             json={
@@ -145,7 +147,8 @@ class TestChatTitleGeneration:
                     mock_client.generate.return_value = {"response": "Answer"}
                     mock_ollama.return_value = mock_client
                     
-                    async with AsyncClient(app=app, base_url="http://test") as client:
+                    transport = ASGITransport(app=app)
+                    async with AsyncClient(transport=transport, base_url="http://test") as client:
                         response = await client.post(
                             "/api/v1/knowledge-base/chat",
                             json={"query": query},
@@ -185,7 +188,8 @@ class TestChatTitleGeneration:
                     mock_client.generate.return_value = {"response": "Answer"}
                     mock_ollama.return_value = mock_client
                     
-                    async with AsyncClient(app=app, base_url="http://test") as client:
+                    transport = ASGITransport(app=app)
+                    async with AsyncClient(transport=transport, base_url="http://test") as client:
                         response = await client.post(
                             "/api/v1/knowledge-base/chat-stream",
                             json={"query": query},

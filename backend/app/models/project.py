@@ -1,12 +1,18 @@
 from datetime import UTC, datetime
 
 from bson import ObjectId
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 from .py_object_id import PyObjectId
 
 
 class Project(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+        json_encoders={ObjectId: str, PyObjectId: str},
+        arbitrary_types_allowed=True
+    )
+
     id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
     name: str
     description: str | None = None
@@ -14,8 +20,3 @@ class Project(BaseModel):
     members_ids: list[PyObjectId] = []
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
-
-    class Config:
-        populate_by_name = True
-        json_encoders = {ObjectId: str, PyObjectId: str}
-        arbitrary_types_allowed = True

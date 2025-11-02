@@ -1,7 +1,7 @@
 import io
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-from datetime import datetime
+from datetime import datetime, UTC
 from bson import ObjectId
 
 from app.services import meeting_service
@@ -50,15 +50,15 @@ class TestMeetingService:
         mock_meeting.model_dump.return_value = {
             "_id": ObjectId(),
             "title": "Test",
-            "meeting_datetime": datetime.utcnow(),
+            "meeting_datetime": datetime.now(UTC),
             "project_id": ObjectId(),
             "uploader_id": ObjectId(),
             "audio_file": {"original_filename": "file.mp3", "storage_path_or_url": "/media/file.mp3",
                            "mimetype": "audio/mp3"},
-            "processing_config": {},
+            "processing_config": {"language": "en", "processing_mode_selected": "local"},
             "processing_status": {},
-            "uploaded_at": datetime.utcnow(),
-            "last_updated_at": datetime.utcnow()
+            "uploaded_at": datetime.now(UTC),
+            "last_updated_at": datetime.now(UTC)
         }
 
         with patch("app.services.meeting_service.crud_meetings.get_meeting_by_id",
@@ -82,7 +82,9 @@ class TestMeetingService:
             meeting_datetime=datetime(2025, 1, 1, 12, 0, 0),
             project_id=project_id,
             uploader_id=uploader_id,
-            tags="tag1,tag2"
+            tags="tag1,tag2",
+            processing_mode_selected="local",
+            language="en"
         )
 
         mock_meeting = MagicMock()
@@ -95,10 +97,10 @@ class TestMeetingService:
             "uploader_id": uploader_id,
             "audio_file": {"original_filename": "test.mp3", "storage_path_or_url": "/media/test.mp3",
                            "mimetype": "audio/mp3"},
-            "processing_config": {},
+            "processing_config": {"language": "en", "processing_mode_selected": "local"},
             "processing_status": {},
-            "uploaded_at": datetime.utcnow(),
-            "last_updated_at": datetime.utcnow(),
+            "uploaded_at": datetime.now(UTC),
+            "last_updated_at": datetime.now(UTC),
             "duration_seconds": 0
         }
 

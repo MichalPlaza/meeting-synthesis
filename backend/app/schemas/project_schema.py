@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from bson import ObjectId
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 from ..models.py_object_id import PyObjectId
 
@@ -25,6 +25,12 @@ class ProjectUpdate(BaseModel):
 
 
 class ProjectResponse(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+        json_encoders={ObjectId: str, PyObjectId: str},
+        arbitrary_types_allowed=True
+    )
+
     id: PyObjectId = Field(..., alias="_id")
     name: str
     description: str
@@ -32,8 +38,3 @@ class ProjectResponse(BaseModel):
     members_ids: list[PyObjectId]
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        populate_by_name = True
-        json_encoders = {ObjectId: str, PyObjectId: str}
-        arbitrary_types_allowed = True

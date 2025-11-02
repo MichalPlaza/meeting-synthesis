@@ -1,4 +1,5 @@
 import os
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,10 +11,23 @@ from .apis.v1 import (
     endpoints_knowledge_base,
 )
 from .db.mongodb_utils import close_mongo_connection, connect_to_mongo
+from .core.logging_config import setup_logging
 
 PYTHON_ENV = os.getenv("PYTHON_ENV", "production")
 
-app = FastAPI(title="Meeting Synthesis API")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Handle startup and shutdown events."""
+    # Startup
+    await connect_to_mongo()
+    setup_logging()
+    yield
+    # Shutdown
+    await close_mongo_connection()
+
+
+app = FastAPI(title="Meeting Synthesis API", lifespan=lifespan)
 
 if PYTHON_ENV == "development":
     origins = ["*"]
@@ -33,19 +47,6 @@ app.add_middleware(
 
 os.makedirs("uploads", exist_ok=True)
 app.mount("/media", StaticFiles(directory="uploads"), name="media")
-
-
-from .core.logging_config import setup_logging
-
-@app.on_event("startup")
-async def startup_event():
-    await connect_to_mongo()
-    setup_logging()
-
-
-@app.on_event("shutdown")
-async def shutdown_db_client():
-    await close_mongo_connection()
 
 
 app.include_router(endpoints_auth.router, prefix="/auth", tags=["auth"])
