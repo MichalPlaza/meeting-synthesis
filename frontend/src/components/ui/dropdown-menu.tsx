@@ -1,15 +1,8 @@
-// src/components/ui/dropdown-menu.tsx
 import * as React from "react";
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import { Check, ChevronRight, Circle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-/**
- * Komplet eksportów dla dropdowna (Radix + Tailwind).
- * Zwróć uwagę: highlight używa `data-[highlighted]` (Radix ustawia to na Item).
- */
-
-/* Root/Trigger/Group/Sub are proste aliasy */
 const DropdownMenu = DropdownMenuPrimitive.Root;
 const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger;
 const DropdownMenuGroup = DropdownMenuPrimitive.Group;
@@ -17,7 +10,6 @@ const DropdownMenuPortal = DropdownMenuPrimitive.Portal;
 const DropdownMenuSub = DropdownMenuPrimitive.Sub;
 const DropdownMenuRadioGroup = DropdownMenuPrimitive.RadioGroup;
 
-/* SubTrigger (submenu trigger - strzałka) */
 function DropdownMenuSubTrigger({
   className,
   inset,
@@ -43,7 +35,6 @@ function DropdownMenuSubTrigger({
 }
 DropdownMenuSubTrigger.displayName = DropdownMenuPrimitive.SubTrigger.displayName;
 
-/* SubContent */
 function DropdownMenuSubContent({
   className,
   ...props
@@ -60,7 +51,6 @@ function DropdownMenuSubContent({
 }
 DropdownMenuSubContent.displayName = DropdownMenuPrimitive.SubContent.displayName;
 
-/* Content - tutaj ustawiamy tło menu */
 function DropdownMenuContent({
   className,
   sideOffset = 4,
@@ -71,7 +61,6 @@ function DropdownMenuContent({
       <DropdownMenuPrimitive.Content
         sideOffset={sideOffset}
         className={cn(
-          // Ustawiamy jasne tło i kontrastujące kolory. Jeśli używasz dark theme -> zmień na bg-popover/text-popover-foreground
           "z-50 min-w-[8rem] overflow-hidden rounded-md border bg-white p-1 text-foreground shadow-md animate-in fade-in-0 zoom-in-95",
           className
         )}
@@ -82,7 +71,6 @@ function DropdownMenuContent({
 }
 DropdownMenuContent.displayName = DropdownMenuPrimitive.Content.displayName;
 
-/* Item - UWAGA: highlight działa przez data-[highlighted] (Radix) */
 function DropdownMenuItem({
   className,
   inset,
@@ -96,9 +84,7 @@ function DropdownMenuItem({
     <DropdownMenuPrimitive.Item
       className={cn(
         "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors",
-        // highlighted = myszka/klawiatura -> ustawiamy bg-accent i tekst aksentu
         "data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground",
-        // focus fallback
         "focus:bg-accent focus:text-accent-foreground",
         inset && "pl-8",
         variant === "destructive" && "text-destructive data-[highlighted]:bg-destructive data-[highlighted]:text-destructive-foreground",
@@ -111,7 +97,6 @@ function DropdownMenuItem({
 }
 DropdownMenuItem.displayName = DropdownMenuPrimitive.Item.displayName;
 
-/* Checkbox item */
 function DropdownMenuCheckboxItem({
   className,
   children,
@@ -141,7 +126,6 @@ function DropdownMenuCheckboxItem({
 }
 DropdownMenuCheckboxItem.displayName = DropdownMenuPrimitive.CheckboxItem.displayName;
 
-/* Radio item */
 function DropdownMenuRadioItem({
   className,
   children,
@@ -169,7 +153,6 @@ function DropdownMenuRadioItem({
 }
 DropdownMenuRadioItem.displayName = DropdownMenuPrimitive.RadioItem.displayName;
 
-/* Label / Separator / Shortcut */
 function DropdownMenuLabel({
   className,
   inset,
