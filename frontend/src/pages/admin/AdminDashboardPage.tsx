@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -12,81 +12,128 @@ import { useAuth } from "@/AuthContext";
 import { TimeSeriesChart } from "@/components/admin/TimeSeriesChart";
 import { RecentActivity } from "@/components/admin/RecentActivity";
 
-// ======== MOCK DATA ========
 interface DashboardStats {
   total_users: number;
   total_projects: number;
   total_meetings: number;
 }
 
-function generateMockTimeSeries(days: number) {
-  const data = [];
-  for (let i = days - 1; i >= 0; i--) {
-    const date = new Date();
-    date.setDate(date.getDate() - i);
-    data.push({
-      date: date.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      }),
-      users: Math.floor(Math.random() * 15 + 5), // 5-20 users/day
-      meetings: Math.floor(Math.random() * 30 + 10), // 10-40 meetings/day
-    });
-  }
-  return data;
+interface ChartDataPoint {
+  date: string;
+  count: number;
 }
-
-const last7DaysData = generateMockTimeSeries(7);
-const last30DaysData = generateMockTimeSeries(30);
-
-const mockStats = {
-  total_users: last30DaysData.reduce((acc, d) => acc + d.users, 100),
-  total_projects: 58,
-  total_meetings: last30DaysData.reduce((acc, d) => acc + d.meetings, 500),
-};
 
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [registrationsChartData, setRegistrationsChartData] = useState<
+    ChartDataPoint[]
+  >([]);
+  const [meetingsChartData, setMeetingsChartData] = useState<ChartDataPoint[]>(
+    []
+  );
+  // const [activities, setActivities] = useState<Activity[]>([]);
+
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [period, setPeriod] = useState<7 | 30>(7);
+
   const { token } = useAuth();
 
-  const [period, setPeriod] = useState<"7d" | "30d">("7d");
-  const chartData = period === "7d" ? last7DaysData : last30DaysData;
+  useEffect(() => {
+    const fetchAllDashboardData = async () => {
+      if (!token) {
+        setIsLoading(false);
+        setError("Authentication token is missing.");
+        return;
+      }
 
-  //   useEffect(() => {
-  //     const fetchStats = async () => {
-  //       if (!token) return;
+      setIsLoading(true);
+      setError(null);
 
-  //       setIsLoading(true);
-  //       try {
-  //         const response = await fetch(
-  //           `${BACKEND_API_BASE_URL}/admin/dashboard/stats`,
-  //           {
-  //             headers: { Authorization: `Bearer ${token}` },
-  //           }
-  //         );
-  //         if (!response.ok) throw new Error("Failed to fetch stats");
-  //         const data: DashboardStats = await response.json();
-  //         setStats(data);
-  //         console.info("Dashboard stats fetched successfully.");
-  //       } catch (error) {
-  //         console.error("Error fetching dashboard stats:", error);
-  //       } finally {
-  //         setIsLoading(false);
-  //       }
-  //     };
-  //     fetchStats();
-  //   }, [token]);
+      try {
+        const [
+          statsResponse,
+          registrationsChartResponse,
+          meetingsChartResponse,
+          activitiesResponse,
+        ] = await Promise.all([
+          fetch(`${BACKEND_API_BASE_URL}/admin/dashboard/stats`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          fetch(
+            `${BACKEND_API_BASE_URL}/admin/dashboard/registrations-chart?period_days=${period}`,
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          ),
+          fetch(
+            `${BACKEND_API_BASE_URL}/admin/dashboard/meetings-chart?period_days=${period}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          ),
+          fetch(
+            `${BACKEND_API_BASE_URL}/admin/dashboard/recent-activities?limit=5`,
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          ),
+        ]);
 
-  //   if (isLoading) {
-  //     return <div>Loading dashboard...</div>;
-  //   }
+        if (!statsResponse.ok)
+          throw new Error(
+            `Statistics fetch failed: ${statsResponse.statusText}`
+          );
+        if (!registrationsChartResponse.ok)
+          throw new Error(
+            `Registrations chart fetch failed: ${registrationsChartResponse.statusText}`
+          );
+        if (!meetingsChartResponse.ok)
+          throw new Error(
+            `Meetings chart fetch failed: ${meetingsChartResponse.statusText}`
+          );
+        if (!activitiesResponse.ok)
+          throw new Error(
+            `Activities fetch failed: ${activitiesResponse.statusText}`
+          );
 
-  //   if (!stats) {
-  //     return <div>Could not load dashboard data.</div>;
-  //   }
+        const statsData: DashboardStats = await statsResponse.json();
+        setStats(statsData);
+
+        const registrationsData: { data: ChartDataPoint[] } =
+          await registrationsChartResponse.json();
+        setRegistrationsChartData(registrationsData.data);
+
+        const meetingsData: { data: ChartDataPoint[] } =
+          await meetingsChartResponse.json();
+        setMeetingsChartData(meetingsData.data);
+
+        // const activitiesDataResponse: { activities: Activity[] } = await activitiesResponse.json();
+        // setActivities(activitiesDataResponse.activities);
+      } catch (err: any) {
+        console.error("Error fetching dashboard data:", err);
+        setError(err.message || "An unknown error occurred.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchAllDashboardData();
+  }, [token, period]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        Loading dashboard data...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-destructive text-center p-4">Error: {error}</div>
+    );
+  }
 
   return (
     <div className="w-full space-y-8">
@@ -100,7 +147,7 @@ export default function AdminDashboardPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{mockStats.total_users}</div>
+            <div className="text-2xl font-bold">{stats?.total_users}</div>
             <p className="text-xs text-muted-foreground">
               All registered users in the system.
             </p>
@@ -116,7 +163,7 @@ export default function AdminDashboardPage() {
             <FolderKanban className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{mockStats.total_projects}</div>
+            <div className="text-2xl font-bold">{stats?.total_projects}</div>
             <p className="text-xs text-muted-foreground">
               All projects created by users.
             </p>
@@ -132,7 +179,7 @@ export default function AdminDashboardPage() {
             <BookUser className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{mockStats.total_meetings}</div>
+            <div className="text-2xl font-bold">{stats?.total_meetings}</div>
             <p className="text-xs text-muted-foreground">
               All meetings uploaded for processing.
             </p>
@@ -144,14 +191,14 @@ export default function AdminDashboardPage() {
       <div>
         <div className="flex items-center gap-2 mb-4">
           <Button
-            variant={period === "7d" ? "default" : "outline"}
-            onClick={() => setPeriod("7d")}
+            variant={period === 7 ? "default" : "outline"}
+            onClick={() => setPeriod(7)}
           >
             Last 7 Days
           </Button>
           <Button
-            variant={period === "30d" ? "default" : "outline"}
-            onClick={() => setPeriod("30d")}
+            variant={period === 30 ? "default" : "outline"}
+            onClick={() => setPeriod(30)}
           >
             Last 30 Days
           </Button>
@@ -164,12 +211,11 @@ export default function AdminDashboardPage() {
               <CardTitle>New User Registrations</CardTitle>
               <CardDescription>
                 Number of new users signed up in the last{" "}
-                {period === "7d" ? 7 : 30} days.
+                {period === 7 ? 7 : 30} days.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {/* Truyền props mới, không cần lineColor */}
-              <TimeSeriesChart data={chartData} dataKey="users" />
+              <TimeSeriesChart data={registrationsChartData} dataKey="count" />
             </CardContent>
           </Card>
 
@@ -178,12 +224,12 @@ export default function AdminDashboardPage() {
             <CardHeader>
               <CardTitle>Meetings Created</CardTitle>
               <CardDescription>
-                Number of meetings uploaded in the last{" "}
-                {period === "7d" ? 7 : 30} days.
+                Number of meetings uploaded in the last {period === 7 ? 7 : 30}{" "}
+                days.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <TimeSeriesChart data={chartData} dataKey="meetings" />
+              <TimeSeriesChart data={meetingsChartData} dataKey="count" />
             </CardContent>
           </Card>
         </div>
