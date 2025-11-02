@@ -196,7 +196,7 @@ export async function* sendMessageStream(
 
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split("\n");
-      
+
       // Keep the last incomplete line in the buffer
       buffer = lines.pop() || "";
 
@@ -210,7 +210,7 @@ export async function* sendMessageStream(
             // Backend sends data with single quotes, need to convert to double quotes
             const jsonData = data.replace(/'/g, '"');
             const parsed = JSON.parse(jsonData);
-            
+
             if (parsed.type === "content" && parsed.content) {
               yield parsed.content;
             } else if (parsed.type === "conversation_id") {
@@ -232,7 +232,8 @@ export async function* sendMessageStream(
     log.error("Failed to stream chat message", error);
     throw error;
   }
-}/**
+}
+/**
  * Admin Operations
  */
 
