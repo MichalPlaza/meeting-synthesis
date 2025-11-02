@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { getMeetingColumns } from "@/components/admin/meeting-columns";
 import { DataTable } from "@/components/admin/data-table";
 import { MeetingDetailsDialog } from "@/components/admin/meeting-details-dialog";
-import type { Meeting } from "@/types/meeting";
+import type { Meeting, PopulatedMeeting } from "@/types/meeting";
+import { useAuth } from "@/AuthContext";
 
 // --- FAKE DATA ---
 const fakeMeetings: Meeting[] = [
@@ -103,33 +104,55 @@ const fakeMeetings: Meeting[] = [
   },
 ];
 
+const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
+
 export default function MeetingManagementPage() {
-  const [meetings, setMeetings] = useState<Meeting[]>([]);
+  const [meetings, setMeetings] = useState<PopulatedMeeting[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
+  const [selectedMeeting, setSelectedMeeting] =
+    useState<PopulatedMeeting | null>(null);
+  const { token } = useAuth();
+
+  const fetchMeetings = async () => {
+    if (!token) return;
+    setIsLoading(true);
+    try {
+      const response = await fetch(
+        `${BACKEND_API_BASE_URL}/meetings/meetings/populated`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      if (!response.ok) throw new Error("Failed to fetch meetings");
+      const data: PopulatedMeeting[] = await response.json();
+      setMeetings(data);
+      console.log(data);
+    } catch (error) {
+      console.error("Error fetching meetings:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    setIsLoading(true);
-    const timer = setTimeout(() => {
-      setMeetings(fakeMeetings);
-      setIsLoading(false);
-    }, 500);
+    fetchMeetings();
+  }, [token]);
 
-    return () => clearTimeout(timer);
-  }, []);
-
-  const handleViewDetails = (meeting: Meeting) => {
+  const handleViewDetails = (meeting: PopulatedMeeting) => {
     setSelectedMeeting(meeting);
   };
 
   const handleDeleteMeeting = async (meetingId: string) => {
-    console.log(`Deleting meeting ${meetingId}`);
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    setMeetings((prevMeetings) =>
-      prevMeetings.filter((meeting) => meeting._id !== meetingId)
-    );
-    console.log("Meeting deleted successfully (mock)");
+    if (!token) return;
+    try {
+      await fetch(`${BACKEND_API_BASE_URL}/meetings/${meetingId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      fetchMeetings();
+    } catch (error) {
+      console.error("Error deleting meeting:", error);
+    }
   };
 
   const columns = getMeetingColumns({

@@ -45,7 +45,9 @@ export function CellActions({ row, onUpdate, onDelete }: CellActionsProps) {
   const [username, setUsername] = useState(user.username);
   const [fullName, setFullName] = useState(user.full_name || "");
   const [email, setEmail] = useState(user.email);
-  const [role, setRole] = useState<"user" | "admin">(user.role);
+  const [role, setRole] = useState<
+    "admin" | "project_manager" | "scrum_master" | "developer"
+  >(user.role);
 
   const handleUpdate = async () => {
     await onUpdate(user._id, { full_name: fullName, email, username, role });
@@ -65,7 +67,10 @@ export function CellActions({ row, onUpdate, onDelete }: CellActionsProps) {
             <MoreHorizontal className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="rounded-[8px] border">
+        <DropdownMenuContent
+          align="end"
+          className="rounded-[8px] border bg-background"
+        >
           <DropdownMenuLabel>Actions</DropdownMenuLabel>
           {/* Open Dialog Edit */}
           <DropdownMenuItem onSelect={() => setIsEditDialogOpen(true)}>
@@ -132,15 +137,25 @@ export function CellActions({ row, onUpdate, onDelete }: CellActionsProps) {
                 Role
               </Label>
               <Select
-                onValueChange={(value: "user" | "admin") => setRole(value)}
+                onValueChange={(
+                  value:
+                    | "admin"
+                    | "project_manager"
+                    | "scrum_master"
+                    | "developer"
+                ) => setRole(value)}
                 defaultValue={role}
               >
                 <SelectTrigger className="col-span-3 rounded-[16px] border !bg-background">
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
                 <SelectContent className="rounded-[8px] border">
-                  <SelectItem value="user">User</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="project_manager">
+                    Project Manager
+                  </SelectItem>
+                  <SelectItem value="scrum_master">Scrum Master</SelectItem>
+                  <SelectItem value="developer">Developer</SelectItem>
                 </SelectContent>
               </Select>
             </div>

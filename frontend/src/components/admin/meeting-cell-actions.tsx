@@ -19,11 +19,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import type { Meeting } from "@/types/meeting";
+import type { Meeting, PopulatedMeeting } from "@/types/meeting";
 
 interface CellActionsProps {
-  row: Row<Meeting>;
-  onViewDetails: (meeting: Meeting) => void;
+  row: Row<PopulatedMeeting>;
+  onViewDetails: (meeting: PopulatedMeeting) => void;
   onDelete: (meetingId: string) => Promise<void>;
 }
 
@@ -50,7 +50,10 @@ export function CellActions({
             <MoreHorizontal className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
+        <DropdownMenuContent
+          align="end"
+          className="rounded-[8px] border bg-background"
+        >
           <DropdownMenuLabel>Actions</DropdownMenuLabel>
           <DropdownMenuItem onSelect={() => onViewDetails(meeting)}>
             View Details

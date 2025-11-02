@@ -39,7 +39,7 @@ async def list_projects(
 
 @router.get(
     "/populated",
-    response_model=list[ProjectResponsePopulated], # <-- SỬ DỤNG RESPONSE MODEL MỚI
+    response_model=list[ProjectResponsePopulated], 
     summary="Get a list of projects with populated user data"
 )
 async def read_projects(
@@ -50,7 +50,6 @@ async def read_projects(
     """
     Retrieve projects. Owner and member information is populated.
     """
-    # GỌI HÀM CRUD MỚI
     projects = await project_service.get_projects_filtered_populated(database, q=q, sort_by=sort_by)
     return projects
 

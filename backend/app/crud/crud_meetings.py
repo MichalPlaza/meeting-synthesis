@@ -162,3 +162,65 @@ async def update_meeting_fields(database, meeting_id: str, fields: dict):
         return None
 
     return await database["meetings"].find_one({"_id": oid})
+
+
+async def get_all_meetings_populated(database: AsyncIOMotorDatabase) -> list[dict]:
+    """
+    Retrieves all meetings with populated project and uploader information.
+    """
+    pipeline = [
+        {"$sort": {"uploaded_at": -1}},        
+        # join collection "projects"
+        {
+            "$lookup": {
+                "from": "projects",
+                "localField": "project_id",
+                "foreignField": "_id",
+                "as": "project_info"
+            }
+        },
+        # join collection "users"
+        {
+            "$lookup": {
+                "from": "users",
+                "localField": "uploader_id",
+                "foreignField": "_id",
+                "as": "uploader_info"
+            }
+        },
+        {
+            "$unwind": {
+                "path": "$project_info",
+                "preserveNullAndEmptyArrays": True
+            }
+        },
+        {
+            "$unwind": {
+                "path": "$uploader_info",
+                "preserveNullAndEmptyArrays": True
+            }
+        },
+        {
+            "$addFields": {
+                "project": {
+                    "_id": {"$ifNull": ["$project_info._id", None]},
+                    "name": {"$ifNull": ["$project_info.name", None]}
+                },
+                "uploader": {
+                    "_id": {"$ifNull": ["$uploader_info._id", None]},
+                    "username": {"$ifNull": ["$uploader_info.username", None]},
+                    "full_name": {"$ifNull": ["$uploader_info.full_name", None]}
+                }
+            }
+        },
+        {
+            "$project": {
+                "project_info": 0,
+                "uploader_info": 0
+            }
+        }
+    ]
+
+    cursor = database["meetings"].aggregate(pipeline)
+    meetings = await cursor.to_list(length=None)
+    return meetings

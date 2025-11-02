@@ -57,7 +57,7 @@ export const getUserColumns = ({
       return (
         <Badge
           variant={role === "admin" ? "default" : "secondary"}
-          className="capitalize w-16 justify-center"
+          className="w-30 justify-center"
         >
           {role}
         </Badge>
@@ -69,7 +69,7 @@ export const getUserColumns = ({
     accessorKey: "created_at",
     header: "Joined Date",
     cell: ({ row }) => {
-      return new Date(row.original.created_at!).toLocaleDateString("en-US"); // Định dạng lại ngày
+      return new Date(row.original.created_at!).toLocaleDateString("en-US");
     },
   },
 
@@ -77,7 +77,7 @@ export const getUserColumns = ({
     accessorKey: "updated_at",
     header: "Updated Date",
     cell: ({ row }) => {
-      return new Date(row.original.updated_at!).toLocaleDateString("en-US"); // Định dạng lại ngày
+      return new Date(row.original.updated_at!).toLocaleDateString("en-US");
     },
   },
 

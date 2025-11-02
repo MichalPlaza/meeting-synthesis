@@ -96,7 +96,10 @@ export function DataTable<TData, TValue>({
               Columns
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="rounded-[8px] border">
+          <DropdownMenuContent
+            align="end"
+            className="rounded-[8px] border bg-background"
+          >
             {table
               .getAllColumns()
               .filter((column) => column.getCanHide())

@@ -7,7 +7,6 @@ import {
 } from "react";
 import { useNavigate } from "react-router-dom";
 import log from "./services/logging";
-import type { UserResponse } from "./types/user";
 
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
 
@@ -42,69 +41,59 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // const tryToLogin = async () => {
-    //   log.debug("Attempting to refresh session...");
-    //   const refreshToken = localStorage.getItem("refresh_token");
-    //   if (!refreshToken) {
-    //     log.debug("No refresh token found. Skipping session refresh.");
-    //     setIsLoading(false);
-    //     return;
-    //   }
+    const tryToLogin = async () => {
+      log.debug("Attempting to refresh session...");
+      const refreshToken = localStorage.getItem("refresh_token");
+      if (!refreshToken) {
+        log.debug("No refresh token found. Skipping session refresh.");
+        setIsLoading(false);
+        return;
+      }
 
-    //   try {
-    //     log.debug("Sending refresh token request...");
-    //     const response = await fetch(
-    //       `${BACKEND_API_BASE_URL}/auth/refresh-token`,
-    //       {
-    //         method: "POST",
-    //         headers: { "Content-Type": "application/json" },
-    //         body: JSON.stringify({ refresh_token: refreshToken }),
-    //       }
-    //     );
+      try {
+        log.debug("Sending refresh token request...");
+        const response = await fetch(
+          `${BACKEND_API_BASE_URL}/auth/refresh-token`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ refresh_token: refreshToken }),
+          }
+        );
 
-    //     if (!response.ok) {
-    //       log.warn("Refresh token failed. Status:", response.status);
-    //       throw new Error("Refresh token failed");
-    //     }
+        if (!response.ok) {
+          log.warn("Refresh token failed. Status:", response.status);
+          throw new Error("Refresh token failed");
+        }
 
-    //     const tokenData = await response.json();
-    //     const newAccessToken = tokenData.access_token;
-    //     log.debug("Successfully obtained new access token.");
+        const tokenData = await response.json();
+        const newAccessToken = tokenData.access_token;
+        log.debug("Successfully obtained new access token.");
 
-    //     const userResponse = await fetch(`${BACKEND_API_BASE_URL}/users/me`, {
-    //       headers: { Authorization: `Bearer ${newAccessToken}` },
-    //     });
+        const userResponse = await fetch(`${BACKEND_API_BASE_URL}/users/me`, {
+          headers: { Authorization: `Bearer ${newAccessToken}` },
+        });
 
-    //     if (!userResponse.ok) {
-    //       log.warn("Failed to fetch user after refresh. Status:", userResponse.status);
-    //       throw new Error("Failed to fetch user after refresh");
-    //     }
+        if (!userResponse.ok) {
+          log.warn(
+            "Failed to fetch user after refresh. Status:",
+            userResponse.status
+          );
+          throw new Error("Failed to fetch user after refresh");
+        }
 
-    //     const userData = await userResponse.json();
-    //     log.info("Session refreshed successfully for user:", userData.username);
-    //     login(newAccessToken, userData, refreshToken);
-    //   } catch (error) {
-    //     log.error("Session refresh failed:", error);
-    //     logout(); // Wyczyść stare, nieprawidłowe tokeny
-    //   } finally {
-    //     setIsLoading(false);
-    //   }
-    // };
-
-    // tryToLogin();
-
-    const fakeAdminUser: UserResponse = {
-      _id: "fake-admin-id",
-      username: "admin_test",
-      email: "admin@test.com",
-      full_name: "Admin Tester",
-      role: "admin",
+        const userData = await userResponse.json();
+        log.info("Session refreshed successfully for user:", userData.username);
+        login(newAccessToken, userData, refreshToken);
+      } catch (error) {
+        log.error("Session refresh failed:", error);
+        logout(); // Wyczyść stare, nieprawidłowe tokeny
+      } finally {
+        setIsLoading(false);
+      }
     };
 
-    // Giả lập việc đã đăng nhập
-    setToken("fake-access-token");
-    setUser(fakeAdminUser);
-    setIsLoading(false);
+    tryToLogin();
   }, []); // Uruchom tylko raz przy starcie aplikacji
 
   const login = (

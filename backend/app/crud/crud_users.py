@@ -154,3 +154,14 @@ async def search_users_by_username(
         users.append(User(**doc))
         
     return users
+
+async def get_users_by_manager(database: AsyncIOMotorDatabase, manager_id: str):
+    try:
+        manager_obj_id = ObjectId(manager_id)
+    except Exception:
+        logger.error(f"Invalid manager ID: {manager_id}")
+
+    cursor = database["users"].find({"manager_id": manager_obj_id})
+    users = [User(**doc) async for doc in cursor]
+    return users
+

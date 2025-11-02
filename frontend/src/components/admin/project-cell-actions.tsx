@@ -151,7 +151,10 @@ export function CellActions({ row, onUpdate, onDelete }: CellActionsProps) {
             <MoreHorizontal className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
+        <DropdownMenuContent
+          align="end"
+          className="rounded-[8px] border bg-background"
+        >
           <DropdownMenuLabel>Actions</DropdownMenuLabel>
           <DropdownMenuItem onSelect={handleOpenEditDialog}>
             View/Edit Project

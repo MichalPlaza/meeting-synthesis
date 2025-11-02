@@ -5,19 +5,33 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import type { Meeting } from "@/types/meeting";
+import { Badge } from "@/components/ui/badge";
+import type { Meeting, PopulatedMeeting } from "@/types/meeting";
 
 interface MeetingDetailsDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  meeting: Meeting;
+  meeting: PopulatedMeeting;
 }
+
+const formatDuration = (seconds: number | null | undefined): string => {
+  if (seconds === null || seconds === undefined || isNaN(seconds)) {
+    return "N/A";
+  }
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = Math.floor(seconds % 60);
+  return `${String(minutes).padStart(2, "0")}m:${String(
+    remainingSeconds
+  ).padStart(2, "0")}s`;
+};
 
 export function MeetingDetailsDialog({
   isOpen,
   onOpenChange,
   meeting,
 }: MeetingDetailsDialogProps) {
+  const status = meeting.processing_status?.current_stage;
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
@@ -25,7 +39,8 @@ export function MeetingDetailsDialog({
           <DialogTitle>{meeting.title}</DialogTitle>
           <DialogDescription>
             Meeting held on{" "}
-            {new Date(meeting.meeting_datetime).toLocaleString()}.
+            {new Date(meeting.meeting_datetime).toLocaleString()}.<br />
+            Uploaded on {new Date(meeting.uploaded_at).toLocaleString()}.
           </DialogDescription>
         </DialogHeader>
         <div className="mt-4 space-y-6">
@@ -65,6 +80,29 @@ export function MeetingDetailsDialog({
               <p className="text-sm text-muted-foreground whitespace-pre-wrap">
                 {meeting.transcription?.full_text ??
                   "Transcription not available."}
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <h4 className="font-semibold mb-2">Details</h4>
+            <div className="text-sm grid grid-cols-2 gap-2">
+              <p>
+                <strong>Original Filename:</strong>{" "}
+                {meeting.audio_file.original_filename}
+              </p>
+              <p>
+                <strong>Language:</strong> {meeting.processing_config.language}
+              </p>
+              <p>
+                <strong>Duration:</strong>{" "}
+                {meeting.duration_seconds
+                  ? `${formatDuration(meeting.duration_seconds)}`
+                  : "N/A"}
+              </p>
+              <p>
+                <strong>Status:</strong>{" "}
+                <Badge className="capitalize">{status}</Badge>
               </p>
             </div>
           </div>

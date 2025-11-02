@@ -3,10 +3,9 @@ import { ArrowUpDown } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CellActions } from "./meeting-cell-actions"; // Chúng ta sẽ tạo file này tiếp theo
-import type { Meeting } from "@/types/meeting"; // Import type Meeting của bạn
+import { CellActions } from "./meeting-cell-actions";
+import type { Meeting, PopulatedMeeting } from "@/types/meeting";
 
-// Hàm trợ giúp để định dạng giây thành MM:SS
 const formatDuration = (seconds: number | null | undefined): string => {
   if (seconds === null || seconds === undefined || isNaN(seconds)) {
     return "N/A";
@@ -19,16 +18,14 @@ const formatDuration = (seconds: number | null | undefined): string => {
 };
 
 export type MeetingColumnsProps = {
-  // Vì "Edit" một meeting rất phức tạp, chúng ta sẽ bắt đầu với "View Details"
-  onViewDetails: (meeting: Meeting) => void;
+  onViewDetails: (meeting: PopulatedMeeting) => void;
   onDelete: (meetingId: string) => Promise<void>;
 };
 
 export const getMeetingColumns = ({
   onViewDetails,
   onDelete,
-}: MeetingColumnsProps): ColumnDef<Meeting>[] => [
-  // Cột Title
+}: MeetingColumnsProps): ColumnDef<PopulatedMeeting>[] => [
   {
     accessorKey: "title",
     header: ({ column }) => (
@@ -45,7 +42,6 @@ export const getMeetingColumns = ({
     ),
   },
 
-  // Cột Trạng thái xử lý
   {
     accessorKey: "processing_status",
     header: "Status",
@@ -56,17 +52,17 @@ export const getMeetingColumns = ({
 
       switch (status) {
         case "completed":
-          variant = "default"; // Màu xanh (hoặc màu chính)
+          variant = "default";
           break;
         case "processing":
-          variant = "outline"; // Màu xanh dương
+          variant = "outline";
           break;
         case "failed":
-          variant = "destructive"; // Màu đỏ
+          variant = "destructive";
           break;
         case "pending":
         default:
-          variant = "secondary"; // Màu xám
+          variant = "secondary";
           break;
       }
 
@@ -78,7 +74,22 @@ export const getMeetingColumns = ({
     },
   },
 
-  // Cột Thời lượng
+  {
+    accessorKey: "project_id",
+    header: "Project",
+    cell: ({ row }) => (
+      <div className="font-mono text-xs">{row.original.project.name}</div>
+    ),
+  },
+
+  {
+    accessorKey: "uploader_id",
+    header: "Uploaded By",
+    cell: ({ row }) => (
+      <div className="font-mono text-xs">{row.original.uploader.username}</div>
+    ),
+  },
+
   {
     accessorKey: "duration_seconds",
     header: "Duration",
@@ -87,7 +98,6 @@ export const getMeetingColumns = ({
     },
   },
 
-  // Cột Ngày họp
   {
     accessorKey: "meeting_datetime",
     header: "Meeting Date",
@@ -99,16 +109,6 @@ export const getMeetingColumns = ({
     },
   },
 
-  // Cột Tên file gốc
-  {
-    accessorKey: "audio_file",
-    header: "Original File",
-    cell: ({ row }) => {
-      return <div>{row.original.audio_file.original_filename}</div>;
-    },
-  },
-
-  // Cột Tags
   {
     accessorKey: "tags",
     header: "Tags",
@@ -123,7 +123,6 @@ export const getMeetingColumns = ({
     ),
   },
 
-  // Cột Actions
   {
     id: "actions",
     cell: ({ row }) => (
