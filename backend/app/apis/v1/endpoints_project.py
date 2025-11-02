@@ -4,11 +4,15 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from typing import List
 
+from ...core.permissions import require_approval, require_edit_permission
 from ...db.mongodb_utils import get_database
 from ...schemas.project_schema import ProjectCreate, ProjectResponse, ProjectUpdate, ProjectResponsePopulated
 from ...services import project_service
 
-router = APIRouter()
+router = APIRouter(
+    tags=["meetings"],
+    dependencies=[Depends(require_approval), Depends(require_edit_permission)]
+)
 logger = logging.getLogger(__name__)
 
 

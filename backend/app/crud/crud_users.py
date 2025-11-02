@@ -1,9 +1,9 @@
-
 import logging
 from datetime import UTC, datetime
 
 from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorDatabase
+from numpy.f2py.auxfuncs import throw_error
 
 from ..models.user import User
 from ..schemas.user_schema import UserCreate, UserUpdate
@@ -24,7 +24,7 @@ async def get_user_by_email(database: AsyncIOMotorDatabase, email: str) -> User 
 
 
 async def get_user_by_username(
-    database: AsyncIOMotorDatabase, username: str
+        database: AsyncIOMotorDatabase, username: str
 ) -> User | None:
     logger.debug(f"Attempting to retrieve user by username: {username}")
     user_doc = await database["users"].find_one({"username": username})
@@ -36,7 +36,7 @@ async def get_user_by_username(
 
 
 async def get_user_by_username_or_email(
-    database: AsyncIOMotorDatabase, username_or_email: str
+        database: AsyncIOMotorDatabase, username_or_email: str
 ) -> User | None:
     logger.debug(f"Attempting to retrieve user by username or email: {username_or_email}")
     user_doc = await database["users"].find_one(
@@ -53,14 +53,20 @@ async def create_user(database: AsyncIOMotorDatabase, user_data: UserCreate) -> 
     logger.debug(f"Creating new user: {user_data.username}")
     hashed_password = get_password_hash(user_data.password)
     now = datetime.now(UTC)
+
     user_doc = {
         "username": user_data.username,
         "email": user_data.email,
         "hashed_password": hashed_password,
         "full_name": user_data.full_name,
+        "role": user_data.role,
+        "manager_id": user_data.manager_id,
+        "is_approved": False,
+        "can_edit": False,
         "created_at": now,
         "updated_at": now,
     }
+
     result = await database["users"].insert_one(user_doc)
     user_doc["_id"] = result.inserted_id
     logger.info(f"User {user_data.username} created with ID: {result.inserted_id}")

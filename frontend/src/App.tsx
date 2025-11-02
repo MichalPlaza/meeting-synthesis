@@ -19,6 +19,7 @@ import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
 import UserManagementPage from "./pages/admin/UserManagementPage";
 import ProjectManagementPage from "./pages/admin/ProjectManagementPage";
 import MeetingManagementPage from "./pages/admin/MeetingManagementPage";
+import ManageDeveloperAccessPage from "@/pages/ManageAccessPage.tsx";
 
 function App() {
   const { isAuthenticated } = useAuth();
@@ -47,6 +48,10 @@ function App() {
             <Route path="/meetings" element={<MeetingsListPage />} />
             <Route path="/projects" element={<ProjectListPage />} />
             <Route
+              path="/manage-access"
+              element={<ManageDeveloperAccessPage />}
+            />
+            <Route
               path="/projects/:projectId"
               element={<ProjectDetailsPage />}
             />
@@ -63,7 +68,10 @@ function App() {
             <Route path="/admin/users" element={<UserManagementPage />} />
             <Route path="/admin/projects" element={<ProjectManagementPage />} />
             <Route path="/admin/meetings" element={<MeetingManagementPage />} />
-            <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+            <Route
+              path="/admin"
+              element={<Navigate to="/admin/dashboard" replace />}
+            />
           </Route>
         </Route>
 

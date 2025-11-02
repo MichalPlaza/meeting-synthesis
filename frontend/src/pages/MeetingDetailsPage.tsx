@@ -8,6 +8,8 @@ import { format } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
+import { Separator } from "@/components/ui/separator";
+import { MeetingCommentsSection} from "@/components/MeetingCommentsSection";
 import {
   PlayIcon,
   PauseIcon,
@@ -499,10 +501,10 @@ const handleSaveTranscription = async () => {
   return (
       <div className="max-w-4xl mx-auto space-y-12">
         <EditMeetingDialog
-          isOpen={editOpen}
-          onOpenChange={setEditOpen}
-          meeting={meeting}
-          onMeetingUpdated={() => refetch()}
+            isOpen={editOpen}
+            onOpenChange={setEditOpen}
+            meeting={meeting}
+            onMeetingUpdated={() => refetch()}
         />
         {/* Back link */}
         <div className="flex justify-between items-center mb-8">
@@ -520,11 +522,11 @@ const handleSaveTranscription = async () => {
             <h1 className="text-3xl font-bold tracking-tight">{meeting.title}</h1>
             <p className="subtle">Processed on {processedDate}</p>
           </div>
-              <div className="flex gap-2 mt-2 sm:mt-0">
-                <Button variant="destructive" onClick={handleDeleteMeeting}>
-                  Delete Meeting
-                </Button>
-              </div>
+          <div className="flex gap-2 mt-2 sm:mt-0">
+            <Button variant="destructive" onClick={handleDeleteMeeting}>
+              Delete Meeting
+            </Button>
+          </div>
         </div>
 
         <div className="space-y-4">
@@ -658,34 +660,37 @@ const handleSaveTranscription = async () => {
                       <Sparkles size={20}/> <h4>Summary</h4>
                     </div>
                     {!isEditingSummary ? (
-                      <Button size="sm" variant="outline" onClick={() => setIsEditingSummary(true)}>
-                        Edit
-                      </Button>
-                    ) : (
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline" onClick={handleSaveSummary}>Save</Button>
-                        <Button size="sm" variant="ghost" onClick={() => { setIsEditingSummary(false); setEditedSummary(meeting.ai_analysis?.summary || "") }}>
-                          Cancel
+                        <Button size="sm" variant="outline" onClick={() => setIsEditingSummary(true)}>
+                          Edit
                         </Button>
-                      </div>
+                    ) : (
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline" onClick={handleSaveSummary}>Save</Button>
+                          <Button size="sm" variant="ghost" onClick={() => {
+                            setIsEditingSummary(false);
+                            setEditedSummary(meeting.ai_analysis?.summary || "")
+                          }}>
+                            Cancel
+                          </Button>
+                        </div>
                     )}
                   </div>
 
                   {isEditingSummary ? (
-                    <textarea
-                      className="w-full p-2 border rounded h-72 resize-y"
-                      value={editedSummary}
-                      onChange={(e) => setEditedSummary(e.target.value)}
-                    />
+                      <textarea
+                          className="w-full p-2 border rounded h-72 resize-y"
+                          value={editedSummary}
+                          onChange={(e) => setEditedSummary(e.target.value)}
+                      />
                   ) : meeting.ai_analysis?.summary ? (
-                    <p className="text-foreground/80 leading-relaxed">{meeting.ai_analysis.summary}</p>
+                      <p className="text-foreground/80 leading-relaxed">{meeting.ai_analysis.summary}</p>
                   ) : (
-                    <EmptyState
-                      icon={Sparkles}
-                      title="Summary Not Available"
-                      description="AI analysis could not be performed for this meeting."
-                      className="py-8"
-                    />
+                      <EmptyState
+                          icon={Sparkles}
+                          title="Summary Not Available"
+                          description="AI analysis could not be performed for this meeting."
+                          className="py-8"
+                      />
                   )}
                 </div>
               </TabsContent>
@@ -700,94 +705,94 @@ const handleSaveTranscription = async () => {
                     </div>
 
                     {!isEditingTopics ? (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setIsEditingTopics(true)}
-                      >
-                        Edit
-                      </Button>
-                    ) : (
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline" onClick={handleSaveTopics}>
-                          Save
-                        </Button>
                         <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            setIsEditingTopics(false);
-                            setEditedTopics(meeting.ai_analysis?.key_topics || []);
-                          }}
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setIsEditingTopics(true)}
                         >
-                          Cancel
+                          Edit
                         </Button>
-                      </div>
+                    ) : (
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline" onClick={handleSaveTopics}>
+                            Save
+                          </Button>
+                          <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setIsEditingTopics(false);
+                                setEditedTopics(meeting.ai_analysis?.key_topics || []);
+                              }}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
                     )}
                   </div>
 
                   {/* EDIT MODE */}
                   {isEditingTopics ? (
-                    <div className="space-y-4">
-                      {editedTopics.map((item, index) => (
-                        <div key={index} className="space-y-2 border p-3 rounded">
-                          <input
-                            type="text"
-                            className="w-full p-2 border rounded"
-                            placeholder="Topic..."
-                            value={item.topic}
-                            onChange={(e) => {
-                              const updated = [...editedTopics];
-                              updated[index].topic = e.target.value;
-                              setEditedTopics(updated);
-                            }}
-                          />
-                          <textarea
-                            className="w-full p-2 border rounded"
-                            placeholder="Details..."
-                            value={item.details}
-                            onChange={(e) => {
-                              const updated = [...editedTopics];
-                              updated[index].details = e.target.value;
-                              setEditedTopics(updated);
-                            }}
-                          />
-
-                          <button
-                            className="text-red-500 text-sm"
-                            onClick={() => handleRemoveTopic(index)}
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      ))}
-
-                      <button
-                        className="mt-2 border p-2 rounded w-full"
-                        onClick={handleAddTopic}
-                      >
-                        Add Topic
-                      </button>
-                    </div>
-                  ) : (
-                    // READONLY VIEW
-                    meeting.ai_analysis?.key_topics && meeting.ai_analysis.key_topics.length > 0 ? (
                       <div className="space-y-4">
-                        {meeting.ai_analysis.key_topics.map((item, index) => (
-                          <div key={index}>
-                            <h4 className="font-semibold">{item.topic}</h4>
-                            <p className="text-foreground/80">{item.details}</p>
-                          </div>
+                        {editedTopics.map((item, index) => (
+                            <div key={index} className="space-y-2 border p-3 rounded">
+                              <input
+                                  type="text"
+                                  className="w-full p-2 border rounded"
+                                  placeholder="Topic..."
+                                  value={item.topic}
+                                  onChange={(e) => {
+                                    const updated = [...editedTopics];
+                                    updated[index].topic = e.target.value;
+                                    setEditedTopics(updated);
+                                  }}
+                              />
+                              <textarea
+                                  className="w-full p-2 border rounded"
+                                  placeholder="Details..."
+                                  value={item.details}
+                                  onChange={(e) => {
+                                    const updated = [...editedTopics];
+                                    updated[index].details = e.target.value;
+                                    setEditedTopics(updated);
+                                  }}
+                              />
+
+                              <button
+                                  className="text-red-500 text-sm"
+                                  onClick={() => handleRemoveTopic(index)}
+                              >
+                                Remove
+                              </button>
+                            </div>
                         ))}
+
+                        <button
+                            className="mt-2 border p-2 rounded w-full"
+                            onClick={handleAddTopic}
+                        >
+                          Add Topic
+                        </button>
                       </div>
-                    ) : (
-                      <EmptyState
-                        icon={ListTree}
-                        title="No Key Topics Found"
-                        description="Key topics could not be extracted from this meeting."
-                        className="py-8"
-                      />
-                    )
+                  ) : (
+                      // READONLY VIEW
+                      meeting.ai_analysis?.key_topics && meeting.ai_analysis.key_topics.length > 0 ? (
+                          <div className="space-y-4">
+                            {meeting.ai_analysis.key_topics.map((item, index) => (
+                                <div key={index}>
+                                  <h4 className="font-semibold">{item.topic}</h4>
+                                  <p className="text-foreground/80">{item.details}</p>
+                                </div>
+                            ))}
+                          </div>
+                      ) : (
+                          <EmptyState
+                              icon={ListTree}
+                              title="No Key Topics Found"
+                              description="Key topics could not be extracted from this meeting."
+                              className="py-8"
+                          />
+                      )
                   )}
                 </div>
               </TabsContent>
@@ -803,124 +808,124 @@ const handleSaveTranscription = async () => {
                     </div>
 
                     {!isEditingActionItems ? (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setIsEditingActionItems(true)}
-                      >
-                        Edit
-                      </Button>
-                    ) : (
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline" onClick={handleSaveActionItems}>
-                          Save
-                        </Button>
                         <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            setIsEditingActionItems(false);
-                            setEditedActionItems(meeting.ai_analysis?.action_items || []);
-                          }}
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setIsEditingActionItems(true)}
                         >
-                          Cancel
+                          Edit
                         </Button>
-                      </div>
+                    ) : (
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline" onClick={handleSaveActionItems}>
+                            Save
+                          </Button>
+                          <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setIsEditingActionItems(false);
+                                setEditedActionItems(meeting.ai_analysis?.action_items || []);
+                              }}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
                     )}
                   </div>
 
                   {/* EDIT MODE */}
                   {isEditingActionItems ? (
-                    <div className="space-y-4">
-                      {editedActionItems.map((item, index) => (
-                        <div key={index} className="space-y-2 border p-3 rounded">
-                          <input
-                            type="text"
-                            className="w-full p-2 border rounded"
-                            placeholder="Description..."
-                            value={item.description}
-                            onChange={(e) => {
-                              const updated = [...editedActionItems];
-                              updated[index].description = e.target.value;
-                              setEditedActionItems(updated);
-                            }}
-                          />
-                          <input
-                            type="text"
-                            className="w-full p-2 border rounded"
-                            placeholder="Assigned to..."
-                            value={item.assigned_to}
-                            onChange={(e) => {
-                              const updated = [...editedActionItems];
-                              updated[index].assigned_to = e.target.value;
-                              setEditedActionItems(updated);
-                            }}
-                          />
-                          <input
-                            type="date"
-                            className="w-full p-2 border rounded"
-                            value={item.due_date || ""}
-                            onChange={(e) => {
-                              const updated = [...editedActionItems];
-                              updated[index].due_date = e.target.value;
-                              setEditedActionItems(updated);
-                            }}
-                          />
-                          <textarea
-                            className="w-full p-2 border rounded"
-                            placeholder="User comment..."
-                            value={item.user_comment}
-                            onChange={(e) => {
-                              const updated = [...editedActionItems];
-                              updated[index].user_comment = e.target.value;
-                              setEditedActionItems(updated);
-                            }}
-                          />
-                          <button
-                            className="text-red-500 text-sm"
-                            onClick={() => {
-                              setEditedActionItems(prev => prev.filter((_, i) => i !== index));
-                            }}
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      ))}
-
-                      <button
-                        className="mt-2 border p-2 rounded w-full"
-                        onClick={handleAddActionItem}
-                      >
-                        Add Action Item
-                      </button>
-                    </div>
-                  ) : (
-                    /* READONLY MODE */
-                    meeting.ai_analysis?.action_items && meeting.ai_analysis.action_items.length > 0 ? (
                       <div className="space-y-4">
-                        {meeting.ai_analysis.action_items.map((item, index) => (
-                          <div key={index} className="flex flex-col gap-1 border p-3 rounded">
-                            <span className="font-semibold">{item.description}</span>
-                            <span className="text-sm text-muted-foreground">
+                        {editedActionItems.map((item, index) => (
+                            <div key={index} className="space-y-2 border p-3 rounded">
+                              <input
+                                  type="text"
+                                  className="w-full p-2 border rounded"
+                                  placeholder="Description..."
+                                  value={item.description}
+                                  onChange={(e) => {
+                                    const updated = [...editedActionItems];
+                                    updated[index].description = e.target.value;
+                                    setEditedActionItems(updated);
+                                  }}
+                              />
+                              <input
+                                  type="text"
+                                  className="w-full p-2 border rounded"
+                                  placeholder="Assigned to..."
+                                  value={item.assigned_to}
+                                  onChange={(e) => {
+                                    const updated = [...editedActionItems];
+                                    updated[index].assigned_to = e.target.value;
+                                    setEditedActionItems(updated);
+                                  }}
+                              />
+                              <input
+                                  type="date"
+                                  className="w-full p-2 border rounded"
+                                  value={item.due_date || ""}
+                                  onChange={(e) => {
+                                    const updated = [...editedActionItems];
+                                    updated[index].due_date = e.target.value;
+                                    setEditedActionItems(updated);
+                                  }}
+                              />
+                              <textarea
+                                  className="w-full p-2 border rounded"
+                                  placeholder="User comment..."
+                                  value={item.user_comment}
+                                  onChange={(e) => {
+                                    const updated = [...editedActionItems];
+                                    updated[index].user_comment = e.target.value;
+                                    setEditedActionItems(updated);
+                                  }}
+                              />
+                              <button
+                                  className="text-red-500 text-sm"
+                                  onClick={() => {
+                                    setEditedActionItems(prev => prev.filter((_, i) => i !== index));
+                                  }}
+                              >
+                                Remove
+                              </button>
+                            </div>
+                        ))}
+
+                        <button
+                            className="mt-2 border p-2 rounded w-full"
+                            onClick={handleAddActionItem}
+                        >
+                          Add Action Item
+                        </button>
+                      </div>
+                  ) : (
+                      /* READONLY MODE */
+                      meeting.ai_analysis?.action_items && meeting.ai_analysis.action_items.length > 0 ? (
+                          <div className="space-y-4">
+                            {meeting.ai_analysis.action_items.map((item, index) => (
+                                <div key={index} className="flex flex-col gap-1 border p-3 rounded">
+                                  <span className="font-semibold">{item.description}</span>
+                                  <span className="text-sm text-muted-foreground">
                               {item.assigned_to && `Assigned: ${item.assigned_to}`}
-                              {item.due_date && ` | Due: ${item.due_date}`}
+                                    {item.due_date && ` | Due: ${item.due_date}`}
                             </span>
-                            {item.user_comment && (
-                              <span className="text-xs text-muted-foreground">
+                                  {item.user_comment && (
+                                      <span className="text-xs text-muted-foreground">
                                 {item.user_comment}
                               </span>
-                            )}
+                                  )}
+                                </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <EmptyState
-                        icon={CheckSquare}
-                        title="No Action Items Found"
-                        description="No actionable tasks were identified in this meeting."
-                        className="py-8"
-                      />
-                    )
+                      ) : (
+                          <EmptyState
+                              icon={CheckSquare}
+                              title="No Action Items Found"
+                              description="No actionable tasks were identified in this meeting."
+                              className="py-8"
+                          />
+                      )
                   )}
                 </div>
               </TabsContent>
@@ -936,80 +941,80 @@ const handleSaveTranscription = async () => {
                     </div>
 
                     {!isEditingDecisions ? (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setIsEditingDecisions(true)}
-                      >
-                        Edit
-                      </Button>
-                    ) : (
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline" onClick={handleSaveDecisions}>
-                          Save
-                        </Button>
                         <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            setIsEditingDecisions(false);
-                            setEditedDecisions(meeting.ai_analysis?.decisions_made || []);
-                          }}
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setIsEditingDecisions(true)}
                         >
-                          Cancel
+                          Edit
                         </Button>
-                      </div>
+                    ) : (
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline" onClick={handleSaveDecisions}>
+                            Save
+                          </Button>
+                          <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setIsEditingDecisions(false);
+                                setEditedDecisions(meeting.ai_analysis?.decisions_made || []);
+                              }}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
                     )}
                   </div>
 
                   {/* EDIT MODE */}
                   {isEditingDecisions ? (
-                    <div className="space-y-4">
-                      {editedDecisions.map((item, index) => (
-                        <div key={index} className="space-y-2 border p-3 rounded">
-                          <input
-                            type="text"
-                            className="w-full p-2 border rounded"
-                            placeholder="Decision description..."
-                            value={item.description}
-                            onChange={(e) => {
-                              const updated = [...editedDecisions];
-                              updated[index].description = e.target.value;
-                              setEditedDecisions(updated);
-                            }}
-                          />
-                          <button
-                            className="text-red-500 text-sm"
-                            onClick={() => setEditedDecisions(prev => prev.filter((_, i) => i !== index))}
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      ))}
-
-                      <button
-                        className="mt-2 border p-2 rounded w-full"
-                        onClick={() => setEditedDecisions(prev => [...prev, { description: "" }])}
-                      >
-                        Add Decision
-                      </button>
-                    </div>
-                  ) : (
-                    /* READONLY MODE */
-                    meeting.ai_analysis?.decisions_made && meeting.ai_analysis.decisions_made.length > 0 ? (
-                      <ul className="space-y-2 list-disc pl-5">
-                        {meeting.ai_analysis.decisions_made.map((item, index) => (
-                          <li key={index} className="text-foreground/80">{item.description}</li>
+                      <div className="space-y-4">
+                        {editedDecisions.map((item, index) => (
+                            <div key={index} className="space-y-2 border p-3 rounded">
+                              <input
+                                  type="text"
+                                  className="w-full p-2 border rounded"
+                                  placeholder="Decision description..."
+                                  value={item.description}
+                                  onChange={(e) => {
+                                    const updated = [...editedDecisions];
+                                    updated[index].description = e.target.value;
+                                    setEditedDecisions(updated);
+                                  }}
+                              />
+                              <button
+                                  className="text-red-500 text-sm"
+                                  onClick={() => setEditedDecisions(prev => prev.filter((_, i) => i !== index))}
+                              >
+                                Remove
+                              </button>
+                            </div>
                         ))}
-                      </ul>
-                    ) : (
-                      <EmptyState
-                        icon={Flag}
-                        title="No Key Decisions Recorded"
-                        description="No formal decisions were identified in this meeting."
-                        className="py-8"
-                      />
-                    )
+
+                        <button
+                            className="mt-2 border p-2 rounded w-full"
+                            onClick={() => setEditedDecisions(prev => [...prev, {description: ""}])}
+                        >
+                          Add Decision
+                        </button>
+                      </div>
+                  ) : (
+                      /* READONLY MODE */
+                      meeting.ai_analysis?.decisions_made && meeting.ai_analysis.decisions_made.length > 0 ? (
+                          <ul className="space-y-2 list-disc pl-5">
+                            {meeting.ai_analysis.decisions_made.map((item, index) => (
+                                <li key={index} className="text-foreground/80">{item.description}</li>
+                            ))}
+                          </ul>
+                      ) : (
+                          <EmptyState
+                              icon={Flag}
+                              title="No Key Decisions Recorded"
+                              description="No formal decisions were identified in this meeting."
+                              className="py-8"
+                          />
+                      )
                   )}
                 </div>
               </TabsContent>
@@ -1025,59 +1030,63 @@ const handleSaveTranscription = async () => {
                     </div>
 
                     {!isEditingTranscription ? (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setIsEditingTranscription(true)}
-                      >
-                        Edit
-                      </Button>
-                    ) : (
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline" onClick={handleSaveTranscription}>
-                          Save
-                        </Button>
                         <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            setIsEditingTranscription(false);
-                            setEditedTranscription(meeting.transcription?.full_text || "");
-                          }}
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setIsEditingTranscription(true)}
                         >
-                          Cancel
+                          Edit
                         </Button>
-                      </div>
+                    ) : (
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline" onClick={handleSaveTranscription}>
+                            Save
+                          </Button>
+                          <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setIsEditingTranscription(false);
+                                setEditedTranscription(meeting.transcription?.full_text || "");
+                              }}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
                     )}
                   </div>
 
                   {/* EDIT MODE */}
                   {isEditingTranscription ? (
-                    <textarea
-                      className="w-full p-2 border rounded h-126 resize-y"
-                      value={editedTranscription}
-                      onChange={(e) => setEditedTranscription(e.target.value)}
-                    />
-                  ) : (
-                    /* READONLY MODE */
-                    meeting.transcription?.full_text ? (
-                      <div className="whitespace-pre-wrap text-foreground/90 leading-relaxed">
-                        {meeting.transcription.full_text}
-                      </div>
-                    ) : (
-                      <EmptyState
-                        icon={FileText}
-                        title="No Transcript Available"
-                        description="Transcription is not yet complete or failed for this meeting."
-                        className="py-8"
+                      <textarea
+                          className="w-full p-2 border rounded h-126 resize-y"
+                          value={editedTranscription}
+                          onChange={(e) => setEditedTranscription(e.target.value)}
                       />
-                    )
+                  ) : (
+                      /* READONLY MODE */
+                      meeting.transcription?.full_text ? (
+                          <div className="whitespace-pre-wrap text-foreground/90 leading-relaxed">
+                            {meeting.transcription.full_text}
+                          </div>
+                      ) : (
+                          <EmptyState
+                              icon={FileText}
+                              title="No Transcript Available"
+                              description="Transcription is not yet complete or failed for this meeting."
+                              className="py-8"
+                          />
+                      )
                   )}
                 </div>
               </TabsContent>
             </Tabs>
-
-        )}
+        )
+        }
+        <div className="my-10">
+          <Separator/>
+        </div>
+        <MeetingCommentsSection meetingId={meetingId!}/>
       </div>
   );
 }
