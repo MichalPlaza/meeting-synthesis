@@ -28,7 +28,7 @@ async def list_comments(meeting_id: str, database: AsyncIOMotorDatabase = Depend
 async def delete_comment(comment_id: str, database: AsyncIOMotorDatabase = Depends(get_database),
                          user=Depends(get_current_user)):
     logger.info(f"User {user.username} deleting comment {comment_id}")
-    return await comment_service.delete_comment(database, comment_id, str(user.id))
+    await comment_service.delete_comment(database, comment_id, str(user.id))
 
 @router.put("/{comment_id}", response_model=CommentResponse)
 async def update_comment(
