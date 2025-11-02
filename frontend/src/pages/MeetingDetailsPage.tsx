@@ -1088,8 +1088,7 @@ const handleSaveTranscription = async () => {
         </div>
         <MeetingCommentsSection meetingId={meetingId!}/>
       </div>
-  )
-      ;
+  );
 }
 
 export default MeetingDetailsPage;
