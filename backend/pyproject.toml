@@ -85,3 +85,14 @@ warn_unused_configs = true
 
 plugins = ["pydantic.mypy"]
 mypy_path = "app"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+markers = [
+    "integration: Integration tests requiring full dev environment (Elasticsearch + Ollama)",
+    "unit: Unit tests with mocked dependencies",
+]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]

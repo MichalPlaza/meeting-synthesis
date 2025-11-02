@@ -5,16 +5,15 @@
 export interface MessageSource {
   meeting_id: string;
   meeting_title: string;
-  content: string;
   content_type:
     | "transcription"
     | "summary"
-    | "action_items"
-    | "key_topics"
-    | "decisions";
-  score: number;
-  meeting_datetime?: string;
-  project_id?: string;
+    | "key_topic"
+    | "action_item"
+    | "decision";
+  excerpt: string;
+  relevance_score: number;
+  timestamp?: string | null;
 }
 
 export interface ChatMessage {

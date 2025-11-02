@@ -22,6 +22,7 @@ from app.crud import crud_knowledge_base
 from app.services.knowledge_base_rag_service import (
     generate_rag_response,
     generate_rag_response_stream,
+    generate_conversation_title,
 )
 
 logger = logging.getLogger(__name__)
@@ -176,6 +177,12 @@ async def chat(
     This endpoint uses RAG (Retrieval-Augmented Generation) to answer
     questions based on meeting content.
     
+    **Automatic Title Generation:**
+    When starting a new conversation (no conversation_id provided),
+    the system automatically generates a concise, descriptive title
+    based on your question using AI. This makes it easier to find
+    and organize conversations later.
+    
     Args:
         request: Chat request with query and optional filters.
         database: MongoDB database.
@@ -204,8 +211,8 @@ async def chat(
                 detail="Either 'query' or 'message' field is required"
             )
         
-        # Generate RAG response
-        answer = await generate_rag_response(
+        # Generate RAG response with sources
+        answer, sources = await generate_rag_response(
             query=query,
             user_id=str(current_user.id),
             filters=request.filters,
@@ -214,8 +221,8 @@ async def chat(
         # Get or create conversation
         conversation_id = request.conversation_id
         if not conversation_id:
-            # Create new conversation with query as title
-            title = query[:50] + "..." if len(query) > 50 else query
+            # Generate intelligent title based on query
+            title = await generate_conversation_title(query)
             conversation = await crud_knowledge_base.create_conversation(
                 database=database,
                 user_id=str(current_user.id),
@@ -233,22 +240,21 @@ async def chat(
             sources=[],
         )
         
-        # Save assistant response
-        # TODO: Extract sources from search results
+        # Save assistant response with sources
         assistant_message = await crud_knowledge_base.create_message(
             database=database,
             user_id=str(current_user.id),
             conversation_id=conversation_id,
             role="assistant",
             content=answer,
-            sources=[],  # Will be populated when we integrate source tracking
+            sources=sources,
         )
         
         return ChatResponse(
             conversation_id=conversation_id,
             message_id=str(assistant_message.id),
             answer=answer,
-            sources=[],  # TODO: Return actual sources
+            sources=sources,
             query=query,
         )
         
@@ -285,7 +291,8 @@ async def _stream_chat_response(
         # Get or create conversation
         conversation_id = request.conversation_id
         if not conversation_id:
-            title = query[:50] + "..." if len(query) > 50 else query
+            # Generate intelligent title based on query
+            title = await generate_conversation_title(query)
             conversation = await crud_knowledge_base.create_conversation(
                 database=database,
                 user_id=user_id,
@@ -308,7 +315,7 @@ async def _stream_chat_response(
         
         # Stream response
         full_response = ""
-        sources_data = []
+        sources_list = []
         
         async for chunk_data in generate_rag_response_stream(
             query=query,
@@ -318,27 +325,44 @@ async def _stream_chat_response(
         ):
             if isinstance(chunk_data, dict):
                 if "sources" in chunk_data:
-                    # Received sources
-                    sources_data = chunk_data["sources"]
-                    yield f"data: {{'type': 'sources', 'sources': {sources_data}}}\n\n"
+                    # Received sources - convert to MessageSource objects
+                    from app.models.knowledge_base import MessageSource
+                    sources_list = [
+                        MessageSource(
+                            meeting_id=s["meeting_id"],
+                            title=s["meeting_title"],
+                            content_type=s["content_type"],
+                            excerpt=s["excerpt"],
+                            relevance_score=s["relevance_score"],
+                            timestamp=s.get("timestamp"),
+                        )
+                        for s in chunk_data["sources"]
+                    ]
+                    # Send sources to frontend
+                    import json
+                    sources_json = json.dumps(chunk_data["sources"])
+                    yield f"data: {{'type': 'sources', 'sources': {sources_json}}}\n\n"
                 elif "content" in chunk_data:
                     # Content chunk
                     content = chunk_data["content"]
                     full_response += content
-                    yield f"data: {{'type': 'content', 'content': '{content}'}}\n\n"
+                    # Escape single quotes for JSON
+                    content_escaped = content.replace("'", "\\'").replace("\n", "\\n")
+                    yield f"data: {{'type': 'content', 'content': '{content_escaped}'}}\n\n"
             else:
                 # Plain string chunk
                 full_response += chunk_data
-                yield f"data: {{'type': 'content', 'content': '{chunk_data}'}}\n\n"
+                content_escaped = chunk_data.replace("'", "\\'").replace("\n", "\\n")
+                yield f"data: {{'type': 'content', 'content': '{content_escaped}'}}\n\n"
         
-        # Save assistant message
+        # Save assistant message with sources
         await crud_knowledge_base.create_message(
             database=database,
             user_id=user_id,
             conversation_id=conversation_id,
             role="assistant",
             content=full_response,
-            sources=[],  # TODO: Convert sources_data to MessageSource objects
+            sources=sources_list,
         )
         
         yield "data: {'type': 'done'}\n\n"

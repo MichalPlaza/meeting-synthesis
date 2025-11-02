@@ -106,8 +106,8 @@ async def generate_rag_response(
     user_id: str,
     filters: Optional[FilterContext] = None,
     top_k: int = MAX_SEARCH_RESULTS,
-) -> str:
-    """Generate RAG response for a query.
+) -> tuple[str, list[MessageSource]]:
+    """Generate RAG response for a query with sources.
     
     Args:
         query: User's question.
@@ -116,7 +116,7 @@ async def generate_rag_response(
         top_k: Number of search results to retrieve.
         
     Returns:
-        Generated response from LLM.
+        Tuple of (generated response, list of sources).
         
     Raises:
         Exception: If search or generation fails.
@@ -157,7 +157,11 @@ async def generate_rag_response(
         answer = response["message"]["content"]
         logger.info(f"Generated response length: {len(answer)}")
         
-        return answer
+        # Step 4: Format sources for response
+        sources = await format_sources_for_response(search_results)
+        logger.info(f"Formatted {len(sources)} sources")
+        
+        return answer, sources
         
     except Exception as e:
         logger.error(f"Error generating RAG response: {e}", exc_info=True)
@@ -194,25 +198,29 @@ async def generate_rag_response_stream(
     # Step 1: Retrieve relevant context via hybrid search
     search_results = await hybrid_search(
         query=query,
-        filters=filters,
-        size=top_k,
         user_id=user_id,
+        filters=filters,
+        top_k=top_k,
     )
     
     logger.info(f"Retrieved {len(search_results)} search results")
     
     # If requested, send sources first
     if include_sources and search_results:
-        sources = [
+        sources = await format_sources_for_response(search_results)
+        # Convert MessageSource objects to dicts for JSON serialization
+        sources_dict = [
             {
-                "meeting_id": result.source.get("meeting_id"),
-                "title": result.source.get("title"),
-                "content_type": result.source.get("content_type"),
-                "score": result.score,
+                "meeting_id": source.meeting_id,
+                "meeting_title": source.title,
+                "content_type": source.content_type,
+                "excerpt": source.excerpt,
+                "relevance_score": source.relevance_score,
+                "timestamp": source.timestamp,
             }
-            for result in search_results
+            for source in sources
         ]
-        yield {"sources": sources}
+        yield {"sources": sources_dict}
     
     # Step 2: Build prompt with context
     prompt = build_rag_prompt(query, search_results)
@@ -250,6 +258,63 @@ async def generate_rag_response_stream(
     except Exception as e:
         logger.error(f"Error streaming RAG response: {e}", exc_info=True)
         raise
+
+
+async def generate_conversation_title(query: str) -> str:
+    """Generate a concise conversation title based on the first user query.
+    
+    Uses LLM to create a short, descriptive title (max 50 chars).
+    
+    Args:
+        query: User's first message in the conversation.
+        
+    Returns:
+        Generated title string (max 50 chars).
+    """
+    try:
+        prompt = f"""Generate a very short, descriptive title (maximum 50 characters) for a conversation that starts with this question:
+
+"{query}"
+
+Requirements:
+- Maximum 50 characters
+- Concise and descriptive
+- No quotes or special formatting
+- Capture the main topic/intent
+
+Title:"""
+
+        client = ollama.AsyncClient(host=OLLAMA_HOST)
+        response = await client.generate(
+            model=OLLAMA_MODEL,
+            prompt=prompt,
+            options={
+                "temperature": 0.3,  # Lower temperature for more focused output
+                "num_predict": 20,   # Limit tokens for short response
+            },
+        )
+        
+        # Extract and clean the title
+        title = response["response"].strip()
+        
+        # Remove quotes if present
+        title = title.strip('"\'')
+        
+        # Truncate if too long
+        if len(title) > 50:
+            title = title[:47] + "..."
+        
+        # Fallback if empty
+        if not title:
+            title = query[:47] + "..." if len(query) > 50 else query
+            
+        logger.info(f"Generated conversation title: {title}")
+        return title
+        
+    except Exception as e:
+        logger.error(f"Error generating title: {e}")
+        # Fallback to truncated query
+        return query[:47] + "..." if len(query) > 50 else query
 
 
 async def format_sources_for_response(

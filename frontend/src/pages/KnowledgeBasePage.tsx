@@ -1,14 +1,16 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Send,
   Loader2,
   MessageSquare,
   Sparkles,
-  Bot,
-  User,
+  Copy,
+  Check,
+  ChevronLeft,
 } from "lucide-react";
 import { toast } from "sonner";
 import log from "@/services/logging";
@@ -21,9 +23,11 @@ import {
 import type {
   Conversation,
   ChatMessage,
-  MessageSource,
+  FilterContext,
 } from "@/types/knowledge-base";
 import { cn } from "@/lib/utils";
+import { SourceList } from "@/components/knowledge-base/SourceList";
+import { FilterPanel } from "@/components/knowledge-base/FilterPanel";
 
 export function KnowledgeBasePage() {
   log.info("KnowledgeBasePage rendered");
@@ -36,6 +40,8 @@ export function KnowledgeBasePage() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadingConversations, setLoadingConversations] = useState(true);
+  const [filters, setFilters] = useState<FilterContext>({});
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Scroll to bottom when messages change
@@ -89,7 +95,7 @@ export function KnowledgeBasePage() {
     }
   }, [selectedConversation, loadMessages]);
 
-  async function handleNewConversation() {
+  const handleNewConversation = useCallback(async () => {
     if (!token) return;
 
     try {
@@ -103,7 +109,20 @@ export function KnowledgeBasePage() {
       log.error("Failed to create conversation", error);
       toast.error("Failed to start new conversation");
     }
-  }
+  }, [token, conversations]);
+
+  // Global keyboard shortcuts (Ctrl/Cmd+K for new conversation)
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+        e.preventDefault();
+        handleNewConversation();
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleNewConversation]);
 
   async function handleSendMessage() {
     if (!input.trim() || !token) return;
@@ -149,7 +168,7 @@ export function KnowledgeBasePage() {
       for await (const chunk of sendMessageStream(token, {
         message: messageText,
         conversation_id: conversationId,
-        stream: true,
+        filters: Object.keys(filters).length > 0 ? filters : undefined,
       })) {
         fullResponse += chunk;
         // Update assistant message with streaming content
@@ -184,50 +203,88 @@ export function KnowledgeBasePage() {
   }
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full overflow-hidden">
       {/* Sidebar - Conversations List */}
-      <div className="w-64 border-r bg-muted/10 flex flex-col">
-        <div className="p-4 border-b">
-          <Button onClick={handleNewConversation} className="w-full" size="sm">
-            <MessageSquare className="mr-2 h-4 w-4" />
-            New Chat
-          </Button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-2">
-          {loadingConversations ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : conversations.length === 0 ? (
-            <div className="text-center py-8 text-sm text-muted-foreground">
-              No conversations yet
-            </div>
-          ) : (
-            conversations.map((conv) => (
-              <button
-                key={conv.id}
-                onClick={() => setSelectedConversation(conv)}
-                className={cn(
-                  "w-full text-left p-3 rounded-lg mb-1 transition-colors",
-                  "hover:bg-accent",
-                  selectedConversation?.id === conv.id && "bg-accent"
-                )}
-              >
-                <div className="font-medium text-sm truncate">{conv.title}</div>
-                <div className="text-xs text-muted-foreground">
-                  {conv.message_count} messages
-                </div>
-              </button>
-            ))
+      <div
+        className={cn(
+          "border-r bg-muted/10 flex flex-col transition-all duration-300 ease-in-out relative h-full",
+          sidebarCollapsed ? "w-0" : "w-64"
+        )}
+      >
+        {/* Collapse/Expand Button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+          className={cn(
+            "absolute top-4 -right-3 z-10 h-6 w-6 rounded-full border bg-background shadow-md hover:bg-accent",
+            sidebarCollapsed && "rotate-180"
           )}
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+
+        <div
+          className={cn(
+            "flex flex-col h-full overflow-hidden transition-opacity duration-300",
+            sidebarCollapsed ? "opacity-0" : "opacity-100"
+          )}
+        >
+          {/* New Chat Button - Fixed at Top */}
+          <div className="flex-shrink-0 p-4 border-b">
+            <Button
+              onClick={handleNewConversation}
+              className="w-full"
+              size="sm"
+            >
+              <MessageSquare className="mr-2 h-4 w-4" />
+              New Chat
+            </Button>
+          </div>
+
+          {/* Conversations List - Scrollable with flex-1 to match chat height */}
+          <div className="flex-1 overflow-y-auto min-h-0 p-2 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
+            {loadingConversations ? (
+              <div className="space-y-2">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="p-3">
+                    <Skeleton className="h-4 w-3/4 mb-2" />
+                    <Skeleton className="h-3 w-1/2" />
+                  </div>
+                ))}
+              </div>
+            ) : conversations.length === 0 ? (
+              <div className="text-center py-8 text-sm text-muted-foreground">
+                No conversations yet
+              </div>
+            ) : (
+              conversations.map((conv) => (
+                <button
+                  key={conv.id}
+                  onClick={() => setSelectedConversation(conv)}
+                  className={cn(
+                    "w-full text-left p-3 rounded-lg mb-1 transition-colors",
+                    "hover:bg-accent",
+                    selectedConversation?.id === conv.id && "bg-accent"
+                  )}
+                >
+                  <div className="font-medium text-sm truncate">
+                    {conv.title}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {conv.message_count} messages
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
         </div>
       </div>
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <div className="border-b p-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="flex-1 flex flex-col min-w-0 h-full">
+        {/* Header - Fixed */}
+        <div className="flex-shrink-0 border-b p-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
             <h1 className="text-xl font-semibold">
@@ -239,8 +296,8 @@ export function KnowledgeBasePage() {
           </p>
         </div>
 
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        {/* Messages - Fixed Height with Scroll */}
+        <div className="flex-1 overflow-y-auto min-h-0 p-6 space-y-6 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center px-4">
               <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-6">
@@ -283,8 +340,8 @@ export function KnowledgeBasePage() {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input */}
-        <div className="border-t p-4 bg-background/95 backdrop-blur">
+        {/* Input - Fixed at Bottom */}
+        <div className="flex-shrink-0 border-t p-4 bg-background/95 backdrop-blur">
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -292,13 +349,31 @@ export function KnowledgeBasePage() {
             }}
             className="flex gap-3 max-w-4xl mx-auto"
           >
-            <Input
+            <FilterPanel
+              filters={filters}
+              onFiltersChange={setFilters}
+              availableProjects={[]}
+              availableTags={[]}
+            />
+            <Textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask a question about your meetings..."
+              onKeyDown={(e) => {
+                // Enter to send (without Shift)
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendMessage();
+                }
+                // Escape to clear
+                if (e.key === "Escape") {
+                  setInput("");
+                }
+              }}
+              placeholder="Ask a question about your meetings... (Enter to send, Shift+Enter for new line, Escape to clear)"
               disabled={loading}
-              className="flex-1 h-12 px-4 text-base rounded-full bg-muted/50 border-0 focus-visible:ring-2"
+              className="flex-1 min-h-[48px] max-h-32 px-4 py-3 text-base rounded-full bg-muted/50 border-0 focus-visible:ring-2 resize-none"
               autoFocus
+              rows={1}
             />
             <Button
               type="submit"
@@ -325,14 +400,27 @@ export function KnowledgeBasePage() {
 
 // Message Bubble Component
 function MessageBubble({ message }: { message: ChatMessage }) {
+  const [copied, setCopied] = useState(false);
   const isUser = message.role === "user";
   const isStreaming =
     message.content === "" || message.id.startsWith("temp-assistant");
 
+  const handleCopy = async () => {
+    if (!message.content) return;
+    try {
+      await navigator.clipboard.writeText(message.content);
+      setCopied(true);
+      toast.success("Copied to clipboard");
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Failed to copy");
+    }
+  };
+
   return (
     <div
       className={cn(
-        "flex gap-3 animate-in fade-in slide-in-from-bottom-2",
+        "flex gap-3 animate-in fade-in slide-in-from-bottom-2 group",
         isUser ? "justify-end" : "justify-start"
       )}
     >
@@ -345,12 +433,33 @@ function MessageBubble({ message }: { message: ChatMessage }) {
 
       <div
         className={cn(
-          "max-w-[80%] rounded-2xl px-4 py-3 shadow-sm",
+          "max-w-[80%] rounded-2xl px-4 py-3 shadow-sm relative",
           isUser
             ? "bg-primary text-primary-foreground rounded-tr-sm"
             : "bg-muted border rounded-tl-sm"
         )}
       >
+        {/* Copy button */}
+        {!isStreaming && message.content && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleCopy}
+            className={cn(
+              "absolute -top-2 -right-2 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity",
+              isUser
+                ? "bg-primary-foreground text-primary hover:bg-primary-foreground/90"
+                : "bg-background"
+            )}
+          >
+            {copied ? (
+              <Check className="h-3 w-3" />
+            ) : (
+              <Copy className="h-3 w-3" />
+            )}
+          </Button>
+        )}
+
         <div className="text-sm whitespace-pre-wrap leading-relaxed">
           {message.content}
           {isStreaming && message.content && (
@@ -374,18 +483,9 @@ function MessageBubble({ message }: { message: ChatMessage }) {
           )}
         </div>
 
-        {/* Sources */}
-        {message.sources && message.sources.length > 0 && (
-          <div className="mt-3 pt-3 border-t border-border/50">
-            <div className="text-xs font-medium mb-2 opacity-70">
-              Sources ({message.sources.length}):
-            </div>
-            <div className="space-y-2">
-              {message.sources.slice(0, 3).map((source, idx) => (
-                <SourceCard key={idx} source={source} />
-              ))}
-            </div>
-          </div>
+        {/* Sources - Using SourceList component */}
+        {!isUser && message.sources && message.sources.length > 0 && (
+          <SourceList sources={message.sources} />
         )}
 
         {/* Timestamp */}
@@ -403,18 +503,6 @@ function MessageBubble({ message }: { message: ChatMessage }) {
           <span className="text-xs font-semibold">You</span>
         </div>
       )}
-    </div>
-  );
-}
-
-// Source Card Component
-function SourceCard({ source }: { source: MessageSource }) {
-  return (
-    <div className="text-xs p-2 rounded bg-background/50 border">
-      <div className="font-medium truncate">{source.meeting_title}</div>
-      <div className="text-muted-foreground mt-1">
-        {source.content_type} • Score: {(source.score * 100).toFixed(0)}%
-      </div>
     </div>
   );
 }
