@@ -2,14 +2,21 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Loader2, MessageSquare, Sparkles } from "lucide-react";
+import {
+  Send,
+  Loader2,
+  MessageSquare,
+  Sparkles,
+  Bot,
+  User,
+} from "lucide-react";
 import { toast } from "sonner";
 import log from "@/services/logging";
 import {
   getConversations,
   createConversation,
   getMessages,
-  sendMessage,
+  sendMessageStream,
 } from "@/services/knowledge-base";
 import type {
   Conversation,
@@ -118,35 +125,49 @@ export function KnowledgeBasePage() {
 
       // Add user message optimistically
       const userMessage: ChatMessage = {
-        id: `temp-${Date.now()}`,
+        id: `temp-user-${Date.now()}`,
         conversation_id: conversationId,
         role: "user",
         content: messageText,
         timestamp: new Date().toISOString(),
       };
-      setMessages([...messages, userMessage]);
+      setMessages((prev) => [...prev, userMessage]);
 
-      // Send message
-      const response = await sendMessage(token, {
-        message: messageText,
-        conversation_id: conversationId,
-      });
-
-      // Add assistant response
+      // Add placeholder for assistant message
+      const assistantMessageId = `temp-assistant-${Date.now()}`;
       const assistantMessage: ChatMessage = {
-        id: response.message_id,
+        id: assistantMessageId,
         conversation_id: conversationId,
         role: "assistant",
-        content: response.response,
-        sources: response.sources,
+        content: "",
         timestamp: new Date().toISOString(),
       };
-
       setMessages((prev) => [...prev, assistantMessage]);
-      log.info("Message sent and response received");
+
+      // Stream response
+      let fullResponse = "";
+      for await (const chunk of sendMessageStream(token, {
+        message: messageText,
+        conversation_id: conversationId,
+        stream: true,
+      })) {
+        fullResponse += chunk;
+        // Update assistant message with streaming content
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === assistantMessageId
+              ? { ...msg, content: fullResponse }
+              : msg
+          )
+        );
+      }
+
+      log.info("Streaming message completed");
     } catch (error) {
       log.error("Failed to send message", error);
       toast.error("Failed to send message");
+      // Remove the failed assistant message
+      setMessages((prev) => prev.slice(0, -1));
     } finally {
       setLoading(false);
     }
@@ -219,54 +240,83 @@ export function KnowledgeBasePage() {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-center">
-              <Sparkles className="h-12 w-12 text-muted-foreground/50 mb-4" />
-              <h2 className="text-lg font-semibold mb-2">
-                Start a Conversation
-              </h2>
-              <p className="text-muted-foreground max-w-md">
-                Ask me anything about your meetings. I can help you find
-                information, summarize discussions, or track action items.
+            <div className="flex flex-col items-center justify-center h-full text-center px-4">
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-6">
+                <Sparkles className="h-8 w-8 text-primary" />
+              </div>
+              <h2 className="text-2xl font-bold mb-3">Ask Me Anything</h2>
+              <p className="text-muted-foreground max-w-md mb-8">
+                I can help you find information from your meetings, summarize
+                discussions, track action items, and more.
               </p>
+
+              {/* Suggestion chips */}
+              <div className="flex flex-wrap gap-2 justify-center max-w-2xl">
+                {[
+                  "What were the main decisions from yesterday's meeting?",
+                  "Show me action items assigned to me",
+                  "Summarize last week's sprint planning",
+                  "What topics were discussed about the project timeline?",
+                ].map((suggestion, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setInput(suggestion)}
+                    className="px-4 py-2 rounded-full bg-muted hover:bg-muted/80 text-sm transition-colors"
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
             </div>
           ) : (
             messages.map((message) => (
               <MessageBubble key={message.id} message={message} />
             ))
           )}
+          {loading && messages.length === 0 && (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          )}
           <div ref={messagesEndRef} />
         </div>
 
         {/* Input */}
-        <div className="border-t p-4 bg-background">
+        <div className="border-t p-4 bg-background/95 backdrop-blur">
           <form
             onSubmit={(e) => {
               e.preventDefault();
               handleSendMessage();
             }}
-            className="flex gap-2"
+            className="flex gap-3 max-w-4xl mx-auto"
           >
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask a question about your meetings..."
               disabled={loading}
-              className="flex-1"
+              className="flex-1 h-12 px-4 text-base rounded-full bg-muted/50 border-0 focus-visible:ring-2"
+              autoFocus
             />
             <Button
               type="submit"
               disabled={loading || !input.trim()}
-              size="icon"
+              size="lg"
+              className="h-12 w-12 rounded-full"
             >
               {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
-                <Send className="h-4 w-4" />
+                <Send className="h-5 w-5" />
               )}
             </Button>
           </form>
+          <p className="text-xs text-center text-muted-foreground mt-2">
+            AI responses may contain inaccuracies. Always verify important
+            information.
+          </p>
         </div>
       </div>
     </div>
@@ -276,21 +326,58 @@ export function KnowledgeBasePage() {
 // Message Bubble Component
 function MessageBubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === "user";
+  const isStreaming =
+    message.content === "" || message.id.startsWith("temp-assistant");
 
   return (
-    <div className={cn("flex gap-3", isUser ? "justify-end" : "justify-start")}>
+    <div
+      className={cn(
+        "flex gap-3 animate-in fade-in slide-in-from-bottom-2",
+        isUser ? "justify-end" : "justify-start"
+      )}
+    >
+      {/* Avatar */}
+      {!isUser && (
+        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+          <Sparkles className="h-4 w-4 text-primary" />
+        </div>
+      )}
+
       <div
         className={cn(
-          "max-w-[80%] rounded-lg px-4 py-2",
-          isUser ? "bg-primary text-primary-foreground" : "bg-muted"
+          "max-w-[80%] rounded-2xl px-4 py-3 shadow-sm",
+          isUser
+            ? "bg-primary text-primary-foreground rounded-tr-sm"
+            : "bg-muted border rounded-tl-sm"
         )}
       >
-        <div className="text-sm whitespace-pre-wrap">{message.content}</div>
+        <div className="text-sm whitespace-pre-wrap leading-relaxed">
+          {message.content}
+          {isStreaming && message.content && (
+            <span className="inline-block w-1 h-4 ml-1 bg-current animate-pulse" />
+          )}
+          {isStreaming && !message.content && (
+            <div className="flex gap-1 items-center">
+              <div
+                className="w-2 h-2 bg-current rounded-full animate-bounce"
+                style={{ animationDelay: "0ms" }}
+              />
+              <div
+                className="w-2 h-2 bg-current rounded-full animate-bounce"
+                style={{ animationDelay: "150ms" }}
+              />
+              <div
+                className="w-2 h-2 bg-current rounded-full animate-bounce"
+                style={{ animationDelay: "300ms" }}
+              />
+            </div>
+          )}
+        </div>
 
         {/* Sources */}
         {message.sources && message.sources.length > 0 && (
           <div className="mt-3 pt-3 border-t border-border/50">
-            <div className="text-xs font-medium mb-2 text-muted-foreground">
+            <div className="text-xs font-medium mb-2 opacity-70">
               Sources ({message.sources.length}):
             </div>
             <div className="space-y-2">
@@ -300,7 +387,22 @@ function MessageBubble({ message }: { message: ChatMessage }) {
             </div>
           </div>
         )}
+
+        {/* Timestamp */}
+        <div className={cn("text-xs mt-2 opacity-50")}>
+          {new Date(message.timestamp).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </div>
       </div>
+
+      {/* Avatar for user */}
+      {isUser && (
+        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
+          <span className="text-xs font-semibold">You</span>
+        </div>
+      )}
     </div>
   );
 }
