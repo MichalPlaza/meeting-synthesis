@@ -11,7 +11,7 @@ from ...core.permissions import require_approval, require_edit_permission
 from ...db.mongodb_utils import get_database
 from ...models.enums.proccessing_mode import ProcessingMode
 from ...schemas.meeting_schema import MeetingCreate, MeetingResponse, MeetingUpdate, MeetingCreateForm, \
-    MeetingPartialUpdate
+    MeetingPartialUpdate, MeetingResponsePopulated
 from ...services import meeting_service
 from ...crud import crud_meetings
 
@@ -184,3 +184,14 @@ async def partial_update_meeting(
     if not updated:
         raise HTTPException(status_code=404, detail="Meeting not found")
     return updated
+
+@router.get("/meetings/populated", response_model=List[MeetingResponsePopulated])
+async def list_populated_meetings(
+    database: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """
+    Get a list of all meetings with populated project and uploader info.
+    (For Admin Panel)
+    """
+    meetings = await crud_meetings.get_all_meetings_populated(database)
+    return meetings

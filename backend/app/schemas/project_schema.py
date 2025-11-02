@@ -37,3 +37,27 @@ class ProjectResponse(BaseModel):
         populate_by_name = True
         json_encoders = {ObjectId: str, PyObjectId: str}
         arbitrary_types_allowed = True
+
+# Schema Project has basic information of Users
+class UserInfo(BaseModel):
+    id: PyObjectId = Field(..., alias="_id")
+    username: str
+
+    class Config:
+        populate_by_name = True
+        json_encoders = {ObjectId: str, PyObjectId: str}
+        arbitrary_types_allowed = True
+
+class ProjectResponsePopulated(BaseModel):
+    id: PyObjectId = Field(..., alias="_id")
+    name: str
+    description: str
+    owner: UserInfo  
+    members: list[UserInfo] = [] 
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        populate_by_name = True
+        json_encoders = {ObjectId: str, PyObjectId: str}
+        arbitrary_types_allowed = True

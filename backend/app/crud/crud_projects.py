@@ -8,6 +8,7 @@ import re
 
 from ..models.project import Project
 from ..schemas.project_schema import ProjectCreate, ProjectUpdate
+from ..schemas.project_schema import ProjectResponsePopulated
 
 logger = logging.getLogger(__name__)
 
@@ -136,3 +137,84 @@ async def delete_project(database: AsyncIOMotorDatabase, project_id: str) -> boo
     logger.warning(f"Project with ID {project_id} not found for deletion.")
     return False
 
+async def get_projects_filtered_populated(
+        database: AsyncIOMotorDatabase,
+        q: str | None = None,
+        sort_by: str = "newest",
+) -> list[ProjectResponsePopulated]:
+    logger.debug(f"Retrieving populated projects with query='{q}', sort_by='{sort_by}'.")
+    
+    query = {}
+    if q:
+        query["name"] = {"$regex": re.escape(q), "$options": "i"}
+
+    sort_options = {
+        "newest": [("created_at", -1)],
+        "oldest": [("created_at", 1)],
+        "name-asc": [("name", 1)],
+        "name-desc": [("name", -1)],
+    }
+    sort_order = sort_options.get(sort_by, sort_options["newest"])
+
+    # --- AGGREGATION PIPELINE ---
+    pipeline = [
+        # find
+        {"$match": query},
+        {"$sort": dict(sort_order)},
+        
+        # Join collection 'users' get owner
+        {
+            "$lookup": {
+                "from": "users",  
+                "localField": "owner_id",  
+                "foreignField": "_id",  
+                "as": "owner_info", 
+            }
+        },
+        
+        {"$unwind": {"path": "$owner_info", "preserveNullAndEmptyArrays": True}},
+
+        # Join collection 'users' get members
+        {
+            "$lookup": {
+                "from": "users",
+                "localField": "members_ids",
+                "foreignField": "_id",
+                "as": "members_info",
+            }
+        },
+
+        # output
+        {
+            "$project": {
+                "_id": 1,
+                "name": 1,
+                "description": 1,
+                "created_at": 1,
+                "updated_at": 1,
+                "owner": {
+                    "_id": "$owner_info._id",
+                    "username": "$owner_info.username",
+                },
+                "members": {
+                    "$map": {
+                        "input": "$members_info",
+                        "as": "member",
+                        "in": {
+                            "_id": "$$member._id",
+                            "username": "$$member.username",
+                        },
+                    }
+                },
+            }
+        },
+    ]
+
+    cursor = database["projects"].aggregate(pipeline)
+    
+    projects = []
+    async for doc in cursor:
+        projects.append(ProjectResponsePopulated(**doc))
+        
+    logger.debug(f"Found {len(projects)} populated projects.")
+    return projects
