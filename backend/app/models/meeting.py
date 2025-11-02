@@ -14,7 +14,6 @@ from .transcrpion import Transcription
 class Meeting(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
-        json_encoders={ObjectId: str, PyObjectId: str},
         arbitrary_types_allowed=True,
         from_attributes=True
     )

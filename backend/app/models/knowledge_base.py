@@ -15,7 +15,7 @@ class FilterContext(BaseModel):
     Stores user's active filters to scope search results.
     """
 
-    model_config = ConfigDict(json_encoders={datetime: lambda v: v.isoformat()})
+    model_config = ConfigDict()
 
     project_ids: list[str] = Field(default_factory=list)
     tags: list[str] = Field(default_factory=list)
@@ -59,10 +59,6 @@ class ChatMessage(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
         arbitrary_types_allowed=True,
-        json_encoders={
-            PyObjectId: str,
-            datetime: lambda v: v.isoformat(),
-        },
         json_schema_extra={
             "example": {
                 "_id": "507f1f77bcf86cd799439011",
@@ -94,10 +90,6 @@ class Conversation(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
         arbitrary_types_allowed=True,
-        json_encoders={
-            PyObjectId: str,
-            datetime: lambda v: v.isoformat(),
-        },
         json_schema_extra={
             "example": {
                 "_id": "507f1f77bcf86cd799439011",

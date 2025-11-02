@@ -16,7 +16,6 @@ class UserRole(str, Enum):
 class User(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
-        json_encoders={ObjectId: str, PyObjectId: str},
         arbitrary_types_allowed=True
     )
 

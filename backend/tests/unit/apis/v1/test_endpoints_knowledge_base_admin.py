@@ -11,8 +11,8 @@ from app.apis.v1.endpoints_knowledge_base import router
 class TestKnowledgeBaseAdminEndpoints:
     """Tests for admin endpoints: reindex, bulk operations, stats."""
 
-    @patch('app.apis.v1.endpoints_knowledge_base.crud_meetings.get_meeting_by_id')
-    @patch('app.apis.v1.endpoints_knowledge_base.reindex_meeting')
+    @patch('app.crud.crud_meetings.get_meeting_by_id')
+    @patch('app.services.meeting_indexing_service.reindex_meeting')
     async def test_reindex_meeting_success(self, mock_reindex, mock_get_meeting):
         """Test manual reindexing of a specific meeting."""
         # Arrange
@@ -29,8 +29,8 @@ class TestKnowledgeBaseAdminEndpoints:
         # Test would verify endpoint calls reindex_meeting
         assert mock_reindex is not None
 
-    @patch('app.apis.v1.endpoints_knowledge_base.crud_meetings.get_meetings_filtered')
-    @patch('app.apis.v1.endpoints_knowledge_base.reindex_meeting')
+    @patch('app.crud.crud_meetings.get_meetings_filtered')
+    @patch('app.services.meeting_indexing_service.reindex_meeting')
     async def test_bulk_reindex_success(self, mock_reindex, mock_get_meetings):
         """Test bulk reindexing of all meetings."""
         # Arrange
@@ -48,7 +48,7 @@ class TestKnowledgeBaseAdminEndpoints:
         # Test would verify bulk operation
         assert len(mock_meetings) == 2
 
-    @patch('app.apis.v1.endpoints_knowledge_base.get_index_stats')
+    @patch('app.services.elasticsearch_indexing_service.get_index_stats')
     async def test_get_index_stats(self, mock_stats):
         """Test retrieving index statistics."""
         # Arrange

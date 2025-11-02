@@ -109,7 +109,7 @@ async def update_project(
     if not ObjectId.is_valid(project_id):
         logger.warning(f"Invalid project ID format for update: {project_id}")
         return None
-    update_data = {k: v for k, v in project_data.dict(exclude_unset=True).items()}
+    update_data = {k: v for k, v in project_data.model_dump(exclude_unset=True).items()}
     if not update_data:
         logger.debug(f"No update data provided for project ID: {project_id}")
         return await get_project_by_id(database, project_id)
