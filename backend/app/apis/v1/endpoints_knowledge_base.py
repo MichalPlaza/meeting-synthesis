@@ -328,7 +328,7 @@ async def _stream_chat_response(
                     sources_list = [
                         MessageSource(
                             meeting_id=s["meeting_id"],
-                            title=s["meeting_title"],
+                            meeting_title=s["meeting_title"],
                             content_type=s["content_type"],
                             excerpt=s["excerpt"],
                             relevance_score=s["relevance_score"],

@@ -43,12 +43,18 @@ function MeetingsListPage() {
     setError(null);
 
     try {
-      const projectsResponse = await fetch(`${BACKEND_API_BASE_URL}/project/member/${user._id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const projectsResponse = await fetch(
+        `${BACKEND_API_BASE_URL}/project/member/${user._id}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
       if (!projectsResponse.ok) {
-        log.error("Failed to fetch member projects. Status:", projectsResponse.status);
+        log.error(
+          "Failed to fetch member projects. Status:",
+          projectsResponse.status
+        );
         throw new Error("Failed to fetch member projects from the server.");
       }
 
@@ -58,7 +64,9 @@ function MeetingsListPage() {
       const projectIds = projectsData.map((p) => p._id);
 
       const meetingsUrl = new URL(`${BACKEND_API_BASE_URL}/meetings`);
-      projectIds.forEach((id) => meetingsUrl.searchParams.append("project_ids", id));
+      projectIds.forEach((id) =>
+        meetingsUrl.searchParams.append("project_ids", id)
+      );
 
       const meetingsResponse = await fetch(meetingsUrl.toString(), {
         headers: { Authorization: `Bearer ${token}` },
@@ -87,9 +95,29 @@ function MeetingsListPage() {
     }
   }, [token, user?._id]);
 
-
   useEffect(() => {
     fetchData();
+  }, [fetchData]);
+
+  // Listen for meeting processed events from WebSocket
+  useEffect(() => {
+    const handleMeetingProcessed = (event: Event) => {
+      const customEvent = event as CustomEvent<{
+        meetingId: string;
+        status: string;
+      }>;
+      log.info(
+        "Meeting processed event received, refreshing data. Meeting ID:",
+        customEvent.detail.meetingId
+      );
+      fetchData();
+    };
+
+    window.addEventListener("meeting-processed", handleMeetingProcessed);
+
+    return () => {
+      window.removeEventListener("meeting-processed", handleMeetingProcessed);
+    };
   }, [fetchData]);
 
   const projectsMap = useMemo(
@@ -131,8 +159,8 @@ function MeetingsListPage() {
             );
         }
       });
-      log.debug(`Filtered down to ${filtered.length} meetings.`);
-      return filtered;
+    log.debug(`Filtered down to ${filtered.length} meetings.`);
+    return filtered;
   }, [meetings, searchTerm, selectedProjects, selectedTags, sortBy]);
 
   if (error) {
@@ -151,10 +179,12 @@ function MeetingsListPage() {
       <div className="space-y-8">
         <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
           <h1 className="text-3xl font-bold tracking-tight">Meetings</h1>
-          <Button onClick={() => {
-            setIsAddMeetingDialogOpen(true);
-            log.debug("Add Meeting dialog opened.");
-            }}>
+          <Button
+            onClick={() => {
+              setIsAddMeetingDialogOpen(true);
+              log.debug("Add Meeting dialog opened.");
+            }}
+          >
             <PlusIcon className="mr-2 h-4 w-4" />
             Add Meeting
           </Button>

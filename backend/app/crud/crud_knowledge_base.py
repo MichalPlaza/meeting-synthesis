@@ -161,7 +161,7 @@ async def create_message(
         "conversation_id": ObjectId(conversation_id),
         "role": role,
         "content": content,
-        "sources": sources or [],
+        "sources": [s.model_dump() if hasattr(s, "model_dump") else s for s in (sources or [])],
         "created_at": datetime.now(UTC),
     }
 

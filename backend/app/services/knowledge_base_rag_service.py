@@ -212,7 +212,7 @@ async def generate_rag_response_stream(
         sources_dict = [
             {
                 "meeting_id": source.meeting_id,
-                "meeting_title": source.title,
+                "meeting_title": source.meeting_title,
                 "content_type": source.content_type,
                 "excerpt": source.excerpt,
                 "relevance_score": source.relevance_score,
@@ -335,7 +335,7 @@ async def format_sources_for_response(
         
         source = MessageSource(
             meeting_id=source_data.get("meeting_id", ""),
-            title=source_data.get("title", "Unknown"),
+            meeting_title=source_data.get("title", "Unknown"),
             content_type=source_data.get("content_type", "unknown"),
             relevance_score=result.score,
             excerpt=source_data.get("content", "")[:200] + "...",  # First 200 chars

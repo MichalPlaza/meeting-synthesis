@@ -53,17 +53,18 @@ async def index_meeting_to_knowledge_base(meeting: Meeting) -> bool:
             logger.debug(f"Indexing transcription for meeting {meeting.id}")
             
             content = meeting.transcription.full_text
-            embedding = await generate_embedding(content)
             
-            doc = {
-                **base_metadata,
-                "content": content,
-                "content_type": "transcription",
-                "embedding": embedding,
-            }
-            
-            success = await index_meeting_document(doc)
-            if success:
+            doc_id = await index_meeting_document(
+                meeting_id=str(meeting.id),
+                project_id=str(meeting.project_id),
+                user_id=str(meeting.uploader_id),
+                title=meeting.title,
+                content=content,
+                content_type="transcription",
+                tags=meeting.tags,
+                meeting_datetime=meeting.meeting_datetime,
+            )
+            if doc_id:
                 indexed_count += 1
                 logger.debug("Transcription indexed successfully")
         
@@ -75,17 +76,17 @@ async def index_meeting_to_knowledge_base(meeting: Meeting) -> bool:
             if ai.summary:
                 logger.debug(f"Indexing summary for meeting {meeting.id}")
                 
-                embedding = await generate_embedding(ai.summary)
-                
-                doc = {
-                    **base_metadata,
-                    "content": ai.summary,
-                    "content_type": "summary",
-                    "embedding": embedding,
-                }
-                
-                success = await index_meeting_document(doc)
-                if success:
+                doc_id = await index_meeting_document(
+                    meeting_id=str(meeting.id),
+                    project_id=str(meeting.project_id),
+                    user_id=str(meeting.uploader_id),
+                    title=meeting.title,
+                    content=ai.summary,
+                    content_type="summary",
+                    tags=meeting.tags,
+                    meeting_datetime=meeting.meeting_datetime,
+                )
+                if doc_id:
                     indexed_count += 1
                     logger.debug("Summary indexed successfully")
             
@@ -99,20 +100,18 @@ async def index_meeting_to_knowledge_base(meeting: Meeting) -> bool:
                     for item in ai.action_items
                 ])
                 
-                embedding = await generate_embedding(action_text)
-                
-                doc = {
-                    **base_metadata,
-                    "content": action_text,
-                    "content_type": "action_items",
-                    "embedding": embedding,
-                    "metadata": {
-                        "count": len(ai.action_items)
-                    }
-                }
-                
-                success = await index_meeting_document(doc)
-                if success:
+                doc_id = await index_meeting_document(
+                    meeting_id=str(meeting.id),
+                    project_id=str(meeting.project_id),
+                    user_id=str(meeting.uploader_id),
+                    title=meeting.title,
+                    content=action_text,
+                    content_type="action_items",
+                    tags=meeting.tags,
+                    meeting_datetime=meeting.meeting_datetime,
+                    metadata={"count": len(ai.action_items)},
+                )
+                if doc_id:
                     indexed_count += 1
                     logger.debug("Action items indexed successfully")
             
@@ -121,24 +120,22 @@ async def index_meeting_to_knowledge_base(meeting: Meeting) -> bool:
                 logger.debug(f"Indexing {len(ai.key_topics)} key topics for meeting {meeting.id}")
                 
                 topics_text = "\n".join([
-                    f"- {topic.topic}: {topic.explanation}"
+                    f"- {topic.topic}: {topic.details or 'No details'}"
                     for topic in ai.key_topics
                 ])
                 
-                embedding = await generate_embedding(topics_text)
-                
-                doc = {
-                    **base_metadata,
-                    "content": topics_text,
-                    "content_type": "key_topics",
-                    "embedding": embedding,
-                    "metadata": {
-                        "count": len(ai.key_topics)
-                    }
-                }
-                
-                success = await index_meeting_document(doc)
-                if success:
+                doc_id = await index_meeting_document(
+                    meeting_id=str(meeting.id),
+                    project_id=str(meeting.project_id),
+                    user_id=str(meeting.uploader_id),
+                    title=meeting.title,
+                    content=topics_text,
+                    content_type="key_topics",
+                    tags=meeting.tags,
+                    meeting_datetime=meeting.meeting_datetime,
+                    metadata={"count": len(ai.key_topics)},
+                )
+                if doc_id:
                     indexed_count += 1
                     logger.debug("Key topics indexed successfully")
             
@@ -147,24 +144,22 @@ async def index_meeting_to_knowledge_base(meeting: Meeting) -> bool:
                 logger.debug(f"Indexing {len(ai.decisions_made)} decisions for meeting {meeting.id}")
                 
                 decisions_text = "\n".join([
-                    f"- Decision: {decision.decision}\n  Rationale: {decision.rationale or 'N/A'}"
+                    f"- {decision.description}"
                     for decision in ai.decisions_made
                 ])
                 
-                embedding = await generate_embedding(decisions_text)
-                
-                doc = {
-                    **base_metadata,
-                    "content": decisions_text,
-                    "content_type": "decisions",
-                    "embedding": embedding,
-                    "metadata": {
-                        "count": len(ai.decisions_made)
-                    }
-                }
-                
-                success = await index_meeting_document(doc)
-                if success:
+                doc_id = await index_meeting_document(
+                    meeting_id=str(meeting.id),
+                    project_id=str(meeting.project_id),
+                    user_id=str(meeting.uploader_id),
+                    title=meeting.title,
+                    content=decisions_text,
+                    content_type="decisions",
+                    tags=meeting.tags,
+                    meeting_datetime=meeting.meeting_datetime,
+                    metadata={"count": len(ai.decisions_made)},
+                )
+                if doc_id:
                     indexed_count += 1
                     logger.debug("Decisions indexed successfully")
         
