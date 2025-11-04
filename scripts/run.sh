@@ -77,11 +77,33 @@ echo ""
 echo -e "${BLUE}Press Ctrl+C to stop all services${NC}"
 echo ""
 
+# Array to store all PIDs for cleanup
+PIDS=()
+
 # Cleanup function
 cleanup() {
     echo ""
     echo -e "${BLUE}🛑 Stopping all services...${NC}"
-    kill $(jobs -p) 2>/dev/null || true
+    
+    # Kill all tracked PIDs
+    for pid in "${PIDS[@]}"; do
+        if kill -0 "$pid" 2>/dev/null; then
+            echo -e "${YELLOW}  → Stopping process $pid${NC}"
+            kill "$pid" 2>/dev/null || true
+        fi
+    done
+    
+    # Wait a moment for graceful shutdown
+    sleep 1
+    
+    # Force kill any remaining processes
+    for pid in "${PIDS[@]}"; do
+        if kill -0 "$pid" 2>/dev/null; then
+            echo -e "${YELLOW}  → Force stopping process $pid${NC}"
+            kill -9 "$pid" 2>/dev/null || true
+        fi
+    done
+    
     echo -e "${GREEN}✅ All services stopped${NC}"
     echo -e "${YELLOW}Note: Docker services (mongo, elasticsearch, ollama) and Redis are still running${NC}"
     echo -e "${YELLOW}To stop them: 'make stop'${NC}"
@@ -97,6 +119,7 @@ cd backend
 echo -e "${GREEN}  → Starting FastAPI backend on port 8000${NC}"
 PYTHON_ENV=development poetry run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 --log-level info > ../logs/backend.log 2>&1 &
 BACKEND_PID=$!
+PIDS+=("$BACKEND_PID")
 echo -e "${GREEN}  ✓ Backend started (PID: $BACKEND_PID)${NC}"
 cd ..
 
@@ -105,6 +128,7 @@ cd backend
 echo -e "${YELLOW}  → Starting Celery worker with -P solo${NC}"
 poetry run celery -A app.worker.celery_app worker --loglevel=info -P solo > ../logs/celery_worker.log 2>&1 &
 CELERY_WORKER_PID=$!
+PIDS+=("$CELERY_WORKER_PID")
 echo -e "${YELLOW}  ✓ Celery worker started (PID: $CELERY_WORKER_PID)${NC}"
 cd ..
 
@@ -113,6 +137,7 @@ cd backend
 echo -e "${YELLOW}  → Starting Celery beat scheduler${NC}"
 poetry run celery -A app.worker.celery_app beat --loglevel=info > ../logs/celery_beat.log 2>&1 &
 CELERY_BEAT_PID=$!
+PIDS+=("$CELERY_BEAT_PID")
 echo -e "${YELLOW}  ✓ Celery beat started (PID: $CELERY_BEAT_PID)${NC}"
 cd ..
 
@@ -121,6 +146,7 @@ echo -e "${BLUE}  → Starting frontend on port 3000${NC}"
 cd frontend
 pnpm run dev > ../logs/frontend.log 2>&1 &
 FRONTEND_PID=$!
+PIDS+=("$FRONTEND_PID")
 echo -e "${BLUE}  ✓ Frontend started (PID: $FRONTEND_PID)${NC}"
 cd ..
 
@@ -144,9 +170,13 @@ echo ""
 
 # Tail all logs in parallel with prefixes
 tail -f logs/backend.log 2>/dev/null | sed "s/^/$(echo -e '\033[0;32m')[BACKEND]$(echo -e '\033[0m') /" &
+PIDS+=("$!")
 tail -f logs/celery_worker.log 2>/dev/null | sed "s/^/$(echo -e '\033[0;33m')[CELERY_WORKER]$(echo -e '\033[0m') /" &
+PIDS+=("$!")
 tail -f logs/celery_beat.log 2>/dev/null | sed "s/^/$(echo -e '\033[0;35m')[CELERY_BEAT]$(echo -e '\033[0m') /" &
+PIDS+=("$!")
 tail -f logs/frontend.log 2>/dev/null | sed "s/^/$(echo -e '\033[0;36m')[FRONTEND]$(echo -e '\033[0m') /" &
+PIDS+=("$!")
 
 # Wait for Ctrl+C
 wait
