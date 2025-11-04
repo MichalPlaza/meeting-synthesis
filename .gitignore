@@ -101,3 +101,4 @@ collect_source_code.sh
 /backend/uploads/
 
 .github/
+/backend/logs/
