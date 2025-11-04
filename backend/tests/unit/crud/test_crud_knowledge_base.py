@@ -7,10 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 from app.crud import crud_knowledge_base
 from app.models.knowledge_base import (
-    ChatMessage,
-    Conversation,
     FilterContext,
-    MessageSource,
 )
 
 

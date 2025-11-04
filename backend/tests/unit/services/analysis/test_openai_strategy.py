@@ -1,7 +1,7 @@
 """Unit tests for OpenAIStrategy - OpenAI-based AI analysis."""
 
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import patch
 import json
 
 from app.services.analysis.strategies.openai_llm import OpenAIStrategy

@@ -5,10 +5,8 @@ processed, enabling semantic search and RAG functionality.
 """
 
 import logging
-from typing import Optional
 
 from app.models.meeting import Meeting
-from app.services.embedding_service import generate_embedding
 from app.services.elasticsearch_indexing_service import (
     index_meeting_document,
     delete_meeting_documents,
@@ -37,16 +35,6 @@ async def index_meeting_to_knowledge_base(meeting: Meeting) -> bool:
     
     try:
         indexed_count = 0
-        
-        # Base metadata for all documents
-        base_metadata = {
-            "meeting_id": str(meeting.id),
-            "title": meeting.title,
-            "project_id": str(meeting.project_id),
-            "user_id": str(meeting.uploader_id),
-            "meeting_datetime": meeting.meeting_datetime.isoformat(),
-            "tags": meeting.tags,
-        }
         
         # 1. Index transcription if available
         if meeting.transcription and meeting.transcription.full_text:

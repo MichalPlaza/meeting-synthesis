@@ -1,8 +1,7 @@
 """Unit tests for Elasticsearch indexing service."""
 
 import pytest
-from datetime import datetime, UTC
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, patch
 from app.services.elasticsearch_indexing_service import (
     index_meeting_document,
     index_meeting_documents_batch,

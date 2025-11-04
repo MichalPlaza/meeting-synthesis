@@ -1,7 +1,7 @@
 """Unit tests for Elasticsearch hybrid search service."""
 
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, patch
 from datetime import datetime, UTC
 
 from app.services.elasticsearch_search_service import (

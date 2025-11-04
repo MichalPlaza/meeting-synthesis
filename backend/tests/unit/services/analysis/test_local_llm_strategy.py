@@ -1,7 +1,7 @@
 """Unit tests for LocalLLMStrategy - Ollama-based AI analysis."""
 
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, patch
 import json
 
 from app.services.analysis.strategies.local_llm import LocalLLMStrategy

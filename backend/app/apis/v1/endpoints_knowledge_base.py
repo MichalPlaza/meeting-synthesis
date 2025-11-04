@@ -14,8 +14,6 @@ from app.auth_dependencies import get_current_user
 from app.models.user import User
 from app.models.knowledge_base import (
     FilterContext,
-    ChatMessage,
-    Conversation,
     MessageSource,
 )
 from app.crud import crud_knowledge_base
@@ -229,7 +227,7 @@ async def chat(
             conversation_id = str(conversation.id)
         
         # Save user message
-        user_message = await crud_knowledge_base.create_message(
+        await crud_knowledge_base.create_message(
             database=database,
             user_id=str(current_user.id),
             conversation_id=conversation_id,
