@@ -1,8 +1,7 @@
 """Unit tests for Knowledge Base RAG service."""
 
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
-from datetime import datetime, UTC
+from unittest.mock import AsyncMock, patch
 
 from app.services.knowledge_base_rag_service import (
     build_rag_prompt,

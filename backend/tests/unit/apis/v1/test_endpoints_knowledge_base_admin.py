@@ -1,10 +1,7 @@
 """Unit tests for Knowledge Base admin API endpoints."""
 
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
-from fastapi import HTTPException
-
-from app.apis.v1.endpoints_knowledge_base import router
+from unittest.mock import patch
 
 
 @pytest.mark.asyncio

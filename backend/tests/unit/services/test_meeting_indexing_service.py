@@ -1,7 +1,7 @@
 """Unit tests for meeting indexing integration."""
 
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import patch
 from datetime import datetime, UTC
 from bson import ObjectId
 

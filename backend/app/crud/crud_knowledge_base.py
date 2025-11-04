@@ -6,7 +6,6 @@ from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from app.models.knowledge_base import Conversation, ChatMessage, FilterContext
-from app.models.py_object_id import PyObjectId
 
 logger = logging.getLogger(__name__)
 

@@ -1,6 +1,5 @@
 """Unit tests for AIAnalysisService - Refactored for Strategy Pattern (Phase 2)."""
 
-import json
 from unittest.mock import patch, AsyncMock, MagicMock
 
 import pytest
@@ -8,7 +7,6 @@ from bson import ObjectId
 
 from app.models.ai_analysis import AIAnalysis
 from app.services.ai_analysis_service import AIAnalysisService
-from app.models.processing_status import ProcessingStatus
 from app.models.enums.processing_stage import ProcessingStage
 
 

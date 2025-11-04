@@ -1,7 +1,7 @@
 """Unit tests for Knowledge Base models."""
 
 import pytest
-from datetime import datetime, UTC
+from datetime import datetime
 from bson import ObjectId
 from app.models.knowledge_base import (
     ChatMessage,

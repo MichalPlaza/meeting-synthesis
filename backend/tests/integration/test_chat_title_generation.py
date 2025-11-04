@@ -131,7 +131,7 @@ class TestChatTitleGeneration:
                     
                     transport = ASGITransport(app=app)
                     async with AsyncClient(transport=transport, base_url="http://test") as client:
-                        response = await client.post(
+                        await client.post(
                             "/api/v1/knowledge-base/chat",
                             json={
                                 "query": "Follow-up question",
@@ -199,16 +199,13 @@ class TestChatTitleGeneration:
                 
                 with patch("app.services.knowledge_base_rag_service.ollama.AsyncClient") as mock_ollama:
                     mock_client = AsyncMock()
-                    # Mock streaming response
-                    async def mock_stream():
-                        yield {"response": "The product roadmap includes..."}
                     
                     mock_client.generate.return_value = {"response": "Answer"}
                     mock_ollama.return_value = mock_client
                     
                     transport = ASGITransport(app=app)
                     async with AsyncClient(transport=transport, base_url="http://test") as client:
-                        response = await client.post(
+                        await client.post(
                             "/api/v1/knowledge-base/chat-stream",
                             json={"query": query},
                             headers={"Authorization": "Bearer fake_token"}

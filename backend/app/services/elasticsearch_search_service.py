@@ -1,7 +1,6 @@
 """Elasticsearch hybrid search service combining semantic and keyword search."""
 
 import logging
-from elasticsearch import AsyncElasticsearch
 
 from app.core.elasticsearch_config import get_elasticsearch_client, ELASTICSEARCH_INDEX
 from app.services.embedding_service import generate_embedding

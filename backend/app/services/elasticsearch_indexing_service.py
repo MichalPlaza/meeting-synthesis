@@ -6,7 +6,6 @@ including generating embeddings and managing document lifecycle.
 
 import logging
 from datetime import datetime, UTC
-from elasticsearch import AsyncElasticsearch
 from app.core.elasticsearch_config import (
     get_elasticsearch_client,
     close_elasticsearch_client,

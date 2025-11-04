@@ -18,7 +18,7 @@ To run WITHOUT integration tests (default):
 
 import pytest
 from httpx import AsyncClient
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, patch
 from bson import ObjectId
 
 # Mark all tests in this file as integration tests
@@ -36,8 +36,6 @@ class TestKnowledgeBaseChatFlow:
 
     async def test_chat_with_sources_complete_flow(self, client: AsyncClient, auth_headers: dict, db_mock):
         """Test complete chat flow that returns answer with sources."""
-        # Mock conversation creation
-        conversation_id = str(ObjectId())
         
         # Mock hybrid_search to return results
         mock_search_results = [
@@ -141,7 +139,6 @@ class TestKnowledgeBaseChatFlow:
                 )
         
         assert response.status_code == 200
-        data = response.json()
         
         # Verify search was called with filters
         mock_search.assert_awaited_once()
@@ -342,7 +339,6 @@ class TestKnowledgeBaseChatFlow:
                 )
         
         assert response.status_code == 200
-        data = response.json()
         
         # Verify Ollama was called twice (once for RAG, once for title)
         assert mock_ollama_instance.chat.call_count == 2
