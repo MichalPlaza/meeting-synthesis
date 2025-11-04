@@ -23,6 +23,7 @@ export interface ChatMessage {
   content: string;
   sources?: MessageSource[];
   timestamp: string;
+  isStreaming?: boolean;
 }
 
 export interface Conversation {

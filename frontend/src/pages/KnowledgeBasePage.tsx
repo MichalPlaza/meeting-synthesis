@@ -51,6 +51,7 @@ export function KnowledgeBasePage() {
         role: "assistant",
         content: "",
         timestamp: new Date().toISOString(),
+        isStreaming: true,
       };
       setMessages((prev) => [...prev, assistantMessage]);
 
@@ -69,6 +70,15 @@ export function KnowledgeBasePage() {
           )
         );
       }
+
+      // Mark streaming as complete
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === assistantMessageId
+            ? { ...msg, isStreaming: false }
+            : msg
+        )
+      );
 
       log.info("Streaming message completed");
     } catch (error) {
@@ -193,8 +203,7 @@ export function KnowledgeBasePage() {
 function MessageBubble({ message }: { message: ChatMessage }) {
   const [copied, setCopied] = useState(false);
   const isUser = message.role === "user";
-  const isStreaming =
-    message.content === "" || message.id.startsWith("temp-assistant");
+  const isStreaming = message.isStreaming ?? false;
 
   const handleCopy = async () => {
     if (!message.content) return;
