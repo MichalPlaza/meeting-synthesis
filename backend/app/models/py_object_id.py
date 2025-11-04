@@ -10,17 +10,21 @@ class PyObjectId(ObjectId):
     def __get_pydantic_core_schema__(
         cls, source_type: Any, handler: GetCoreSchemaHandler
     ) -> core_schema.CoreSchema:
-        return core_schema.no_info_wrap_validator_function(
-            cls.validate, core_schema.str_schema()
+        return core_schema.with_info_plain_validator_function(
+            cls.validate,
+            serialization=core_schema.plain_serializer_function_ser_schema(
+                lambda x: str(x) if isinstance(x, ObjectId) else x,
+                return_schema=core_schema.str_schema(),
+            ),
         )
 
     @classmethod
     def validate(cls, value: Any, _info: Any) -> ObjectId:
         if isinstance(value, ObjectId):
             return value
-        if not ObjectId.is_valid(value):
-            raise ValueError(f"Invalid ObjectId: {value}")
-        return ObjectId(value)
+        if isinstance(value, str) and ObjectId.is_valid(value):
+            return ObjectId(value)
+        raise ValueError(f"Invalid ObjectId: {value}")
 
     def __str__(self) -> str:
-        return str(super())
+        return str(ObjectId(self))

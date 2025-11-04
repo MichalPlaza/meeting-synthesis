@@ -26,6 +26,9 @@ ollama = "^0.5.1"
 mutagen = "^1.47.0"
 pytest = "^8.4.2"
 openai = "^1.0.0"
+elasticsearch = "^8.11.0"
+sentence-transformers = "^2.2.2"
+aiohttp = "^3.13.2"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.11.12"
@@ -82,3 +85,14 @@ warn_unused_configs = true
 
 plugins = ["pydantic.mypy"]
 mypy_path = "app"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+markers = [
+    "integration: Integration tests requiring full dev environment (Elasticsearch + Ollama)",
+    "unit: Unit tests with mocked dependencies",
+]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]

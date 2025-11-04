@@ -11,6 +11,7 @@ import ProjectDetailsPage from "./pages/ProjectDetailsPage";
 import MeetingDetailsPage from "./pages/MeetingDetailsPage";
 import MeetingsListPage from "./pages/MeetingsListPage";
 import StyleGuidePage from "./pages/StyleGuidePage";
+import { KnowledgeBasePage } from "./pages/KnowledgeBasePage";
 
 import log from "./services/logging";
 import ManageDeveloperAccessPage from "@/pages/ManageAccessPage.tsx";
@@ -41,7 +42,11 @@ function App() {
           <Route element={<ProtectedRoute />}>
             <Route path="/meetings" element={<MeetingsListPage />} />
             <Route path="/projects" element={<ProjectListPage />} />
-            <Route path="/manage-access" element={<ManageDeveloperAccessPage />} />
+            <Route path="/knowledge-base" element={<KnowledgeBasePage />} />
+            <Route
+              path="/manage-access"
+              element={<ManageDeveloperAccessPage />}
+            />
             <Route
               path="/projects/:projectId"
               element={<ProjectDetailsPage />}

@@ -20,9 +20,19 @@ class TestWhisperService:
             f.write("dummy content")
 
         fake_text = "Transkrypcja testowa"
+        
+        # Mock segments as iterable with text attribute
+        mock_segment = MagicMock()
+        mock_segment.text = fake_text
+        mock_segments = [mock_segment]
+        
+        # Mock info object
+        mock_info = MagicMock()
+        mock_info.duration_after_vad = 120.0
 
         with patch("app.services.whisper_service.model") as mock_model:
-            mock_model.transcribe.return_value = {"text": fake_text}
+            # Return tuple (segments, info) as faster-whisper does
+            mock_model.transcribe.return_value = (mock_segments, mock_info)
 
             result = await whisper_service.transcribe_audio(fake_path)
             assert result == fake_text

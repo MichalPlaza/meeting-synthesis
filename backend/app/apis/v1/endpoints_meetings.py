@@ -83,7 +83,7 @@ async def upload_meeting_with_file(
         project_id=project_id,
         uploader_id=uploader_id,
         tags=tags,
-        processing_mode_selected=processing_mode_selected.value,
+        processing_mode_selected=processing_mode_selected,
         language=language,
     )
 

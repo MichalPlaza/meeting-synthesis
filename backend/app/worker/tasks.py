@@ -71,6 +71,19 @@ async def run_processing(meeting_id: str):
             logger.error(f"[Meeting ID: {meeting_id}] Meeting not found after analysis.")
             raise ValueError(f"Meeting not found after analysis for ID: {meeting_id}")
 
+        # Index to Knowledge Base (Elasticsearch)
+        logger.info(f"[Meeting ID: {meeting_id}] Starting Knowledge Base indexing...")
+        from ..services.meeting_indexing_service import index_meeting_to_knowledge_base
+        try:
+            indexed = await index_meeting_to_knowledge_base(meeting)
+            if indexed:
+                logger.info(f"[Meeting ID: {meeting_id}] Successfully indexed to Knowledge Base.")
+            else:
+                logger.warning(f"[Meeting ID: {meeting_id}] Knowledge Base indexing returned False (no content?).")
+        except Exception as kb_e:
+            logger.error(f"[Meeting ID: {meeting_id}] Knowledge Base indexing failed: {kb_e}", exc_info=True)
+            # Don't fail the whole process if indexing fails
+
         await crud_meetings.update_meeting(
             database,
             meeting_id,

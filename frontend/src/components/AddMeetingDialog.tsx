@@ -131,20 +131,36 @@ export function AddMeetingDialog({
           )}.`
         : "Processing will start shortly.";
 
-      log.info("Meeting added successfully! Title:", data.title, "Estimation:", estimationMessage);
+      log.info(
+        "Meeting added successfully! Title:",
+        data.title,
+        "Estimation:",
+        estimationMessage
+      );
       toast.success("Meeting added successfully!", {
         description: estimationMessage,
       });
 
-      onMeetingAdded();
+      // Close dialog first for better UX
       handleClose();
+
+      // Delay refresh to ensure meeting is persisted in database
+      setTimeout(() => {
+        log.debug("Triggering meeting list refresh after successful upload");
+        onMeetingAdded();
+      }, 500);
     } catch (error: any) {
       const axiosError = error as AxiosError<any>;
       const errorMessage =
         axiosError.response?.data?.detail ||
         axiosError.message ||
         "An unexpected error occurred.";
-      log.error("Error adding meeting:", errorMessage, "Details:", axiosError.response?.data);
+      log.error(
+        "Error adding meeting:",
+        errorMessage,
+        "Details:",
+        axiosError.response?.data
+      );
       toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);

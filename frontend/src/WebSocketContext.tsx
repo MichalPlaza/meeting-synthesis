@@ -33,7 +33,10 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({
 
   useEffect(() => {
     if (isAuthenticated && user?._id) {
-      log.info("Attempting to establish WebSocket connection for user:", user._id);
+      log.info(
+        "Attempting to establish WebSocket connection for user:",
+        user._id
+      );
       const wsUrl = `${NOTIFICATION_SERVICE_URL}/ws/${user._id}`;
       const socket = new WebSocket(wsUrl);
       socketRef.current = socket;
@@ -59,17 +62,38 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({
               action: {
                 label: "View",
                 onClick: () => {
-                  log.debug("Navigating to meeting details for ID:", message.meeting_id);
+                  log.debug(
+                    "Navigating to meeting details for ID:",
+                    message.meeting_id
+                  );
                   navigate(`/meetings/${message.meeting_id}`);
                 },
               },
             });
-            log.info("Meeting processed notification displayed for meeting ID:", message.meeting_id, "Status:", message.status);
+            log.info(
+              "Meeting processed notification displayed for meeting ID:",
+              message.meeting_id,
+              "Status:",
+              message.status
+            );
 
-            // W przyszłości możemy tu dodać event emitter, by odświeżyć dane na stronie
+            // Emit custom event to refresh meeting list
+            const refreshEvent = new CustomEvent("meeting-processed", {
+              detail: { meetingId: message.meeting_id, status: message.status },
+            });
+            window.dispatchEvent(refreshEvent);
+            log.debug(
+              "Dispatched meeting-processed event for meeting ID:",
+              message.meeting_id
+            );
           }
         } catch (error) {
-          log.error("Error parsing WebSocket message:", error, "Raw data:", event.data);
+          log.error(
+            "Error parsing WebSocket message:",
+            error,
+            "Raw data:",
+            event.data
+          );
         }
       };
 

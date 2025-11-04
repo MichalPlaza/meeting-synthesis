@@ -14,6 +14,9 @@
     "email": "michal@gmail.com",
     "hashed_password": "$2b$12$p5ufDOUAhDSojPyp5c9Eq.MED0tCdaMiz1N4Qb/IuKaAZtp0e958W",
     "full_name": "Michal Plaza",
+    "is_approved": true,
+    "can_edit": true,
+    "role": "admin",
     "created_at": { "$date": "2025-06-02T05:41:21.364Z" },
     "updated_at": { "$date": "2025-06-02T05:41:21.364Z" }
   },

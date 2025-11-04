@@ -1,11 +1,12 @@
 import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
-from datetime import datetime
+from datetime import datetime, UTC
 from bson import ObjectId
 
 from fastapi import HTTPException
 from app.services import user_service
 from app.schemas.user_schema import UserCreate, UserLogin, UserResponse, Token
+from app.models.user import UserRole
 
 
 @pytest.mark.asyncio
@@ -25,8 +26,12 @@ class TestUserService:
         created_user_mock.username = user_data.username
         created_user_mock.email = user_data.email
         created_user_mock.full_name = user_data.full_name
-        created_user_mock.created_at = datetime.utcnow()
-        created_user_mock.updated_at = datetime.utcnow()
+        created_user_mock.role = UserRole.DEVELOPER
+        created_user_mock.manager_id = None
+        created_user_mock.is_approved = True
+        created_user_mock.can_edit = True
+        created_user_mock.created_at = datetime.now(UTC)
+        created_user_mock.updated_at = datetime.now(UTC)
 
         with patch("app.services.user_service.crud_users.get_user_by_email", new=AsyncMock(return_value=None)), \
                 patch("app.services.user_service.crud_users.get_user_by_username", new=AsyncMock(return_value=None)), \
@@ -79,7 +84,7 @@ class TestUserService:
         user_mock.email = "test@example.com"
         user_mock.hashed_password = "hashed_password"
 
-        with patch("app.services.user_service.crud_users.get_user_by_email", new=AsyncMock(return_value=user_mock)), \
+        with patch("app.services.user_service.crud_users.get_user_by_username_or_email", new=AsyncMock(return_value=user_mock)), \
                 patch("app.services.user_service.verify_password", return_value=True), \
                 patch("app.services.user_service.create_access_token", return_value="access123"), \
                 patch("app.services.user_service.create_refresh_token", return_value="refresh123"):
@@ -99,7 +104,7 @@ class TestUserService:
         user_mock.email = "test@example.com"
         user_mock.hashed_password = "hashed_password"
 
-        with patch("app.services.user_service.crud_users.get_user_by_email", new=AsyncMock(return_value=user_mock)), \
+        with patch("app.services.user_service.crud_users.get_user_by_username_or_email", new=AsyncMock(return_value=user_mock)), \
                 patch("app.services.user_service.verify_password", return_value=True), \
                 patch("app.services.user_service.create_access_token", return_value="access123"), \
                 patch("app.services.user_service.create_refresh_token", return_value="refresh123"):
@@ -114,7 +119,7 @@ class TestUserService:
         db_mock = AsyncMock()
         form_data = UserLogin(username_or_email="wrong@example.com", password="wrongpass", remember_me=False)
 
-        with patch("app.services.user_service.crud_users.get_user_by_email", new=AsyncMock(return_value=None)):
+        with patch("app.services.user_service.crud_users.get_user_by_username_or_email", new=AsyncMock(return_value=None)):
             with pytest.raises(HTTPException) as exc_info:
                 await user_service.authenticate_user(db_mock, form_data)
             assert exc_info.value.status_code == 401
@@ -129,7 +134,7 @@ class TestUserService:
         user_mock.email = "test@example.com"
         user_mock.hashed_password = "correct_hashed_password"
 
-        with patch("app.services.user_service.crud_users.get_user_by_email", new=AsyncMock(return_value=user_mock)), \
+        with patch("app.services.user_service.crud_users.get_user_by_username_or_email", new=AsyncMock(return_value=user_mock)), \
                 patch("app.services.user_service.verify_password", return_value=False):
             with pytest.raises(HTTPException) as exc_info:
                 await user_service.authenticate_user(db_mock, form_data)

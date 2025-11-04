@@ -40,6 +40,8 @@ pytestdebug.log
 *.mo
 *.pot
 *.log
+logs/
+mongo_data/
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
@@ -97,4 +99,6 @@ project_source_code.txt
 collect_source_code.sh
 .pnpm-store/
 /backend/uploads/
+
+.github/
 /backend/logs/

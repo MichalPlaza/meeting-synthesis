@@ -1,32 +1,42 @@
-.PHONY: run stop run-redis run-mongo
+.PHONY: run stop clean test help
 
-run: run-redis run-mongo
-	@echo "Starting all services..."
-	@chmod +x scripts/run_backend.sh
-	@chmod +x scripts/run_frontend.sh
-	@chmod +x scripts/run_notification_service.sh
-	@chmod +x scripts/run_celery_worker.sh
-	@./scripts/run_backend.sh & \
-	./scripts/run_frontend.sh & \
-	./scripts/run_notification_service.sh & \
-	./scripts/run_celery_worker.sh &
-	@echo "All services are running in the background."
+.DEFAULT_GOAL := help
 
-run-redis:
-	@echo "Starting Redis..."
-	@chmod +x scripts/run_redis.sh
-	@./scripts/run_redis.sh &
+help:
+	@echo "=========================================="
+	@echo "Meeting Synthesis - Makefile Commands"
+	@echo "=========================================="
+	@echo ""
+	@echo "  make run    - Start all services locally"
+	@echo "  make stop   - Stop all services"
+	@echo "  make clean  - Clean logs and temp files"
+	@echo "  make test   - Run backend tests"
+	@echo ""
 
-run-mongo:
-	@echo "Starting MongoDB..."
-	@chmod +x scripts/run_mongo.sh
-	@./scripts/run_mongo.sh &
+run:
+	@chmod +x scripts/run.sh
+	@./scripts/run.sh
 
 stop:
-	@echo "Stopping all services..."
-	@pkill -f "uvicorn app.main:app"
-	@pkill -f "pnpm run dev"
-	@pkill -f "celery -A app.worker.celery_app worker"
-	@redis-cli shutdown
-	@mongod --dbpath ./mongo_data --shutdown
-	@echo "All services stopped."
+	@echo "🛑 Stopping all services..."
+	@pkill -f "uvicorn app.main:app" || true
+	@pkill -f "celery -A app.worker.celery_app worker" || true
+	@pkill -f "celery -A app.worker.celery_app beat" || true
+	@pkill -f "vite" || true
+	@docker-compose down
+	@brew services stop redis 2>/dev/null || true
+	@echo "✅ All services stopped"
+
+clean:
+	@echo "🧹 Cleaning up..."
+	@rm -rf logs/*.log
+	@rm -rf backend/__pycache__
+	@rm -rf backend/.pytest_cache
+	@rm -rf backend/.ruff_cache
+	@rm -rf frontend/dist
+	@rm -rf frontend/node_modules/.cache
+	@echo "✅ Cleanup complete"
+
+test:
+	@echo "🧪 Running backend tests..."
+	@cd backend && poetry run pytest

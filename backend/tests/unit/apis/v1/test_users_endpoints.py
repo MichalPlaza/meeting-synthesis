@@ -1,11 +1,12 @@
 import pytest
 from unittest.mock import AsyncMock, patch
-from datetime import datetime
+from datetime import datetime, UTC
 from bson import ObjectId
 
 from app.apis.v1.endpoints_users import get_user_me, get_users
 from app.schemas.user_schema import UserResponse
 from app.models.py_object_id import PyObjectId
+from app.models.user import UserRole
 
 
 class TestUserEndpoints:
@@ -16,8 +17,11 @@ class TestUserEndpoints:
             username="testuser",
             email="test@example.com",
             full_name="Test User",
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+            role=UserRole.DEVELOPER,
+            is_approved=True,
+            can_edit=True,
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC)
         )
 
     @pytest.mark.asyncio
@@ -34,16 +38,22 @@ class TestUserEndpoints:
                 username="user1",
                 email="user1@example.com",
                 full_name="User One",
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow()
+                role=UserRole.DEVELOPER,
+                is_approved=True,
+                can_edit=True,
+                created_at=datetime.now(UTC),
+                updated_at=datetime.now(UTC)
             ),
             UserResponse(
                 _id=PyObjectId(),
                 username="user2",
                 email="user2@example.com",
                 full_name="User Two",
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow()
+                role=UserRole.DEVELOPER,
+                is_approved=True,
+                can_edit=True,
+                created_at=datetime.now(UTC),
+                updated_at=datetime.now(UTC)
             )
         ]
 

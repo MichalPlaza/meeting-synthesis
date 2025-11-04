@@ -2,6 +2,7 @@ import pytest
 from unittest.mock import AsyncMock
 from datetime import datetime, timezone
 from bson import ObjectId
+from app.models.enums.proccessing_mode import ProcessingMode
 
 from app.crud import crud_meetings
 from app.models.meeting import Meeting
@@ -23,7 +24,10 @@ class TestMeetingCRUD:
             mimetype="audio/mpeg"
         )
 
-        self.processing_config = ProcessingConfig()
+        self.processing_config = ProcessingConfig(
+            language="en",
+            processing_mode_selected=ProcessingMode.LOCAL
+        )
 
         self.meeting_data = MeetingCreate(
             title="Test Meeting",
