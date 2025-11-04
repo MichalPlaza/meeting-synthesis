@@ -170,13 +170,13 @@ echo ""
 
 # Tail all logs in parallel with prefixes
 tail -f logs/backend.log 2>/dev/null | sed "s/^/$(echo -e '\033[0;32m')[BACKEND]$(echo -e '\033[0m') /" &
-PIDS+=($!)
+PIDS+=("$!")
 tail -f logs/celery_worker.log 2>/dev/null | sed "s/^/$(echo -e '\033[0;33m')[CELERY_WORKER]$(echo -e '\033[0m') /" &
-PIDS+=($!)
+PIDS+=("$!")
 tail -f logs/celery_beat.log 2>/dev/null | sed "s/^/$(echo -e '\033[0;35m')[CELERY_BEAT]$(echo -e '\033[0m') /" &
-PIDS+=($!)
+PIDS+=("$!")
 tail -f logs/frontend.log 2>/dev/null | sed "s/^/$(echo -e '\033[0;36m')[FRONTEND]$(echo -e '\033[0m') /" &
-PIDS+=($!)
+PIDS+=("$!")
 
 # Wait for Ctrl+C
 wait
