@@ -53,6 +53,7 @@ app.mount("/media", StaticFiles(directory="uploads"), name="media")
 
 app.include_router(endpoints_auth.router, prefix="/auth", tags=["auth"])
 app.include_router(endpoints_project.router, prefix="/project", tags=["project"])
+app.include_router(endpoints_meetings.admin_router, prefix="/meetings", tags=["meetings-admin"])
 app.include_router(endpoints_meetings.router, prefix="/meetings", tags=["meetings"])
 app.include_router(endpoints_users.router, prefix="/users", tags=["users"])
 app.include_router(endpoints_knowledge_base.router, prefix="/api/v1", tags=["knowledge-base"])
