@@ -33,6 +33,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "../ui/badge";
 import type {
@@ -192,15 +193,16 @@ export function CellActions({ row, onUpdate, onDelete }: CellActionsProps) {
               />
             </div>
             {/* Project Description */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="description" className="text-right">
+            <div className="grid grid-cols-4 items-start gap-4">
+              <Label htmlFor="description" className="text-right pt-2">
                 Description
               </Label>
-              <Input
+              <Textarea
                 id="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="col-span-3"
+                className="col-span-3 min-h-[100px]"
+                placeholder="Enter project description..."
               />
             </div>
 

@@ -35,14 +35,6 @@ export const getProjectColumns = ({
       );
     },
   },
-  // Description
-  {
-    accessorKey: "description",
-    header: "Description",
-    cell: ({ row }) => {
-      return <div>{row.original.description}</div>;
-    },
-  },
   {
     accessorKey: "owner",
     header: "Owner ID",
