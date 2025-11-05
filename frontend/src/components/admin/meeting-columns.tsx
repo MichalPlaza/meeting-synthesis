@@ -4,7 +4,7 @@ import { ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CellActions } from "./meeting-cell-actions";
-import type { Meeting, PopulatedMeeting } from "@/types/meeting";
+import type { PopulatedMeeting } from "@/types/meeting";
 
 const formatDuration = (seconds: number | null | undefined): string => {
   if (seconds === null || seconds === undefined || isNaN(seconds)) {
@@ -107,20 +107,6 @@ export const getMeetingColumns = ({
         timeStyle: "short",
       });
     },
-  },
-
-  {
-    accessorKey: "tags",
-    header: "Tags",
-    cell: ({ row }) => (
-      <div className="flex flex-wrap gap-1">
-        {row.original.tags?.map((tag) => (
-          <Badge key={tag} variant="secondary">
-            {tag}
-          </Badge>
-        ))}
-      </div>
-    ),
   },
 
   {
