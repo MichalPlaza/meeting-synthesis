@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from bson import ObjectId
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 from ..models.py_object_id import PyObjectId
 
@@ -25,6 +25,12 @@ class ProjectUpdate(BaseModel):
 
 
 class ProjectResponse(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+        json_encoders={ObjectId: str, PyObjectId: str},
+        arbitrary_types_allowed=True
+    )
+
     id: PyObjectId = Field(..., alias="_id")
     name: str
     description: str
@@ -33,10 +39,33 @@ class ProjectResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        populate_by_name = True
-        json_encoders = {ObjectId: str, PyObjectId: str}
-        arbitrary_types_allowed = True
+
+# Schema Project has basic information of Users
+class UserInfo(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+        json_encoders={ObjectId: str, PyObjectId: str},
+        arbitrary_types_allowed=True
+    )
+    
+    id: PyObjectId = Field(..., alias="_id")
+    username: str
+
+
+class ProjectResponsePopulated(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+        json_encoders={ObjectId: str, PyObjectId: str},
+        arbitrary_types_allowed=True
+    )
+    
+    id: PyObjectId = Field(..., alias="_id")
+    name: str
+    description: str
+    owner: UserInfo  
+    members: list[UserInfo] = [] 
+    created_at: datetime
+    updated_at: datetime
 
 # Schema Project has basic information of Users
 class UserInfo(BaseModel):
@@ -56,32 +85,3 @@ class ProjectResponsePopulated(BaseModel):
     members: list[UserInfo] = [] 
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        populate_by_name = True
-        json_encoders = {ObjectId: str, PyObjectId: str}
-        arbitrary_types_allowed = True
-
-# Schema Project has basic information of Users
-class UserInfo(BaseModel):
-    id: PyObjectId = Field(..., alias="_id")
-    username: str
-
-    class Config:
-        populate_by_name = True
-        json_encoders = {ObjectId: str, PyObjectId: str}
-        arbitrary_types_allowed = True
-
-class ProjectResponsePopulated(BaseModel):
-    id: PyObjectId = Field(..., alias="_id")
-    name: str
-    description: str
-    owner: UserInfo  
-    members: list[UserInfo] = [] 
-    created_at: datetime
-    updated_at: datetime
-
-    class Config:
-        populate_by_name = True
-        json_encoders = {ObjectId: str, PyObjectId: str}
-        arbitrary_types_allowed = True

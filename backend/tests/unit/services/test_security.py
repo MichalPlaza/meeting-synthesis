@@ -8,7 +8,6 @@ from app.schemas.user_schema import TokenData
 from app.core.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS
 
 
-@pytest.mark.asyncio
 class TestSecurityService:
 
     def test_verify_password_correct_and_incorrect(self):

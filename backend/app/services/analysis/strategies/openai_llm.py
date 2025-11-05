@@ -49,10 +49,15 @@ class OpenAIStrategy(BaseAIAnalysisStrategy):
 
     @staticmethod
     def _clean_json_block(raw: str) -> str:
-
+        """Remove markdown code block wrappers from JSON response."""
         s = raw.strip()
         if s.startswith("```"):
+            # Remove opening ```json or ```
             s = s.split("```", 1)[1]
+            # Remove language marker (e.g., "json\n")
+            if s.startswith("json"):
+                s = s[4:].lstrip()
+            # Remove closing ```
             if "```" in s:
                 s = s.rsplit("```", 1)[0]
         return s.strip()

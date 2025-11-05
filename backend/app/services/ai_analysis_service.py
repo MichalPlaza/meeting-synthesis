@@ -70,7 +70,7 @@ class AIAnalysisService:
                 LOGGER.exception("Failed to set FAILED status after analysis error")
             raise
 
-        ai_analysis_payload = ai_analysis_obj.dict() if hasattr(ai_analysis_obj, "dict") else ai_analysis_obj
+        ai_analysis_payload = ai_analysis_obj.model_dump() if hasattr(ai_analysis_obj, "model_dump") else ai_analysis_obj
 
         await crud_meetings.update_meeting(
             database,

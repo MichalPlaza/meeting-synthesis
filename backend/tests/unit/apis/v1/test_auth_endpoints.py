@@ -26,12 +26,16 @@ class TestAuthEndpoints:
 
     # ---------------- REGISTER USER ----------------
     async def test_register_user_success(self):
+        from app.models.user import UserRole
         user_data = UserCreate(username="newuser", email="new@example.com", password="pass123", full_name="New User")
         fake_response = UserResponse(
             _id=PyObjectId(),
             username="newuser",
             email="new@example.com",
             full_name="New User",
+            role=UserRole.DEVELOPER,
+            is_approved=False,
+            can_edit=True,
             created_at="2025-01-01T00:00:00",
             updated_at="2025-01-01T00:00:00"
         )

@@ -1,5 +1,5 @@
 # tests/unit/schemas/test_user_schema.py
-from datetime import datetime
+from datetime import datetime, UTC
 
 import pytest
 from bson import ObjectId
@@ -47,13 +47,17 @@ class TestUserModels:
         assert user_update.full_name is None
 
     def test_user_response_happy(self, valid_id, valid_email):
+        from app.models.user import UserRole
         user_resp = user_schema.UserResponse(
             _id=PyObjectId(valid_id),
             username="respuser",
             email=valid_email,
             full_name="Response User",
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+            role=UserRole.DEVELOPER,
+            is_approved=False,
+            can_edit=True,
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC)
         )
         assert user_resp.username == "respuser"
         assert isinstance(user_resp.id, PyObjectId)
@@ -63,8 +67,8 @@ class TestUserModels:
         with pytest.raises(ValidationError):
             user_schema.UserResponse(
                 username="missingemail",
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow(),
+                created_at=datetime.now(UTC),
+                updated_at=datetime.now(UTC),
                 _id=PyObjectId(valid_id)
             )
 

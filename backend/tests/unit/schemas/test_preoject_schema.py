@@ -1,5 +1,5 @@
 import pytest
-from datetime import datetime
+from datetime import datetime, UTC
 from pydantic import ValidationError
 from bson import ObjectId
 
@@ -24,7 +24,7 @@ class TestProjectModels:
             description="Test description",
             owner_id=PyObjectId(owner_id),
             members_ids=[PyObjectId(mid) for mid in members_ids],
-            meeting_datetime=datetime.utcnow()
+            meeting_datetime=datetime.now(UTC)
         )
         assert project.name == "Awesome Project"
         assert len(project.members_ids) == 3
@@ -35,7 +35,7 @@ class TestProjectModels:
             name="No Desc Project",
             owner_id=PyObjectId(owner_id),
             members_ids=[],
-            meeting_datetime=datetime.utcnow()
+            meeting_datetime=datetime.now(UTC)
         )
         assert project.description is None
         assert project.name == "No Desc Project"
@@ -46,7 +46,7 @@ class TestProjectModels:
                 name="Bad Project",
                 owner_id="not-a-valid-id",
                 members_ids=[],
-                meeting_datetime=datetime.utcnow()
+                meeting_datetime=datetime.now(UTC)
             )
 
     def test_project_update_partial(self, valid_ids):
@@ -65,9 +65,9 @@ class TestProjectModels:
             description="Complete description",
             owner_id=PyObjectId(owner_id),
             members_ids=[PyObjectId(mid) for mid in members_ids],
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
-            meeting_datetime=datetime.utcnow()
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
+            meeting_datetime=datetime.now(UTC)
         )
         assert project_resp.name == "Full Project"
         assert len(project_resp.members_ids) == 3
@@ -79,9 +79,9 @@ class TestProjectModels:
                 description="Desc",
                 owner_id=PyObjectId(),
                 members_ids=[],
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow(),
-                meeting_datetime=datetime.utcnow()
+                created_at=datetime.now(UTC),
+                updated_at=datetime.now(UTC),
+                meeting_datetime=datetime.now(UTC)
             )
 
     def test_project_update_invalid_members_ids(self):

@@ -57,6 +57,13 @@ function MainLayout() {
                   <NavLink to="/projects" className={navLinkButtonClass()} end>
                     Projects
                   </NavLink>
+                  <NavLink
+                    to="/knowledge-base"
+                    className={navLinkButtonClass()}
+                    end
+                  >
+                    Knowledge Base
+                  </NavLink>
                   {user?.role === "project_manager" && (
                     <NavLink
                       to="/manage-access"
@@ -73,13 +80,25 @@ function MainLayout() {
               </>
             ) : (
               <>
-                <Button asChild variant="ghost" className="hidden md:inline-flex">
+                <Button
+                  asChild
+                  variant="ghost"
+                  className="hidden md:inline-flex"
+                >
                   <NavLink to="/#features">Features</NavLink>
                 </Button>
-                <Button asChild variant="ghost" className="hidden md:inline-flex">
+                <Button
+                  asChild
+                  variant="ghost"
+                  className="hidden md:inline-flex"
+                >
                   <NavLink to="/about">About</NavLink>
                 </Button>
-                <Button asChild variant="ghost" className="hidden md:inline-flex">
+                <Button
+                  asChild
+                  variant="ghost"
+                  className="hidden md:inline-flex"
+                >
                   <NavLink to="/contact">Contact</NavLink>
                 </Button>
                 <NavLink to="/login">

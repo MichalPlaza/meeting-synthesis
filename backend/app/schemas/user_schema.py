@@ -1,6 +1,6 @@
 from datetime import datetime
 from bson import ObjectId
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from enum import Enum
 from ..models.py_object_id import PyObjectId
 
@@ -27,15 +27,8 @@ class UserBase(BaseModel):
 
 
 class UserCreate(BaseModel):
-    username: str
-    email: EmailStr
-    password: str
-    full_name: str | None = None
-    role: UserRole = UserRole.DEVELOPER
-    manager_id: PyObjectId | None = None
-
-    class Config:
-        schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "username": "jan.kowalski",
                 "email": "jan.kowalski@example.com",
@@ -45,6 +38,14 @@ class UserCreate(BaseModel):
                 "manager_id": "64f1e8f5c2a1b2c3d4e5f6a7"
             }
         }
+    )
+
+    username: str
+    email: EmailStr
+    password: str
+    full_name: str | None = None
+    role: UserRole = UserRole.DEVELOPER
+    manager_id: PyObjectId | None = None
 
 
 class UserLogin(BaseModel):
@@ -68,6 +69,12 @@ class UserUpdate(BaseModel):
 #     old_password: str
 
 class UserResponse(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+        from_attributes=True,
+        json_encoders={ObjectId: str, PyObjectId: str}
+    )
+
     id: PyObjectId = Field(alias="_id")
     username: str
     email: EmailStr
@@ -78,11 +85,6 @@ class UserResponse(BaseModel):
     can_edit: bool
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        populate_by_name = True
-        from_attributes = True
-        json_encoders = {ObjectId: str, PyObjectId: str}
 
 
 class Token(BaseModel):

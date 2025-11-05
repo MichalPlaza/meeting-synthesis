@@ -105,11 +105,41 @@ async def update_existing_meeting(
         database: AsyncIOMotorDatabase, meeting_id: str, update_data: MeetingUpdate
 ) -> Meeting | None:
     logger.info(f"Service: Updating meeting with ID: {meeting_id}")
-    return await crud_meetings.update_meeting(database, meeting_id, update_data)
+    
+    # Update the meeting
+    updated_meeting = await crud_meetings.update_meeting(database, meeting_id, update_data)
+    
+    if not updated_meeting:
+        return None
+    
+    # Reindex to Knowledge Base if meeting is completed and has indexable content
+    from .meeting_indexing_service import reindex_meeting
+    from ..models.enums.processing_stage import ProcessingStage
+    
+    if (updated_meeting.processing_status.current_stage == ProcessingStage.COMPLETED and
+        (updated_meeting.transcription or updated_meeting.ai_analysis)):
+        try:
+            logger.info(f"Reindexing meeting {meeting_id} to Knowledge Base after update")
+            await reindex_meeting(updated_meeting)
+        except Exception as e:
+            logger.error(f"Failed to reindex meeting {meeting_id}: {e}", exc_info=True)
+            # Don't fail the update if reindexing fails
+    
+    return updated_meeting
 
 
 async def delete_existing_meeting(database: AsyncIOMotorDatabase, meeting_id: str) -> bool:
     logger.info(f"Service: Deleting meeting with ID: {meeting_id}")
+    
+    # Delete from Knowledge Base first
+    from .meeting_indexing_service import delete_meeting_from_knowledge_base
+    try:
+        await delete_meeting_from_knowledge_base(meeting_id)
+        logger.info(f"Meeting {meeting_id} removed from Knowledge Base")
+    except Exception as e:
+        logger.error(f"Failed to remove meeting {meeting_id} from Knowledge Base: {e}", exc_info=True)
+        # Continue with deletion even if KB removal fails
+    
     return await crud_meetings.delete_meeting(database, meeting_id)
 
 

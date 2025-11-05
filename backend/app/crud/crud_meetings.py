@@ -100,9 +100,15 @@ async def create_meeting(
         database: AsyncIOMotorDatabase, meeting_data: MeetingCreate
 ) -> Meeting:
     logger.debug(f"Creating new meeting with title: {meeting_data.title}")
-    meeting_doc = meeting_data.dict(by_alias=True)
+    meeting_doc = meeting_data.model_dump(by_alias=True)
     meeting_doc["uploaded_at"] = datetime.now(UTC)
     meeting_doc["last_updated_at"] = datetime.now(UTC)
+    
+    # Ensure ObjectId types are preserved for database queries
+    if "project_id" in meeting_doc and isinstance(meeting_doc["project_id"], str):
+        meeting_doc["project_id"] = ObjectId(meeting_doc["project_id"])
+    if "uploader_id" in meeting_doc and isinstance(meeting_doc["uploader_id"], str):
+        meeting_doc["uploader_id"] = ObjectId(meeting_doc["uploader_id"])
 
     result = await database["meetings"].insert_one(meeting_doc)
     meeting_doc["_id"] = result.inserted_id
@@ -119,7 +125,7 @@ async def update_meeting(
         logger.warning(f"Invalid meeting ID format for update: {meeting_id}")
         return None
 
-    data = {k: v for k, v in update_data.dict(exclude_unset=True).items()}
+    data = {k: v for k, v in update_data.model_dump(exclude_unset=True).items()}
     if not data:
         logger.debug(f"No update data provided for meeting ID: {meeting_id}")
         return await get_meeting_by_id(database, meeting_id)

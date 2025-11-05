@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from fastapi import Form
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List
 
 from ..models.action_items import ActionItem
@@ -44,6 +44,13 @@ class MeetingUpdate(BaseModel):
 
 
 class MeetingResponse(MeetingBase):
+    model_config = ConfigDict(
+        from_attributes=True,
+        populate_by_name=True,
+        json_encoders={PyObjectId: str},
+        arbitrary_types_allowed=True
+    )
+
     id: PyObjectId = Field(..., alias="_id")
     audio_file: AudioFile
     processing_config: ProcessingConfig
@@ -55,12 +62,6 @@ class MeetingResponse(MeetingBase):
     duration_seconds: int | None = None
     tags: list[str] = []
     estimated_processing_time_seconds: int | None = None
-
-    class Config:
-        from_attributes = True
-        populate_by_name = True
-        json_encoders = {PyObjectId: str}
-        arbitrary_types_allowed = True
 
 
 class MeetingCreateForm:

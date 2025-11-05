@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 
 from bson import ObjectId
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 from .ai_analysis import AIAnalysis
 from .audio_file import AudioFile
@@ -12,6 +12,12 @@ from .transcrpion import Transcription
 
 
 class Meeting(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+        arbitrary_types_allowed=True,
+        from_attributes=True
+    )
+
     id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
     title: str
     meeting_datetime: datetime
@@ -29,9 +35,3 @@ class Meeting(BaseModel):
     
     duration_seconds: int | None = None
     tags: list[str] = []
-
-    class Config:
-        populate_by_name = True
-        json_encoders = {ObjectId: str, PyObjectId: str}
-        arbitrary_types_allowed = True
-        from_attributes = True

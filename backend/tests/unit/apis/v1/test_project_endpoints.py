@@ -26,8 +26,7 @@ class TestProjectEndpoints:
             name="New Project",
             description="Test project",
             owner_id=PyObjectId(),
-            members_ids=[],
-            meeting_datetime=datetime(2025, 1, 1)
+            members_ids=[]
         )
 
         mock_project = ProjectResponse(
@@ -37,8 +36,7 @@ class TestProjectEndpoints:
             owner_id=project_data.owner_id,
             members_ids=project_data.members_ids,
             created_at=datetime.now(),
-            updated_at=datetime.now(),
-            meeting_datetime=project_data.meeting_datetime
+            updated_at=datetime.now()
         )
 
         with patch(

@@ -1,5 +1,5 @@
 import path from "path";
-import { defineConfig } from "vite";
+import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
@@ -13,11 +13,18 @@ export default defineConfig({
   },
   // Required for pnpm
   server: {
+    port: 3000,
     fs: {
       strict: false,
     },
   },
   optimizeDeps: {
     include: ["@/**"],
+  },
+  test: {
+    globals: true,
+    environment: "jsdom",
+    setupFiles: "./src/test/setup.ts",
+    css: true,
   },
 });
