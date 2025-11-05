@@ -1,81 +1,97 @@
 // src/layouts/AdminLayout.tsx
 
 import { NavLink, Outlet } from "react-router-dom";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { useAuth } from "@/AuthContext";
 import { Toaster } from "sonner";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { cn } from "@/lib/utils";
-import {
-  LogOut,
-  LayoutDashboard,
-  Users,
-  FolderKanban,
-  BookUser,
-} from "lucide-react";
+import { AdminSubNav } from "@/components/admin/AdminSubNav";
 
 function AdminLayout() {
   const { user, logout } = useAuth();
   const userName = user?.full_name;
 
-  const sidebarNavLinkClass = ({ isActive }: { isActive: boolean }) =>
+  const navLinkButtonClass = () =>
     cn(
-      "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
-      isActive && "bg-muted text-primary"
+      buttonVariants({ variant: "secondary", size: "sm" }),
+      "bg-transparent shadow-none",
+      "hover:bg-secondary hover:text-secondary-foreground",
+      "cursor-pointer"
     );
 
   return (
-    <div className="grid h-screen w-full grid-rows-[auto_1fr] md:grid-cols-[220px_1fr] lg:grid-cols-[200px_1fr]">
-      <div className="flex h-14 items-center border-b border-r bg-muted/40 px-4 lg:h-[60px] lg:px-6">
-        <NavLink
-          to="/admin"
-          className="flex items-center gap-2 font-semibold text-foreground"
-        >
-          <LayoutDashboard className="h-6 w-6" />
-          <span>Admin Panel</span>
-        </NavLink>
-      </div>
-
-      <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
-        <div className="w-full flex-1"></div>
-        <span className="text-sm text-muted-foreground hidden md:inline">
-          Hello, {userName || user?.username}
-        </span>
-        <Button variant="secondary" size="sm" onClick={logout}>
-          <LogOut className="h-4 w-4 mr-2" />
-          Log Out
-        </Button>
-        <ThemeToggle />
-      </header>
-
-      <div className="hidden border-r bg-muted/40 md:block">
-        <div className="flex-1 py-4">
-          <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
-            <NavLink to="/admin/dashboard" className={sidebarNavLinkClass}>
-              <LayoutDashboard className="h-4 w-4" />
-              Dashboard
-            </NavLink>
-            <NavLink to="/admin/users" className={sidebarNavLinkClass}>
-              <Users className="h-4 w-4" />
-              Users
-            </NavLink>
-            <NavLink to="/admin/projects" className={sidebarNavLinkClass}>
-              <FolderKanban className="h-4 w-4" />
-              Projects
-            </NavLink>
-            <NavLink to="/admin/meetings" className={sidebarNavLinkClass}>
-              <BookUser className="h-4 w-4" />
-              Meetings
-            </NavLink>
+    <div className="min-h-screen bg-background text-foreground">
+      <Toaster
+        position="bottom-right"
+        offset="1.5rem"
+        gap={16}
+        richColors
+        toastOptions={{
+          classNames: {
+            toast:
+              "bg-card text-card-foreground border rounded-[var(--radius-container)] shadow-lg",
+            title: "text-base font-semibold",
+            description: "text-muted-foreground",
+            actionButton: "bg-primary text-primary-foreground",
+            cancelButton: "bg-secondary text-secondary-foreground",
+            success: "!border-success/50 [&>div>svg]:text-success",
+            error: "!border-destructive/50 [&>div>svg]:text-destructive",
+            warning: "!border-warning/50 [&>div>svg]:text-warning",
+            info: "!border-info/50 [&>div>svg]:text-info",
+          },
+        }}
+      />
+      <header className="container mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center border-b border-border/50 py-4">
+          <NavLink to="/" className="text-xl font-bold text-foreground">
+            Meeting Synthesis
+          </NavLink>
+          <nav className="flex items-center space-x-2 md:space-x-4">
+            <span className="hidden md:inline text-muted-foreground">
+              Hello, {userName || user?.username}
+            </span>
+            <div className="hidden md:flex items-center gap-2 mr-4">
+              <NavLink to="/meetings" className={navLinkButtonClass()} end>
+                Meetings
+              </NavLink>
+              <NavLink to="/projects" className={navLinkButtonClass()} end>
+                Projects
+              </NavLink>
+              <NavLink
+                to="/knowledge-base"
+                className={navLinkButtonClass()}
+                end
+              >
+                Knowledge Base
+              </NavLink>
+              {user?.role === "project_manager" && (
+                <NavLink
+                  to="/manage-access"
+                  className={navLinkButtonClass()}
+                  end
+                >
+                  Manage Access
+                </NavLink>
+              )}
+              {user?.role === "admin" && (
+                <NavLink to="/admin/dashboard" className={navLinkButtonClass()}>
+                  Admin
+                </NavLink>
+              )}
+            </div>
+            <Button variant="secondary" size="sm" onClick={logout}>
+              Log Out
+            </Button>
+            <ThemeToggle />
           </nav>
         </div>
-      </div>
+      </header>
 
-      <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 overflow-auto bg-background">
+      <main className="container mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-12">
+        <AdminSubNav />
         <Outlet />
       </main>
-
-      <Toaster position="bottom-right" richColors />
     </div>
   );
 }

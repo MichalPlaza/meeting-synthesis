@@ -45,14 +45,14 @@ function App() {
 
           <Route path="/style-guide" element={<StyleGuidePage />} />
 
-        <Route element={<ProtectedRoute />}>
-          <Route path="/meetings" element={<MeetingsListPage />} />
-          <Route path="/projects" element={<ProjectListPage />} />
-          <Route path="/knowledge-base" element={<KnowledgeBasePage />} />
-          <Route
-            path="/manage-access"
-            element={<ManageDeveloperAccessPage />}
-          />
+          <Route element={<ProtectedRoute />}>
+            <Route path="/meetings" element={<MeetingsListPage />} />
+            <Route path="/projects" element={<ProjectListPage />} />
+            <Route path="/knowledge-base" element={<KnowledgeBasePage />} />
+            <Route
+              path="/manage-access"
+              element={<ManageDeveloperAccessPage />}
+            />
             <Route
               path="/projects/:projectId"
               element={<ProjectDetailsPage />}
