@@ -100,15 +100,16 @@ export function MultiSelect({
       {...props}
     >
       <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <div
+        <PopoverTrigger asChild disabled={disabled}>
+          <button
+            type="button"
             className={cn(
-              "flex min-h-[40px] w-full rounded-[var(--radius-field)] border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-within:outline-none focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2",
+              "flex min-h-[40px] w-full rounded-[var(--radius-field)] border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-within:outline-none focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 cursor-pointer",
               disabled && "cursor-not-allowed opacity-50"
             )}
-            onClick={() => inputRef.current?.focus()}
+            onClick={() => !disabled && inputRef.current?.focus()}
           >
-            <div className="flex flex-wrap gap-1.5 items-center">
+            <div className="flex flex-wrap gap-1.5 items-center flex-1">
               {selected.map((itemValue) => {
                 const option = options.find((o) => o.value === itemValue);
                 if (!option) return null;
@@ -117,7 +118,7 @@ export function MultiSelect({
                     {option.label}
                     <button
                       type="button"
-                      className="ml-1 -mr-0.5 h-4 w-4 rounded-full outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                      className="ml-1 -mr-0.5 h-4 w-4 rounded-full outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2 cursor-pointer"
                       onClick={(e) => {
                         e.stopPropagation(); // Prevent opening popover
                         handleRemove(itemValue);
@@ -141,7 +142,7 @@ export function MultiSelect({
             <div className="flex items-center">
               <ChevronDown className="h-4 w-4 text-muted-foreground ml-2" />
             </div>
-          </div>
+          </button>
         </PopoverTrigger>
         <PopoverContent className="p-0 w-[var(--radix-popover-trigger-width)]">
           <CommandGroup>
