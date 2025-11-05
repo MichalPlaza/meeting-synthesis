@@ -10,7 +10,6 @@ import { Users, FolderKanban, BookUser } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/AuthContext";
 import { TimeSeriesChart } from "@/components/admin/TimeSeriesChart";
-import { RecentActivity } from "@/components/admin/RecentActivity";
 
 interface DashboardStats {
   total_users: number;
@@ -233,11 +232,6 @@ export default function AdminDashboardPage() {
             </CardContent>
           </Card>
         </div>
-      </div>
-
-      {/* ACTIVITIES */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-1">
-        <RecentActivity />
       </div>
     </div>
   );
