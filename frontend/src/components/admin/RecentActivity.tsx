@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+import { useAuth } from "@/AuthContext";
 import {
   Card,
   CardContent,
@@ -5,7 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Users, FolderKanban, BookUser } from "lucide-react";
+import { Users, FolderKanban, BookUser, Loader2 } from "lucide-react";
 
 interface Activity {
   id: string;
@@ -19,53 +21,31 @@ interface Activity {
   };
 }
 
-const fakeActivities: Activity[] = [
-  {
-    id: "1",
-    activity_type: "MEETING_UPLOADED",
-    timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString(), // 5 minutes ago
-    details: { meetingTitle: "Weekly Sync", projectName: "Team Alpha" },
-  },
-  {
-    id: "2",
-    activity_type: "PROJECT_CREATED",
-    timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(), // 30 minutes ago
-    details: { projectName: "Q4 Bug Report", username: "michal" },
-  },
-  {
-    id: "3",
-    activity_type: "USER_REGISTERED",
-    timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
-    details: { userFullName: "Piotr Branewski" },
-  },
-  {
-    id: "4",
-    activity_type: "USER_REGISTERED",
-    timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(), // 5 hours ago
-    details: { userFullName: "Jane Doe" },
-  },
-  {
-    id: "5",
-    activity_type: "PROJECT_CREATED",
-    timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
-    details: { projectName: "New Website Design", username: "khanhnam" },
-  },
-];
+const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
+const RECENT_ACTIVITIES_LIMIT = 5;
+
+const TIME_INTERVALS = {
+  YEAR: 31536000,
+  MONTH: 2592000,
+  DAY: 86400,
+  HOUR: 3600,
+  MINUTE: 60,
+} as const;
 
 function formatTimeAgo(dateString: string): string {
   const date = new Date(dateString);
   const now = new Date();
   const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
-  let interval = seconds / 31536000;
+  let interval = seconds / TIME_INTERVALS.YEAR;
   if (interval > 1) return Math.floor(interval) + " years ago";
-  interval = seconds / 2592000;
+  interval = seconds / TIME_INTERVALS.MONTH;
   if (interval > 1) return Math.floor(interval) + " months ago";
-  interval = seconds / 86400;
+  interval = seconds / TIME_INTERVALS.DAY;
   if (interval > 1) return Math.floor(interval) + " days ago";
-  interval = seconds / 3600;
+  interval = seconds / TIME_INTERVALS.HOUR;
   if (interval > 1) return Math.floor(interval) + " hours ago";
-  interval = seconds / 60;
+  interval = seconds / TIME_INTERVALS.MINUTE;
   if (interval > 1) return Math.floor(interval) + " minutes ago";
   return "Just now";
 }
@@ -122,7 +102,94 @@ function ActivityItem({ activity }: { activity: Activity }) {
 }
 
 export function RecentActivity() {
-  const activities = fakeActivities;
+  const { token } = useAuth();
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchActivities = async () => {
+      if (!token) {
+        setIsLoading(false);
+        setError("Authentication token is missing.");
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        const response = await fetch(
+          `${BACKEND_API_BASE_URL}/admin/dashboard/recent-activities?limit=${RECENT_ACTIVITIES_LIMIT}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch activities: ${response.statusText}`);
+        }
+
+        const data: { activities: Activity[] } = await response.json();
+        setActivities(data.activities);
+      } catch (err) {
+        console.error("Error fetching recent activities:", err);
+        setError(
+          err instanceof Error ? err.message : "An unknown error occurred."
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchActivities();
+  }, [token]);
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Activity</CardTitle>
+          <CardDescription>
+            A log of recent events that have occurred in the system.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex items-center justify-center py-8">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Activity</CardTitle>
+          <CardDescription>
+            A log of recent events that have occurred in the system.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-destructive">{error}</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (activities.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Activity</CardTitle>
+          <CardDescription>
+            A log of recent events that have occurred in the system.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">No recent activities.</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>

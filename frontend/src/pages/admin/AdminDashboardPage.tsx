@@ -10,7 +10,6 @@ import { Users, FolderKanban, BookUser } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/AuthContext";
 import { TimeSeriesChart } from "@/components/admin/TimeSeriesChart";
-import { RecentActivity } from "@/components/admin/RecentActivity";
 
 interface DashboardStats {
   total_users: number;
@@ -33,7 +32,6 @@ export default function AdminDashboardPage() {
   const [meetingsChartData, setMeetingsChartData] = useState<ChartDataPoint[]>(
     []
   );
-  // const [activities, setActivities] = useState<Activity[]>([]);
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -57,7 +55,6 @@ export default function AdminDashboardPage() {
           statsResponse,
           registrationsChartResponse,
           meetingsChartResponse,
-          activitiesResponse,
         ] = await Promise.all([
           fetch(`${BACKEND_API_BASE_URL}/admin/dashboard/stats`, {
             headers: { Authorization: `Bearer ${token}` },
@@ -71,12 +68,6 @@ export default function AdminDashboardPage() {
           fetch(
             `${BACKEND_API_BASE_URL}/admin/dashboard/meetings-chart?period_days=${period}`,
             { headers: { Authorization: `Bearer ${token}` } }
-          ),
-          fetch(
-            `${BACKEND_API_BASE_URL}/admin/dashboard/recent-activities?limit=5`,
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            }
           ),
         ]);
 
@@ -92,10 +83,6 @@ export default function AdminDashboardPage() {
           throw new Error(
             `Meetings chart fetch failed: ${meetingsChartResponse.statusText}`
           );
-        if (!activitiesResponse.ok)
-          throw new Error(
-            `Activities fetch failed: ${activitiesResponse.statusText}`
-          );
 
         const statsData: DashboardStats = await statsResponse.json();
         setStats(statsData);
@@ -107,12 +94,11 @@ export default function AdminDashboardPage() {
         const meetingsData: { data: ChartDataPoint[] } =
           await meetingsChartResponse.json();
         setMeetingsChartData(meetingsData.data);
-
-        // const activitiesDataResponse: { activities: Activity[] } = await activitiesResponse.json();
-        // setActivities(activitiesDataResponse.activities);
-      } catch (err: any) {
+      } catch (err) {
         console.error("Error fetching dashboard data:", err);
-        setError(err.message || "An unknown error occurred.");
+        setError(
+          err instanceof Error ? err.message : "An unknown error occurred."
+        );
       } finally {
         setIsLoading(false);
       }
@@ -191,12 +177,14 @@ export default function AdminDashboardPage() {
       <div>
         <div className="flex items-center gap-2 mb-4">
           <Button
+            type="button"
             variant={period === 7 ? "default" : "outline"}
             onClick={() => setPeriod(7)}
           >
             Last 7 Days
           </Button>
           <Button
+            type="button"
             variant={period === 30 ? "default" : "outline"}
             onClick={() => setPeriod(30)}
           >
@@ -233,11 +221,6 @@ export default function AdminDashboardPage() {
             </CardContent>
           </Card>
         </div>
-      </div>
-
-      {/* ACTIVITIES */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-1">
-        <RecentActivity />
       </div>
     </div>
   );

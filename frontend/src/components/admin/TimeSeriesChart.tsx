@@ -5,7 +5,6 @@ import {
   Line,
   LineChart,
   ResponsiveContainer,
-  Tooltip,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -16,8 +15,13 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 
+interface ChartDataPoint {
+  date: string;
+  count: number;
+}
+
 interface TimeSeriesChartProps {
-  data: any[];
+  data: ChartDataPoint[];
   dataKey: string;
 }
 
