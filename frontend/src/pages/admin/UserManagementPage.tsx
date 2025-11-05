@@ -3,6 +3,7 @@ import { PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getUserColumns } from "@/components/admin/user-columns";
 import { DataTable } from "@/components/admin/data-table";
+import { AddUserDialog } from "@/components/admin/AddUserDialog";
 import type { UserResponse, UserUpdate } from "@/types/user";
 import { useAuth } from "@/AuthContext";
 
@@ -11,6 +12,7 @@ const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
 export default function UserManagementPage() {
   const [users, setUsers] = useState<UserResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const { token } = useAuth();
 
   const fetchUsers = async () => {
@@ -106,7 +108,7 @@ export default function UserManagementPage() {
             Manage all users in the system. Total: {users.length} users.
           </p>
         </div>
-        <Button>
+        <Button type="button" onClick={() => setIsAddDialogOpen(true)}>
           <PlusCircle className="mr-2 h-4 w-4" />
           Add New User
         </Button>
@@ -118,6 +120,15 @@ export default function UserManagementPage() {
         filterColumnId="username"
         filterPlaceholder="Filter by username..."
         centeredColumns={["role", "created_at", "updated_at"]}
+      />
+
+      <AddUserDialog
+        isOpen={isAddDialogOpen}
+        onOpenChange={setIsAddDialogOpen}
+        onUserCreated={() => {
+          fetchUsers();
+          setIsAddDialogOpen(false);
+        }}
       />
     </div>
   );

@@ -3,6 +3,7 @@ import { PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getProjectColumns } from "@/components/admin/project-columns";
 import { DataTable } from "@/components/admin/data-table";
+import { AddProjectDialogAdmin } from "@/components/admin/AddProjectDialogAdmin";
 import type { ProjectResponse, ProjectUpdate } from "@/types/project";
 import { useAuth } from "@/AuthContext";
 
@@ -12,6 +13,7 @@ export default function ProjectManagementPage() {
   const [projects, setProjects] = useState<ProjectResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const { token } = useAuth();
 
   const fetchProjects = async () => {
@@ -134,7 +136,7 @@ export default function ProjectManagementPage() {
             projects.
           </p>
         </div>
-        <Button>
+        <Button type="button" onClick={() => setIsAddDialogOpen(true)}>
           <PlusCircle className="mr-2 h-4 w-4" />
           Add New Project
         </Button>
@@ -146,6 +148,14 @@ export default function ProjectManagementPage() {
         filterColumnId="name"
         filterPlaceholder="Filter by name..."
         centeredColumns={["members", "created_at", "updated_at"]}
+      />
+
+      <AddProjectDialogAdmin
+        isOpen={isAddDialogOpen}
+        onOpenChange={setIsAddDialogOpen}
+        onProjectCreated={() => {
+          fetchProjects();
+        }}
       />
     </div>
   );
