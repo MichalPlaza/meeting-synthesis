@@ -7,10 +7,12 @@ from .apis.v1 import (
     endpoints_meetings,
     endpoints_project,
     endpoints_users,
+    endpoints_knowledge_base,
     endpoints_comments,
     endpoints_admin
 )
 from .db.mongodb_utils import close_mongo_connection, connect_to_mongo
+from .core.logging_config import setup_logging
 
 PYTHON_ENV = os.getenv("PYTHON_ENV", "production")
 
