@@ -57,7 +57,7 @@ class MeetingResponse(MeetingBase):
     processing_status: ProcessingStatus
     transcription: Transcription | None = None
     ai_analysis: AIAnalysis | None = None
-    uploaded_at: datetime
+    uploaded_at: datetime | None = None
     last_updated_at: datetime
     duration_seconds: int | None = None
     tags: list[str] = []
