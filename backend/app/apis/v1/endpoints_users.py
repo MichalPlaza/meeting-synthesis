@@ -140,7 +140,7 @@ async def toggle_edit_access_endpoint(
 async def get_public_managers(
     database: AsyncIOMotorDatabase = Depends(get_database),
 ):
-    logger.info("fetching managers")
-    managers = await user_service.get_users_by_role(database, role="project_manager")
+    logger.info("fetching managers (project_manager and admin roles)")
+    managers = await user_service.get_users_by_roles(database, roles=["project_manager", "admin"])
     return managers
 
