@@ -35,7 +35,7 @@ export default function AdminDashboardPage() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [period, setPeriod] = useState<7 | 30>(7);
+  const [period, setPeriod] = useState<7 | 30>(30);
 
   const { token } = useAuth();
 

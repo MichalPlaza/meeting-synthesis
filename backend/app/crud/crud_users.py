@@ -1,6 +1,6 @@
 import logging
 from datetime import UTC, datetime
-
+from pydantic import BaseModel
 from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from numpy.f2py.auxfuncs import throw_error
@@ -106,8 +106,11 @@ async def update_user(
         logger.warning(f"Update failed: User with ID {user_id} not found.")
         return None
 
-    update_data = user_data.dict(exclude_unset=True)
-    
+    if isinstance(user_data, BaseModel):
+        update_data = user_data.dict(exclude_unset=True)
+    else:
+        update_data = user_data
+
     if not update_data:
         logger.debug(f"No fields provided to update for user ID {user_id}.")
         return existing_user
