@@ -12,10 +12,7 @@ from ...schemas.admin_dashboard_schema import (
     RecentActivityResponse,
 )
 
-router = APIRouter(
-    tags=["Admin Dashboard"],
-    dependencies=[Depends(require_approval), Depends(require_edit_permission)]
-)
+router = APIRouter()
 logger = logging.getLogger(__name__)
 
 @router.get("/dashboard/stats", response_model=DashboardStatsResponse)

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -31,6 +31,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/AuthContext";
+import log from "@/services/logging";
 
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
 
@@ -48,9 +49,10 @@ const addUserSchema = z.object({
     .string()
     .min(1, "Full name is required")
     .max(100, "Full name must be less than 100 characters"),
-  role: z.enum(["user", "admin"], {
+  role: z.enum(["developer", "scrum_master", "project_manager", "admin"], {
     required_error: "Please select a role",
   }),
+  manager_id: z.string().optional(),
 });
 
 type AddUserValues = z.infer<typeof addUserSchema>;
@@ -68,6 +70,9 @@ export function AddUserDialog({
 }: AddUserDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { token } = useAuth();
+  const [managers, setManagers] = useState<{ id: string; full_name: string }[]>(
+    []
+  );
 
   const form = useForm<AddUserValues>({
     resolver: zodResolver(addUserSchema),
@@ -76,9 +81,36 @@ export function AddUserDialog({
       email: "",
       password: "",
       full_name: "",
-      role: "user",
+      role: "developer",
+      manager_id: "",
     },
   });
+
+  const selectedRole = form.watch("role");
+
+  useEffect(() => {
+    async function fetchManagers() {
+      if (!isOpen) return;
+      try {
+        log.info("Fetching managers list for Add User dialog");
+        const res = await fetch(`${BACKEND_API_BASE_URL}/users/managers`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error("Failed to fetch managers");
+        const data = await res.json();
+        setManagers(
+          data.map((u: any) => ({ id: u._id, full_name: u.full_name }))
+        );
+        log.info(`Fetched ${data.length} managers`);
+      } catch (err) {
+        log.error("Error fetching managers:", err);
+        toast.error(
+          "Failed to load managers. Please try closing and reopening the dialog."
+        );
+      }
+    }
+    fetchManagers();
+  }, [isOpen, token]);
 
   const handleClose = () => {
     form.reset();
@@ -93,13 +125,21 @@ export function AddUserDialog({
 
     setIsSubmitting(true);
     try {
+      const payload = {
+        ...data,
+        manager_id:
+          data.role === "developer" || data.role === "scrum_master"
+            ? data.manager_id
+            : null,
+      };
+
       const response = await fetch(`${BACKEND_API_BASE_URL}/auth/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
@@ -206,6 +246,36 @@ export function AddUserDialog({
               )}
             />
 
+            {/* <FormField
+              control={form.control}
+              name="role"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Role</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                    disabled={isSubmitting}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a role" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="developer">Developer</SelectItem>
+                      <SelectItem value="scrum_master">Scrum Master</SelectItem>
+                      <SelectItem value="project_manager">
+                        Project Manager
+                      </SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            /> */}
+
             <FormField
               control={form.control}
               name="role"
@@ -223,7 +293,11 @@ export function AddUserDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="user">User</SelectItem>
+                      <SelectItem value="developer">Developer</SelectItem>
+                      <SelectItem value="scrum_master">Scrum Master</SelectItem>
+                      <SelectItem value="project_manager">
+                        Project Manager
+                      </SelectItem>
                       <SelectItem value="admin">Admin</SelectItem>
                     </SelectContent>
                   </Select>
@@ -231,6 +305,37 @@ export function AddUserDialog({
                 </FormItem>
               )}
             />
+
+            {(selectedRole === "developer" ||
+              selectedRole === "scrum_master") && (
+              <FormField
+                control={form.control}
+                name="manager_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Manager</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a manager" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {managers.map((manager) => (
+                          <SelectItem key={manager.id} value={manager.id}>
+                            {manager.full_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <DialogFooter>
               <Button
