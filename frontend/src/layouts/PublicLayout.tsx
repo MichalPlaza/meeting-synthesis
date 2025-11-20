@@ -73,6 +73,14 @@ function MainLayout() {
                       Manage Access
                     </NavLink>
                   )}
+                  {user?.role === "admin" && (
+                    <NavLink
+                      to="/admin/dashboard"
+                      className={navLinkButtonClass()}
+                    >
+                      Admin
+                    </NavLink>
+                  )}
                 </div>
                 <Button variant="secondary" size="sm" onClick={logout}>
                   Log Out

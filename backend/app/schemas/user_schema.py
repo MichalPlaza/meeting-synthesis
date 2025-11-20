@@ -64,6 +64,9 @@ class UserUpdate(BaseModel):
     is_approved: bool | None = None
     can_edit: bool | None = None
 
+# class UserResetPassword(BaseModel):
+#     new_password: str = Field(min_length=8)
+#     old_password: str
 
 class UserResponse(BaseModel):
     model_config = ConfigDict(

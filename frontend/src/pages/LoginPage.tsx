@@ -59,7 +59,12 @@ function LoginPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        log.warn("Login failed for user:", values.username_or_email, "Error:", errorData.detail || response.statusText);
+        log.warn(
+          "Login failed for user:",
+          values.username_or_email,
+          "Error:",
+          errorData.detail || response.statusText
+        );
         toast.error(
           errorData.detail || "Login failed. Please check your credentials."
         );
@@ -69,14 +74,22 @@ function LoginPage() {
       const tokenData = await response.json();
       const accessToken = tokenData.access_token;
       const refreshToken = tokenData.refresh_token;
-      log.debug("Successfully obtained tokens for user:", values.username_or_email);
+      log.debug(
+        "Successfully obtained tokens for user:",
+        values.username_or_email
+      );
 
       const userResponse = await fetch(userApiUrl, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
 
       if (!userResponse.ok) {
-        log.error("Login successful, but could not fetch user info for:", values.username_or_email, "Status:", userResponse.status);
+        log.error(
+          "Login successful, but could not fetch user info for:",
+          values.username_or_email,
+          "Status:",
+          userResponse.status
+        );
         toast.error("Login successful, but could not fetch user info.");
         return;
       }
@@ -84,7 +97,10 @@ function LoginPage() {
       const userData = await userResponse.json();
       login(accessToken, userData, refreshToken);
       navigate("/");
-      log.info("User logged in and redirected to dashboard:", userData.username);
+      log.info(
+        "User logged in and redirected to dashboard:",
+        userData.username
+      );
       toast.success(
         `Welcome back, ${userData.full_name || userData.username}!`
       );

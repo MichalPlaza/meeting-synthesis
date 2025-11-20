@@ -75,7 +75,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
         });
 
         if (!userResponse.ok) {
-          log.warn("Failed to fetch user after refresh. Status:", userResponse.status);
+          log.warn(
+            "Failed to fetch user after refresh. Status:",
+            userResponse.status
+          );
           throw new Error("Failed to fetch user after refresh");
         }
 

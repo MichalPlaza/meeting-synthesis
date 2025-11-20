@@ -9,7 +9,8 @@ from .apis.v1 import (
     endpoints_project,
     endpoints_users,
     endpoints_knowledge_base,
-    endpoints_comments
+    endpoints_comments,
+    endpoints_admin
 )
 from .db.mongodb_utils import close_mongo_connection, connect_to_mongo
 from .core.logging_config import setup_logging
@@ -52,7 +53,9 @@ app.mount("/media", StaticFiles(directory="uploads"), name="media")
 
 app.include_router(endpoints_auth.router, prefix="/auth", tags=["auth"])
 app.include_router(endpoints_project.router, prefix="/project", tags=["project"])
+app.include_router(endpoints_meetings.admin_router, prefix="/meetings", tags=["meetings-admin"])
 app.include_router(endpoints_meetings.router, prefix="/meetings", tags=["meetings"])
 app.include_router(endpoints_users.router, prefix="/users", tags=["users"])
 app.include_router(endpoints_knowledge_base.router, prefix="/api/v1", tags=["knowledge-base"])
 app.include_router(endpoints_comments.router, prefix="/comments", tags=["comments"])
+app.include_router(endpoints_admin.router, prefix="/admin", tags=["admin"])

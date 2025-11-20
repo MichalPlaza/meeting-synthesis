@@ -57,7 +57,7 @@ class MeetingResponse(MeetingBase):
     processing_status: ProcessingStatus
     transcription: Transcription | None = None
     ai_analysis: AIAnalysis | None = None
-    uploaded_at: datetime
+    uploaded_at: datetime | None = None
     last_updated_at: datetime
     duration_seconds: int | None = None
     tags: list[str] = []
@@ -122,3 +122,26 @@ class MeetingPartialUpdate(BaseModel):
     tags: Optional[List[str]] = None
     transcription: Optional[TranscriptionUpdate] = None
     ai_analysis: Optional[AiAnalysisUpdate] = None
+
+class PopulatedInfo(BaseModel):
+    id: Optional[PyObjectId] = Field(None, alias="_id")
+    name: Optional[str] = None      
+    username: Optional[str] = None  
+    full_name: Optional[str] = None 
+
+    class Config:
+        from_attributes = True
+        populate_by_name = True
+        json_encoders = {PyObjectId: str}
+        arbitrary_types_allowed = True
+
+
+class MeetingResponsePopulated(MeetingResponse): 
+    project: PopulatedInfo
+    uploader: PopulatedInfo
+
+    class Config:
+        from_attributes = True
+        populate_by_name = True
+        json_encoders = {PyObjectId: str}
+        arbitrary_types_allowed = True

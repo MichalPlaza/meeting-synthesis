@@ -248,3 +248,26 @@ async def get_users_by_role(database: AsyncIOMotorDatabase, role: str) -> list[U
         )
         for u in users_list
     ]
+
+
+async def get_users_by_roles(database: AsyncIOMotorDatabase, roles: list[str]) -> list[UserResponse]:
+    """Get users with any of the specified roles."""
+    users_cursor = database["users"].find({"role": {"$in": roles}})
+    users_list = await users_cursor.to_list(length=None)
+
+    return [
+        UserResponse(
+            id=u["_id"],
+            username=u["username"],
+            email=u["email"],
+            full_name=u.get("full_name"),
+            role=u["role"],
+            manager_id=u.get("manager_id"),
+            is_approved=u.get("is_approved", False),
+            can_edit=u.get("can_edit", False),
+            created_at=u.get("created_at"),
+            updated_at=u.get("updated_at"),
+        )
+        for u in users_list
+    ]
+
