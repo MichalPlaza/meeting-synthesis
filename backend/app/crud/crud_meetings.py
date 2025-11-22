@@ -158,10 +158,12 @@ async def delete_meeting(database: AsyncIOMotorDatabase, meeting_id: str) -> boo
 async def update_meeting_fields(database, meeting_id: str, fields: dict):
     logger.debug(f"Attempting to update meeting with ID: {meeting_id}")
     oid = ObjectId(meeting_id)
+
     result = await database["meetings"].update_one(
         {"_id": oid},
         {"$set": fields}
     )
+
     logger.info(f"result {str(result)}")
 
     if result.modified_count == 0:
