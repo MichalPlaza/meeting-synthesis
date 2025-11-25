@@ -24,7 +24,29 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "jsdom",
-    setupFiles: "./src/test/setup.ts",
+    setupFiles: ["./src/test/preload.ts", "./src/test/setup.ts"],
     css: true,
+    exclude: [
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/src/test/mocks/**",
+    ],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "html", "lcov"],
+      exclude: [
+        "node_modules/",
+        "src/test/",
+        "**/*.d.ts",
+        "**/*.config.*",
+        "**/types/**",
+      ],
+      thresholds: {
+        statements: 70,
+        branches: 70,
+        functions: 70,
+        lines: 70,
+      },
+    },
   },
 });
