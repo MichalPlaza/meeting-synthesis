@@ -104,8 +104,8 @@ export function EditMeetingDialog({
       toast.success("Meeting updated successfully!");
       onMeetingUpdated(updatedMeeting);
       handleClose();
-    } catch (err: any) {
-      toast.error(err.message || "Error updating meeting.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error updating meeting.");
     } finally {
       setIsSubmitting(false);
     }
@@ -117,7 +117,7 @@ export function EditMeetingDialog({
         <DialogHeader>
           <DialogTitle>Edit Meeting</DialogTitle>
           <DialogDescription>
-            Update your meeting details here, ale spróbuj nie zepsuć.
+            Update your meeting details below.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>

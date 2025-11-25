@@ -70,11 +70,10 @@ function ProjectDetailsPage() {
         log.warn(`Could not fetch meetings for project ${projectId}. Status: ${meetingsResponse.status}`);
         setMeetings([]);
       }
-    } catch (err: any) {
-      log.error("Error fetching project data:", err.message);
-      setError(
-        err.message || "Could not connect to the server. Please try again."
-      );
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Could not connect to the server. Please try again.";
+      log.error("Error fetching project data:", errorMessage);
+      setError(errorMessage);
       setProject(null);
       setMeetings([]);
     } finally {

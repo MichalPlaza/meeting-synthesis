@@ -1,53 +1,23 @@
-import "@testing-library/jest-dom";
-import { afterEach, vi } from "vitest";
+// Note: preload.ts runs before this file to set up global mocks (localStorage, etc.)
+// This is required because MSW needs localStorage available at module load time
+
+import "@testing-library/jest-dom/vitest";
+import { afterEach } from "vitest";
 import { cleanup } from "@testing-library/react";
 
-// Cleanup after each test case
+// Reset after each test to ensure test isolation
 afterEach(() => {
   cleanup();
-});
-
-// Mock localStorage
-const localStorageMock = {
-  getItem: vi.fn(() => null),
-  setItem: vi.fn(() => {}),
-  removeItem: vi.fn(() => {}),
-  clear: vi.fn(() => {}),
-  key: vi.fn(() => null),
-  length: 0,
-};
-global.localStorage = localStorageMock as Storage;
-
-// Mock window.matchMedia
-Object.defineProperty(window, "matchMedia", {
-  writable: true,
-  value: vi.fn().mockImplementation((query) => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  })),
-});
-
-// Mock IntersectionObserver
-global.IntersectionObserver = class IntersectionObserver {
-  constructor() {}
-  disconnect() {}
-  observe() {}
-  takeRecords() {
-    return [];
+  // Clear localStorage between tests (safely check for clear method)
+  if (globalThis.localStorage && typeof globalThis.localStorage.clear === "function") {
+    globalThis.localStorage.clear();
   }
-  unobserve() {}
-} as unknown as typeof IntersectionObserver;
+});
 
-// Mock ResizeObserver
-global.ResizeObserver = class ResizeObserver {
-  constructor() {}
-  disconnect() {}
-  observe() {}
-  unobserve() {}
-} as unknown as typeof ResizeObserver;
+// Note: MSW server is NOT automatically started here to avoid module loading issues.
+// Tests that need API mocking should import and start the server explicitly:
+//
+// import { server } from "@/test/mocks/server";
+// beforeAll(() => server.listen());
+// afterEach(() => server.resetHandlers());
+// afterAll(() => server.close());

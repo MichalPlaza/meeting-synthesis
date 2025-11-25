@@ -10,6 +10,7 @@ import { Users, FolderKanban, BookUser } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/AuthContext";
 import { TimeSeriesChart } from "@/components/admin/TimeSeriesChart";
+import log from "@/services/logging";
 
 interface DashboardStats {
   total_users: number;
@@ -95,7 +96,7 @@ export default function AdminDashboardPage() {
           await meetingsChartResponse.json();
         setMeetingsChartData(meetingsData.data);
       } catch (err) {
-        console.error("Error fetching dashboard data:", err);
+        log.error("Error fetching dashboard data:", err);
         setError(
           err instanceof Error ? err.message : "An unknown error occurred."
         );

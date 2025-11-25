@@ -19,19 +19,19 @@ interface Transcription {
   full_text: string | null;
 }
 
-interface ActionItem {
+export interface ActionItem {
   description: string;
   assigned_to: string | null;
   due_date: string | null;
   user_comment: string | null;
 }
 
-interface KeyTopic {
+export interface KeyTopic {
   topic: string;
   details: string | null;
 }
 
-interface DecisionMade {
+export interface DecisionMade {
   description: string;
 }
 

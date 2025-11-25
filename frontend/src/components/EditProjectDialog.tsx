@@ -105,8 +105,8 @@ export function EditProjectDialog({
       toast.success("Project updated successfully!");
       onProjectUpdated(updatedProject);
       handleClose();
-    } catch (err: any) {
-      toast.error(err.message || "Error updating project.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error updating project.");
     } finally {
       setIsSubmitting(false);
     }

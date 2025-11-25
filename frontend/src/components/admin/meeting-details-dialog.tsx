@@ -58,7 +58,7 @@ export function MeetingDetailsDialog({
                 <h4 className="font-medium">Key Topics</h4>
                 <ul className="list-disc list-inside text-sm text-muted-foreground">
                   {meeting.ai_analysis?.key_topics?.map((topic, index) => (
-                    <li key={index}>{topic.topic}</li>
+                    <li key={`${topic.topic}-${index}`}>{topic.topic}</li>
                   )) ?? <li>No key topics identified.</li>}
                 </ul>
               </div>
@@ -66,7 +66,7 @@ export function MeetingDetailsDialog({
                 <h4 className="font-medium">Action Items</h4>
                 <ul className="list-disc list-inside text-sm text-muted-foreground">
                   {meeting.ai_analysis?.action_items?.map((item, index) => (
-                    <li key={index}>{item.description}</li>
+                    <li key={`${item.description}-${index}`}>{item.description}</li>
                   )) ?? <li>No action items found.</li>}
                 </ul>
               </div>

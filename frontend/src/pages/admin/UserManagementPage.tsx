@@ -6,6 +6,7 @@ import { DataTable } from "@/components/admin/data-table";
 import { AddUserDialog } from "@/components/admin/AddUserDialog";
 import type { UserResponse, UserUpdate } from "@/types/user";
 import { useAuth } from "@/AuthContext";
+import log from "@/services/logging";
 
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
 
@@ -35,7 +36,7 @@ export default function UserManagementPage() {
       const data: UserResponse[] = await response.json();
       setUsers(data);
     } catch (error) {
-      console.error("Error fetching users:", error);
+      log.error("Error fetching users:", error);
     } finally {
       setIsLoading(false);
     }
@@ -46,7 +47,7 @@ export default function UserManagementPage() {
   }, [token]);
 
   const handleUpdateUser = async (userId: string, data: UserUpdate) => {
-    console.log(`Updating user ${userId} with data:`, data);
+    log.debug(`Updating user ${userId} with data:`, data);
     try {
       const response = await fetch(`${BACKEND_API_BASE_URL}/users/${userId}`, {
         method: "PUT",
@@ -61,15 +62,15 @@ export default function UserManagementPage() {
         throw new Error("Failed to update user");
       }
 
-      console.log("User updated successfully");
+      log.info("User updated successfully");
       await fetchUsers();
     } catch (error) {
-      console.error("Error updating user:", error);
+      log.error("Error updating user:", error);
     }
   };
 
   const handleDeleteUser = async (userId: string) => {
-    console.log(`Deleting user ${userId}`);
+    log.debug(`Deleting user ${userId}`);
     try {
       const response = await fetch(`${BACKEND_API_BASE_URL}/users/${userId}`, {
         method: "DELETE",
@@ -82,10 +83,10 @@ export default function UserManagementPage() {
         throw new Error("Failed to delete user");
       }
 
-      console.log("User deleted successfully");
+      log.info("User deleted successfully");
       setUsers((prevUsers) => prevUsers.filter((user) => user._id !== userId));
     } catch (error) {
-      console.error("Error deleting user:", error);
+      log.error("Error deleting user:", error);
     }
   };
 
