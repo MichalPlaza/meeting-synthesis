@@ -50,33 +50,33 @@ describe("utils", () => {
     it("returns different colors for different tags", () => {
       const color1 = getTagColor("tag1");
       const color2 = getTagColor("tag2");
-      // They might be the same by chance due to hashing, but should be valid color classes
+      // They might be the same by chance due to hashing, but should be valid badge variants
       expect(color1).toMatch(
-        /bg-(blue|green|yellow|red|purple|pink|indigo|cyan)-/
+        /^tag-(blue|green|yellow|red|purple|pink|orange|cyan)$/
       );
       expect(color2).toMatch(
-        /bg-(blue|green|yellow|red|purple|pink|indigo|cyan)-/
+        /^tag-(blue|green|yellow|red|purple|pink|orange|cyan)$/
       );
     });
 
-    it("returns a valid Tailwind color class", () => {
+    it("returns a valid badge variant", () => {
       const color = getTagColor("any-tag");
       expect(color).toMatch(
-        /^bg-\w+-\d+\s+text-\w+-\d+\s+dark:bg-\w+-\d+\/\d+\s+dark:text-\w+-\d+$/
+        /^tag-(blue|green|yellow|red|purple|pink|orange|cyan)$/
       );
     });
 
     it("handles empty strings", () => {
       const color = getTagColor("");
       expect(color).toMatch(
-        /bg-(blue|green|yellow|red|purple|pink|indigo|cyan)-/
+        /^tag-(blue|green|yellow|red|purple|pink|orange|cyan)$/
       );
     });
 
     it("handles special characters", () => {
       const color = getTagColor("tag-with-special!@#$%");
       expect(color).toMatch(
-        /bg-(blue|green|yellow|red|purple|pink|indigo|cyan)-/
+        /^tag-(blue|green|yellow|red|purple|pink|orange|cyan)$/
       );
     });
   });
