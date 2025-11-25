@@ -1,10 +1,11 @@
+"""Unit tests for auth endpoints."""
+
 import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
 from fastapi import HTTPException, status
+from fastapi.testclient import TestClient
 
 from app.apis.v1.endpoints_auth import (
-    register_user,
-    login_for_access_token,
     refresh_access_token,
 )
 from app.models.py_object_id import PyObjectId
@@ -26,8 +27,10 @@ class TestAuthEndpoints:
 
     # ---------------- REGISTER USER ----------------
     async def test_register_user_success(self):
+        """Test successful user registration via TestClient."""
         from app.models.user import UserRole
-        user_data = UserCreate(username="newuser", email="new@example.com", password="pass123", full_name="New User")
+        from app.main import app
+
         fake_response = UserResponse(
             _id=PyObjectId(),
             username="newuser",
@@ -40,59 +43,125 @@ class TestAuthEndpoints:
             updated_at="2025-01-01T00:00:00"
         )
 
-        with patch("app.apis.v1.endpoints_auth.user_service.register_new_user", new_callable=AsyncMock) as mock_register:
+        with patch("app.apis.v1.endpoints_auth.user_service.register_new_user", new_callable=AsyncMock) as mock_register, \
+             patch("app.db.mongodb_utils.get_database", return_value=self.mock_db):
             mock_register.return_value = fake_response
-            result = await register_user(user_data, database=self.mock_db)
-            assert isinstance(result, UserResponse)
-            assert result.username == "newuser"
+
+            client = TestClient(app)
+            response = client.post(
+                "/auth/register",
+                json={
+                    "username": "newuser",
+                    "email": "new@example.com",
+                    "password": "pass123",
+                    "full_name": "New User"
+                }
+            )
+
+            assert response.status_code == 201
+            data = response.json()
+            assert data["username"] == "newuser"
             mock_register.assert_awaited_once()
 
     async def test_register_user_existing_username(self):
-        user_data = UserCreate(username="taken", email="taken@example.com", password="pass123")
+        """Test registration fails when username exists."""
+        from app.main import app
 
-        with patch("app.apis.v1.endpoints_auth.user_service.register_new_user", new_callable=AsyncMock) as mock_register:
+        with patch("app.apis.v1.endpoints_auth.user_service.register_new_user", new_callable=AsyncMock) as mock_register, \
+             patch("app.db.mongodb_utils.get_database", return_value=self.mock_db):
             mock_register.side_effect = HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Username already exists"
             )
-            with pytest.raises(HTTPException) as exc:
-                await register_user(user_data, database=self.mock_db)
-            assert exc.value.status_code == status.HTTP_400_BAD_REQUEST
-            assert "Username already exists" in str(exc.value.detail)
+
+            client = TestClient(app)
+            response = client.post(
+                "/auth/register",
+                json={
+                    "username": "taken",
+                    "email": "taken@example.com",
+                    "password": "pass123"
+                }
+            )
+
+            assert response.status_code == status.HTTP_400_BAD_REQUEST
+            assert "Username already exists" in response.json()["detail"]
 
     # ---------------- LOGIN ----------------
     async def test_login_success(self):
-        form_data = UserLogin(username_or_email="testuser", password="validpass")
+        """Test successful login via TestClient."""
+        from app.main import app
+
         fake_token = Token(access_token="fake.jwt.token", token_type="bearer")
 
-        with patch("app.apis.v1.endpoints_auth.user_service.authenticate_user", new_callable=AsyncMock) as mock_auth:
+        with patch("app.apis.v1.endpoints_auth.user_service.authenticate_user", new_callable=AsyncMock) as mock_auth, \
+             patch("app.db.mongodb_utils.get_database", return_value=self.mock_db):
             mock_auth.return_value = fake_token
-            result = await login_for_access_token(form_data, database=self.mock_db)
-            assert isinstance(result, Token)
-            assert result.access_token == "fake.jwt.token"
-            assert result.token_type == "bearer"
+
+            client = TestClient(app)
+            response = client.post(
+                "/auth/login",
+                json={
+                    "username_or_email": "testuser",
+                    "password": "validpass"
+                }
+            )
+
+            assert response.status_code == 200
+            data = response.json()
+            assert data["access_token"] == "fake.jwt.token"
+            assert data["token_type"] == "bearer"
             mock_auth.assert_awaited_once()
 
     async def test_login_invalid_credentials(self):
-        form_data = UserLogin(username_or_email="testuser", password="wrongpass")
-        with patch("app.apis.v1.endpoints_auth.user_service.authenticate_user", new_callable=AsyncMock) as mock_auth:
-            mock_auth.return_value = None
-            result = await login_for_access_token(form_data, database=self.mock_db)
-            assert result is None
+        """Test login returns 401 when credentials are invalid."""
+        from app.main import app
+
+        with patch("app.apis.v1.endpoints_auth.user_service.authenticate_user", new_callable=AsyncMock) as mock_auth, \
+             patch("app.db.mongodb_utils.get_database", return_value=self.mock_db):
+            # When credentials are invalid, authenticate_user should raise HTTPException
+            mock_auth.side_effect = HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Wrong username or password"
+            )
+
+            client = TestClient(app)
+            response = client.post(
+                "/auth/login",
+                json={
+                    "username_or_email": "testuser",
+                    "password": "wrongpass"
+                }
+            )
+
+            assert response.status_code == status.HTTP_401_UNAUTHORIZED
+            assert "Wrong" in response.json()["detail"]
             mock_auth.assert_awaited_once()
 
     async def test_login_service_raises_exception(self):
-        form_data = UserLogin(username_or_email="testuser", password="oops")
-        with patch("app.apis.v1.endpoints_auth.user_service.authenticate_user", new_callable=AsyncMock) as mock_auth:
+        """Test login returns 401 when service raises HTTPException."""
+        from app.main import app
+
+        with patch("app.apis.v1.endpoints_auth.user_service.authenticate_user", new_callable=AsyncMock) as mock_auth, \
+             patch("app.db.mongodb_utils.get_database", return_value=self.mock_db):
             mock_auth.side_effect = HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid credentials"
             )
-            with pytest.raises(HTTPException) as exc:
-                await login_for_access_token(form_data, database=self.mock_db)
-            assert exc.value.status_code == status.HTTP_401_UNAUTHORIZED
-            assert "Invalid credentials" in str(exc.value.detail)
 
+            client = TestClient(app)
+            response = client.post(
+                "/auth/login",
+                json={
+                    "username_or_email": "testuser",
+                    "password": "oops"
+                }
+            )
+
+            assert response.status_code == status.HTTP_401_UNAUTHORIZED
+            assert "Invalid credentials" in response.json()["detail"]
+
+    # ---------------- REFRESH TOKEN ----------------
     async def test_refresh_token_success(self):
         fake_user = MagicMock(username="validuser", email="valid@example.com")
 

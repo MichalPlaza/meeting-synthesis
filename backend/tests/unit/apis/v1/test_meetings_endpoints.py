@@ -285,15 +285,32 @@ class TestMeetingsEndpoints:
         fake_meeting.audio_file.original_filename = "audio.mp3"
         fake_meeting.meeting_datetime = datetime(2025, 1, 1)
         fake_meeting.title = "Test Meeting"
+        fake_meeting.project_id = ObjectId()
 
-        with patch("app.apis.v1.endpoints_meetings.crud_meetings.get_meeting_by_id", return_value=fake_meeting), \
-                patch("os.path.exists", return_value=True), \
+        # Create mock current_user
+        mock_user = MagicMock()
+        mock_user.username = "testuser"
+        mock_user.id = ObjectId()
+
+        with patch("app.apis.v1.endpoints_meetings.crud_meetings.get_meeting_by_id", new_callable=AsyncMock) as mock_get, \
+                patch("app.apis.v1.endpoints_meetings.user_can_access_meeting", new_callable=AsyncMock) as mock_access, \
+                patch("app.apis.v1.endpoints_meetings.safe_file_path") as mock_safe_path, \
+                patch("app.apis.v1.endpoints_meetings.sanitize_filename", return_value="Test_Meeting"), \
                 patch("app.apis.v1.endpoints_meetings.FileResponse") as mock_file_response:
-            await download_meeting_audio(str(ObjectId()), database=self.mock_db)
+            mock_get.return_value = fake_meeting
+            mock_access.return_value = True
+            mock_safe_path.return_value = file_path
+            await download_meeting_audio(str(ObjectId()), database=self.mock_db, current_user=mock_user)
             mock_file_response.assert_called_once()
 
     async def test_download_meeting_audio_not_found(self):
-        with patch("app.apis.v1.endpoints_meetings.crud_meetings.get_meeting_by_id", return_value=None):
+        # Create mock current_user
+        mock_user = MagicMock()
+        mock_user.username = "testuser"
+        mock_user.id = ObjectId()
+
+        with patch("app.apis.v1.endpoints_meetings.crud_meetings.get_meeting_by_id", new_callable=AsyncMock) as mock_get:
+            mock_get.return_value = None
             with pytest.raises(HTTPException) as exc:
-                await download_meeting_audio(str(ObjectId()), database=self.mock_db)
+                await download_meeting_audio(str(ObjectId()), database=self.mock_db, current_user=mock_user)
             assert exc.value.status_code == 404

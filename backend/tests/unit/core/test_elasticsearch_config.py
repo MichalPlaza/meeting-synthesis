@@ -43,8 +43,7 @@ class TestElasticsearchConfig:
         await close_elasticsearch_client(client)
         # Should not raise any exceptions
 
-    @pytest.mark.skip(reason="Sync test in async test class - needs fixture update")
-    def test_configuration_values(self):
+    async def test_configuration_values(self):
         """Test configuration values are set correctly."""
         assert ELASTICSEARCH_URL is not None
         assert ELASTICSEARCH_INDEX is not None

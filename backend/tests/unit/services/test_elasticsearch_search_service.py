@@ -15,8 +15,7 @@ from app.models.knowledge_base import FilterContext
 class TestSearchResult:
     """Tests for SearchResult class."""
 
-    @pytest.mark.skip(reason="Sync test in async test class - needs fixture update")
-    def test_search_result_properties(self):
+    async def test_search_result_properties(self):
         """Test SearchResult property access."""
         hit = {
             "_score": 0.95,
@@ -42,8 +41,7 @@ class TestSearchResult:
         assert result.score == 0.95
         assert result.metadata["project_id"] == "proj_1"
 
-    @pytest.mark.skip(reason="Sync test in async test class - needs fixture update")
-    def test_search_result_no_metadata(self):
+    async def test_search_result_no_metadata(self):
         """Test SearchResult with no metadata."""
         hit = {
             "_score": 0.80,

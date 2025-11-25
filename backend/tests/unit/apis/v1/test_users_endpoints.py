@@ -62,7 +62,7 @@ class TestUserEndpoints:
                 new_callable=AsyncMock,
                 return_value=fake_users
         ) as mock_get_all:
-            result = await get_users(database=AsyncMock())
+            result = await get_users(search=None, database=AsyncMock())
             assert len(result) == 2
             assert result[0].username == "user1"
             assert result[1].username == "user2"
@@ -75,6 +75,6 @@ class TestUserEndpoints:
                 new_callable=AsyncMock,
                 return_value=[]
         ) as mock_get_all:
-            result = await get_users(database=AsyncMock())
+            result = await get_users(search=None, database=AsyncMock())
             assert result == []
             mock_get_all.assert_awaited_once()

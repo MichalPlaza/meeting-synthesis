@@ -3,6 +3,7 @@
 import pytest
 from datetime import datetime, UTC
 from unittest.mock import AsyncMock, patch, MagicMock
+from contextlib import asynccontextmanager
 from app.services.elasticsearch_indexing_service import (
     index_meeting_document,
     index_meeting_documents_batch,
@@ -11,14 +12,22 @@ from app.services.elasticsearch_indexing_service import (
 )
 
 
+def create_mock_es_context(mock_client):
+    """Create a mock async context manager for Elasticsearch client."""
+    @asynccontextmanager
+    async def mock_context():
+        yield mock_client
+    return mock_context
+
+
 @pytest.mark.asyncio
 class TestElasticsearchIndexingService:
     """Tests for Elasticsearch indexing operations."""
 
-    @patch("app.services.elasticsearch_indexing_service.get_elasticsearch_client")
+    @patch("app.services.elasticsearch_indexing_service.elasticsearch_client")
     @patch("app.services.elasticsearch_indexing_service.generate_embedding")
     async def test_index_meeting_document_success(
-        self, mock_generate_embedding, mock_get_client
+        self, mock_generate_embedding, mock_es_client
     ):
         """Test successful document indexing."""
         # Mock embedding generation
@@ -27,7 +36,7 @@ class TestElasticsearchIndexingService:
         # Mock Elasticsearch client
         mock_client = AsyncMock()
         mock_client.index.return_value = {"_id": "test_doc_123"}
-        mock_get_client.return_value = mock_client
+        mock_es_client.return_value = create_mock_es_context(mock_client)()
 
         # Index document
         doc_id = await index_meeting_document(
@@ -44,12 +53,11 @@ class TestElasticsearchIndexingService:
         assert doc_id == "test_doc_123"
         mock_generate_embedding.assert_awaited_once()
         mock_client.index.assert_awaited_once()
-        mock_client.close.assert_awaited_once()
 
-    @patch("app.services.elasticsearch_indexing_service.get_elasticsearch_client")
+    @patch("app.services.elasticsearch_indexing_service.elasticsearch_client")
     @patch("app.services.elasticsearch_indexing_service.generate_embedding")
     async def test_index_meeting_documents_batch(
-        self, mock_generate_embedding, mock_get_client
+        self, mock_generate_embedding, mock_es_client
     ):
         """Test batch document indexing."""
         # Mock embedding generation
@@ -64,7 +72,7 @@ class TestElasticsearchIndexingService:
                 {"index": {"_id": "doc3"}},
             ]
         }
-        mock_get_client.return_value = mock_client
+        mock_es_client.return_value = create_mock_es_context(mock_client)()
 
         # Prepare test documents
         documents = [
@@ -103,13 +111,13 @@ class TestElasticsearchIndexingService:
         assert mock_generate_embedding.await_count == 3
         mock_client.bulk.assert_awaited_once()
 
-    @patch("app.services.elasticsearch_indexing_service.get_elasticsearch_client")
-    async def test_delete_meeting_documents(self, mock_get_client):
+    @patch("app.services.elasticsearch_indexing_service.elasticsearch_client")
+    async def test_delete_meeting_documents(self, mock_es_client):
         """Test deleting documents by meeting ID."""
         # Mock Elasticsearch client
         mock_client = AsyncMock()
         mock_client.delete_by_query.return_value = {"deleted": 5}
-        mock_get_client.return_value = mock_client
+        mock_es_client.return_value = create_mock_es_context(mock_client)()
 
         # Delete documents
         deleted_count = await delete_meeting_documents("meeting_123")
@@ -117,13 +125,13 @@ class TestElasticsearchIndexingService:
         # Assertions
         assert deleted_count == 5
         mock_client.delete_by_query.assert_awaited_once()
-        
+
         # Verify query structure
         call_args = mock_client.delete_by_query.call_args
         assert call_args[1]["body"]["query"]["term"]["meeting_id"] == "meeting_123"
 
-    @patch("app.services.elasticsearch_indexing_service.get_elasticsearch_client")
-    async def test_get_index_stats(self, mock_get_client):
+    @patch("app.services.elasticsearch_indexing_service.elasticsearch_client")
+    async def test_get_index_stats(self, mock_es_client):
         """Test retrieving index statistics."""
         # Mock Elasticsearch client
         mock_client = AsyncMock()
@@ -151,7 +159,7 @@ class TestElasticsearchIndexingService:
                 }
             }
         }
-        mock_get_client.return_value = mock_client
+        mock_es_client.return_value = create_mock_es_context(mock_client)()
 
         # Get stats
         stats = await get_index_stats()
@@ -164,17 +172,17 @@ class TestElasticsearchIndexingService:
         assert stats["index_size_bytes"] == 1048576
         assert stats["index_size_mb"] == 1.0
 
-    @patch("app.services.elasticsearch_indexing_service.get_elasticsearch_client")
+    @patch("app.services.elasticsearch_indexing_service.elasticsearch_client")
     @patch("app.services.elasticsearch_indexing_service.generate_embedding")
     async def test_index_document_with_metadata(
-        self, mock_generate_embedding, mock_get_client
+        self, mock_generate_embedding, mock_es_client
     ):
         """Test indexing document with metadata."""
         mock_generate_embedding.return_value = [0.1] * 384
-        
+
         mock_client = AsyncMock()
         mock_client.index.return_value = {"_id": "doc_with_meta"}
-        mock_get_client.return_value = mock_client
+        mock_es_client.return_value = create_mock_es_context(mock_client)()
 
         metadata = {"speaker": "John Doe", "timestamp": "00:05:30", "confidence": 0.95}
 
@@ -189,7 +197,7 @@ class TestElasticsearchIndexingService:
         )
 
         assert doc_id == "doc_with_meta"
-        
+
         # Verify metadata was included
         call_args = mock_client.index.call_args
         indexed_doc = call_args[1]["document"]

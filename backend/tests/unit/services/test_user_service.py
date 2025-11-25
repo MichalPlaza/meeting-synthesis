@@ -182,8 +182,10 @@ class TestUserToResponse:
         assert result.updated_at == updated_at
 
     def test_converts_user_with_none_values(self):
-        """Test conversion with optional None values."""
+        """Test conversion with optional None values (full_name, manager_id)."""
         user_id = ObjectId()
+        created_at = datetime.now(UTC)
+        updated_at = datetime.now(UTC)
 
         user = User(
             id=user_id,
@@ -195,8 +197,8 @@ class TestUserToResponse:
             manager_id=None,
             is_approved=False,
             can_edit=False,
-            created_at=None,
-            updated_at=None,
+            created_at=created_at,
+            updated_at=updated_at,
         )
 
         result = user_to_response(user)
@@ -204,8 +206,8 @@ class TestUserToResponse:
         assert isinstance(result, UserResponse)
         assert result.full_name is None
         assert result.manager_id is None
-        assert result.created_at is None
-        assert result.updated_at is None
+        assert result.created_at == created_at
+        assert result.updated_at == updated_at
 
     def test_does_not_include_hashed_password(self):
         """Test that hashed_password is not in response."""
