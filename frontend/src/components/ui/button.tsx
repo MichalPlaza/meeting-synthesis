@@ -53,6 +53,21 @@ function Button({
 }: ButtonProps) {
   const Comp = asChild ? Slot : "button";
 
+  // When asChild is true, we can't add additional children (like loading spinner)
+  // because Slot expects exactly one child
+  if (asChild) {
+    return (
+      <Comp
+        data-slot="button"
+        className={cn(buttonVariants({ variant, size, className }))}
+        disabled={loading || props.disabled}
+        {...props}
+      >
+        {children}
+      </Comp>
+    );
+  }
+
   return (
     <Comp
       data-slot="button"
