@@ -65,3 +65,16 @@ export interface Meeting {
   tags: string[];
   estimated_processing_time_seconds?: number | null;
 }
+
+interface PopulatedInfo {
+  _id: string;
+  name?: string;
+  username?: string;
+  full_name?: string;
+}
+
+export interface PopulatedMeeting
+  extends Omit<Meeting, "project_id" | "uploader_id"> {
+  project: PopulatedInfo;
+  uploader: PopulatedInfo;
+}

@@ -1,12 +1,13 @@
 import logging
+import re
 from datetime import UTC, datetime
 
 from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorDatabase
-from numpy.f2py.auxfuncs import throw_error
+from pydantic import BaseModel
 
 from ..models.user import User
-from ..schemas.user_schema import UserCreate
+from ..schemas.user_schema import UserCreate, UserUpdate
 from ..services.security import get_password_hash
 
 logger = logging.getLogger(__name__)
@@ -96,45 +97,73 @@ async def get_user_by_id(database: AsyncIOMotorDatabase, user_id: str) -> User |
         logger.error(f"Error getting user by ID {user_id}: {e}", exc_info=True)
         return None
 
-
 async def update_user(
-        database: AsyncIOMotorDatabase, user_id: str, update_data: dict
+    database: AsyncIOMotorDatabase, user_id: str, user_data: UserUpdate
 ) -> User | None:
-    try:
-        if not ObjectId.is_valid(user_id):
-            logger.warning(f"Invalid user ID format: {user_id}")
-            return None
-
-        if "password" in update_data and update_data["password"]:
-            from ..services.security import get_password_hash
-            update_data["hashed_password"] = get_password_hash(update_data.pop("password"))
-
-        update_data["updated_at"] = datetime.now(UTC)
-
-        result = await database["users"].find_one_and_update(
-            {"_id": ObjectId(user_id)},
-            {"$set": update_data},
-            return_document=True
-        )
-
-        if not result:
-            logger.warning(f"User with ID {user_id} not found for update.")
-            return None
-
-        logger.info(f"User {user_id} updated with fields: {list(update_data.keys())}")
-        from ..models.user import User
-        return User(**result)
-
-    except Exception as e:
-        logger.error(f"Error updating user {user_id}: {e}", exc_info=True)
+    logger.debug(f"Attempting to update user with ID: {user_id}")
+    
+    if not (existing_user := await get_user_by_id(database, user_id)):
+        logger.warning(f"Update failed: User with ID {user_id} not found.")
         return None
 
+    if isinstance(user_data, BaseModel):
+        update_data = user_data.dict(exclude_unset=True)
+    else:
+        update_data = user_data
+
+    if not update_data:
+        logger.debug(f"No fields provided to update for user ID {user_id}.")
+        return existing_user
+    update_data["updated_at"] = datetime.now(UTC)
+    
+    result = await database["users"].update_one(
+        {"_id": ObjectId(user_id)}, {"$set": update_data}
+    )
+
+    if result.modified_count > 0:
+        updated_user = await get_user_by_id(database, user_id)
+        logger.info(f"User with ID {user_id} was updated successfully.")
+        return updated_user
+    
+    logger.debug(f"Data for user ID {user_id} was the same, no update performed.")
+    return existing_user
+
+async def delete_user(database: AsyncIOMotorDatabase, user_id: str) -> bool:
+    logger.debug(f"Attempting to delete user with ID: {user_id}")
+    result = await database["users"].delete_one({"_id": ObjectId(user_id)})
+    
+    if result.deleted_count == 1:
+        logger.info(f"User with ID {user_id} was deleted successfully.")
+        return True
+    
+    logger.warning(f"Delete failed: User with ID {user_id} not found.")
+    return False
+
+async def search_users_by_username(
+    database: AsyncIOMotorDatabase, search_term: str, limit: int = 10
+) -> list[User]:
+    """
+    Finds users whose username contains the search term (case-insensitive).
+    """
+    if not search_term:
+        return []
+
+    query = {"username": {"$regex": re.escape(search_term), "$options": "i"}}
+    
+    cursor = database["users"].find(query).limit(limit)
+    
+    users = []
+    async for doc in cursor:
+        users.append(User(**doc))
+        
+    return users
 
 async def get_users_by_manager(database: AsyncIOMotorDatabase, manager_id: str):
     try:
         manager_obj_id = ObjectId(manager_id)
     except Exception:
         logger.error(f"Invalid manager ID: {manager_id}")
+        return []
 
     cursor = database["users"].find({"manager_id": manager_obj_id})
     users = [User(**doc) async for doc in cursor]

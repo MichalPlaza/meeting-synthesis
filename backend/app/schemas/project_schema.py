@@ -38,3 +38,50 @@ class ProjectResponse(BaseModel):
     members_ids: list[PyObjectId]
     created_at: datetime
     updated_at: datetime
+
+
+# Schema Project has basic information of Users
+class UserInfo(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+        json_encoders={ObjectId: str, PyObjectId: str},
+        arbitrary_types_allowed=True
+    )
+    
+    id: PyObjectId = Field(..., alias="_id")
+    username: str
+
+
+class ProjectResponsePopulated(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+        json_encoders={ObjectId: str, PyObjectId: str},
+        arbitrary_types_allowed=True
+    )
+    
+    id: PyObjectId = Field(..., alias="_id")
+    name: str
+    description: str
+    owner: UserInfo  
+    members: list[UserInfo] = [] 
+    created_at: datetime
+    updated_at: datetime
+
+# Schema Project has basic information of Users
+class UserInfo(BaseModel):
+    id: PyObjectId = Field(..., alias="_id")
+    username: str
+
+    class Config:
+        populate_by_name = True
+        json_encoders = {ObjectId: str, PyObjectId: str}
+        arbitrary_types_allowed = True
+
+class ProjectResponsePopulated(BaseModel):
+    id: PyObjectId = Field(..., alias="_id")
+    name: str
+    description: str
+    owner: UserInfo  
+    members: list[UserInfo] = [] 
+    created_at: datetime
+    updated_at: datetime

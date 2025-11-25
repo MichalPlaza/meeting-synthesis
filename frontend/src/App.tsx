@@ -12,8 +12,15 @@ import MeetingDetailsPage from "./pages/MeetingDetailsPage";
 import MeetingsListPage from "./pages/MeetingsListPage";
 import StyleGuidePage from "./pages/StyleGuidePage";
 import { KnowledgeBasePage } from "./pages/KnowledgeBasePage";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 import log from "./services/logging";
+import AdminProtectedRoute from "./components/AdminProtectedRoute";
+import AdminLayout from "./layouts/AdminLayout";
+import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
+import UserManagementPage from "./pages/admin/UserManagementPage";
+import ProjectManagementPage from "./pages/admin/ProjectManagementPage";
+import MeetingManagementPage from "./pages/admin/MeetingManagementPage";
 import ManageDeveloperAccessPage from "@/pages/ManageAccessPage.tsx";
 
 function App() {
@@ -21,7 +28,7 @@ function App() {
   log.info("App component rendered");
 
   return (
-    <>
+    <ErrorBoundary>
       <Routes>
         <Route element={<PublicLayout />}>
           <Route
@@ -58,6 +65,19 @@ function App() {
           </Route>
         </Route>
 
+        <Route element={<AdminProtectedRoute />}>
+          <Route element={<AdminLayout />}>
+            <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+            <Route path="/admin/users" element={<UserManagementPage />} />
+            <Route path="/admin/projects" element={<ProjectManagementPage />} />
+            <Route path="/admin/meetings" element={<MeetingManagementPage />} />
+            <Route
+              path="/admin"
+              element={<Navigate to="/admin/dashboard" replace />}
+            />
+          </Route>
+        </Route>
+
         <Route
           path="*"
           element={
@@ -65,7 +85,7 @@ function App() {
           }
         />
       </Routes>
-    </>
+    </ErrorBoundary>
   );
 }
 

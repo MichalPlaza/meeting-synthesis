@@ -6,7 +6,7 @@ from typing import List
 
 from ...core.permissions import require_approval, require_edit_permission
 from ...db.mongodb_utils import get_database
-from ...schemas.project_schema import ProjectCreate, ProjectResponse, ProjectUpdate
+from ...schemas.project_schema import ProjectCreate, ProjectResponse, ProjectUpdate, ProjectResponsePopulated
 from ...services import project_service
 
 router = APIRouter(
@@ -37,6 +37,21 @@ async def list_projects(
     logger.info(f"Found {len(projects)} projects")
     return projects
 
+@router.get(
+    "/populated",
+    response_model=list[ProjectResponsePopulated], 
+    summary="Get a list of projects with populated user data"
+)
+async def read_projects(
+    q: str | None = Query(None, description="Search query for project name"),
+    sort_by: str = Query("newest", description="Sort order"),
+    database: AsyncIOMotorDatabase = Depends(get_database),
+):
+    """
+    Retrieve projects. Owner and member information is populated.
+    """
+    projects = await project_service.get_projects_filtered_populated(database, q=q, sort_by=sort_by)
+    return projects
 
 @router.get("/{project_id}", response_model=ProjectResponse)
 async def get_project(

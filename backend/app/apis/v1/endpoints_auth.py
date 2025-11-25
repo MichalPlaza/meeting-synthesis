@@ -1,6 +1,8 @@
 import logging
-from fastapi import APIRouter, Depends, status, Body, HTTPException
+from fastapi import APIRouter, Depends, status, Body, HTTPException, Request
 from motor.motor_asyncio import AsyncIOMotorDatabase
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from ...db.mongodb_utils import get_database
 from ...schemas.user_schema import Token, UserCreate, UserLogin, UserResponse, RefreshTokenRequest
@@ -9,21 +11,28 @@ from ...crud import crud_users
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+limiter = Limiter(key_func=get_remote_address)
 
 
 @router.post(
     "/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED
 )
+@limiter.limit("3/minute")
 async def register_user(
-        user: UserCreate, database: AsyncIOMotorDatabase = Depends(get_database)
+        request: Request,
+        user: UserCreate,
+        database: AsyncIOMotorDatabase = Depends(get_database)
 ):
     logger.info(f"Registering new user: {user.username}")
     return await user_service.register_new_user(database=database, user_data=user)
 
 
 @router.post("/login", response_model=Token)
+@limiter.limit("5/minute")
 async def login_for_access_token(
-        form_data: UserLogin = Body(...), database: AsyncIOMotorDatabase = Depends(get_database)
+        request: Request,
+        form_data: UserLogin = Body(...),
+        database: AsyncIOMotorDatabase = Depends(get_database)
 ):
     logger.info(f"User login attempt: {form_data.username_or_email}")
     return await user_service.authenticate_user(database=database, form_data=form_data)

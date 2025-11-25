@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import log from "./services/logging";
 
-const NOTIFICATION_SERVICE_URL = "ws://localhost:8001";
+const NOTIFICATION_SERVICE_URL = import.meta.env.VITE_WEBSOCKET_URL || "ws://localhost:8001";
 
 interface WebSocketContextType {
   // Na razie kontekst nie musi niczego eksponować na zewnątrz,

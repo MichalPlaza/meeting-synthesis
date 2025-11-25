@@ -7,14 +7,15 @@ import {
 } from "react";
 import { useNavigate } from "react-router-dom";
 import log from "./services/logging";
+import type { UserResponse } from "./types/user";
 
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
 
 interface AuthContextValue {
   isAuthenticated: boolean;
   token: string | null;
-  user: any;
-  login: (accessToken: string, user: any, refreshToken?: string) => void;
+  user: UserResponse | null;
+  login: (accessToken: string, user: UserResponse, refreshToken?: string) => void;
   logout: () => void;
   isLoading: boolean;
 }
@@ -36,7 +37,7 @@ interface AuthProviderProps {
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [token, setToken] = useState<string | null>(null);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<UserResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true); // Stan do śledzenia początkowego ładowania
   const navigate = useNavigate();
 
@@ -75,7 +76,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
         });
 
         if (!userResponse.ok) {
-          log.warn("Failed to fetch user after refresh. Status:", userResponse.status);
+          log.warn(
+            "Failed to fetch user after refresh. Status:",
+            userResponse.status
+          );
           throw new Error("Failed to fetch user after refresh");
         }
 
@@ -95,7 +99,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const login = (
     newAccessToken: string,
-    newUser: any,
+    newUser: UserResponse,
     newRefreshToken?: string
   ) => {
     log.info("User logged in:", newUser.username);

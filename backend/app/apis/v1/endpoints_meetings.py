@@ -10,10 +10,11 @@ from typing import List
 from ...auth_dependencies import get_current_user
 from ...core.permissions import require_approval, require_edit_permission
 from ...db.mongodb_utils import get_database
+from ...auth_dependencies import get_current_user
 from ...models.enums.proccessing_mode import ProcessingMode
 from ...models.user import User
 from ...schemas.meeting_schema import MeetingCreate, MeetingResponse, MeetingUpdate, MeetingCreateForm, \
-    MeetingPartialUpdate
+    MeetingPartialUpdate, MeetingResponsePopulated
 from ...services import meeting_service
 from ...crud import crud_meetings
 
@@ -188,3 +189,25 @@ async def partial_update_meeting(
     if not updated:
         raise HTTPException(status_code=404, detail="Meeting not found")
     return updated
+
+# Admin router without router-level dependencies
+admin_router = APIRouter(tags=["meetings-admin"])
+
+@admin_router.get("/populated", response_model=List[MeetingResponsePopulated])
+async def list_populated_meetings(
+    database: AsyncIOMotorDatabase = Depends(get_database),
+    current_user = Depends(get_current_user)
+):
+    """
+    Get a list of all meetings with populated project and uploader info.
+    (For Admin Panel - requires admin role)
+    """
+    # Check if user is admin
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="Only admins can access this endpoint"
+        )
+    
+    meetings = await crud_meetings.get_all_meetings_populated(database)
+    return meetings
