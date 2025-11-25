@@ -86,9 +86,10 @@ function MeetingsListPage() {
       log.info(
         `Fetched ${meetingsData.length} meetings for ${projectsData.length} member projects. Found ${uniqueTags.size} unique tags.`
       );
-    } catch (e: any) {
-      log.error("Error fetching meetings for member projects:", e.message);
-      setError(e.message || "An unknown error occurred.");
+    } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : "An unknown error occurred.";
+      log.error("Error fetching meetings for member projects:", errorMessage);
+      setError(errorMessage);
     } finally {
       setLoading(false);
       log.debug("Data fetching completed. Loading set to false.");

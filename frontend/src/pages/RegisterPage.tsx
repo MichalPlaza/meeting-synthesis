@@ -65,7 +65,7 @@ function RegisterPage() {
         const res = await fetch(`${BACKEND_API_BASE_URL}/users/managers`);
         if (!res.ok) throw new Error("Failed to fetch managers");
         const data = await res.json();
-        setManagers(data.map((u: any) => ({ id: u._id, full_name: u.full_name }))); // używamy _id
+        setManagers(data.map((u: { _id: string; full_name: string }) => ({ id: u._id, full_name: u.full_name })));
         log.info(`Fetched ${data.length} managers`);
       } catch (err) {
         log.error("Error fetching managers:", err);

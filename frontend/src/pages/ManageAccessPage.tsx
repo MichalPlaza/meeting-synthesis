@@ -8,10 +8,20 @@ import log from "../services/logging";
 
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
 
+interface Developer {
+  _id: string;
+  username: string;
+  email: string;
+  full_name?: string;
+  role?: string;
+  is_approved: boolean;
+  can_edit?: boolean;
+}
+
 function ManageAccessPage() {
   log.info("ManageAccessPage rendered.");
   const { token, user } = useAuth();
-  const [developers, setDevelopers] = useState([]);
+  const [developers, setDevelopers] = useState<Developer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,9 +48,10 @@ function ManageAccessPage() {
       const data = await response.json();
       setDevelopers(data);
       log.info(`Fetched ${data.length} developers for manager ${user._id}.`);
-    } catch (e: any) {
-      setError(e.message || "An unknown error occurred.");
-      log.error("Error fetching developers:", e.message);
+    } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : "An unknown error occurred.";
+      setError(errorMessage);
+      log.error("Error fetching developers:", errorMessage);
     } finally {
       setLoading(false);
     }
@@ -63,8 +74,8 @@ function ManageAccessPage() {
       if (!response.ok) throw new Error("Failed to approve developer.");
       log.info(`Approved developer ${developerId}.`);
       fetchDevelopers();
-    } catch (e: any) {
-      log.error("Error approving developer:", e.message);
+    } catch (e) {
+      log.error("Error approving developer:", e instanceof Error ? e.message : "Unknown error");
     }
   };
 
@@ -81,8 +92,8 @@ function ManageAccessPage() {
       if (!response.ok) throw new Error("Failed to revoke access.");
       log.info(`Revoked access for developer ${developerId}.`);
       fetchDevelopers();
-    } catch (e: any) {
-      log.error("Error revoking developer:", e.message);
+    } catch (e) {
+      log.error("Error revoking developer:", e instanceof Error ? e.message : "Unknown error");
     }
   };
 
@@ -99,8 +110,8 @@ function ManageAccessPage() {
     if (!response.ok) throw new Error("Failed to toggle edit access.");
     log.info(`Toggled can_edit for developer ${developerId} to ${!currentValue}`);
     fetchDevelopers();
-  } catch (e: any) {
-    log.error("Error toggling edit access:", e.message);
+  } catch (e) {
+    log.error("Error toggling edit access:", e instanceof Error ? e.message : "Unknown error");
   }
 };
 
@@ -133,7 +144,7 @@ function ManageAccessPage() {
         />
       ) : (
         <ul className="divide-y border rounded-lg">
-          {developers.map((dev: any) => (
+          {developers.map((dev) => (
             <li key={dev._id} className="flex items-center justify-between p-4">
               <div>
                 <p className="font-medium">

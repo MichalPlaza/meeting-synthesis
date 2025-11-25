@@ -19,6 +19,16 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
 
@@ -40,6 +50,7 @@ export function MeetingCommentsSection({ meetingId }: { meetingId: string }) {
 
   const [editing, setEditing] = useState<Comment | null>(null);
   const [editedContent, setEditedContent] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
   const fetchComments = async () => {
     setLoading(true);
@@ -51,8 +62,8 @@ export function MeetingCommentsSection({ meetingId }: { meetingId: string }) {
       if (!res.ok) throw new Error("Failed to fetch comments");
       const data = await res.json();
       setComments(data);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to fetch comments");
     } finally {
       setLoading(false);
     }
@@ -73,15 +84,14 @@ export function MeetingCommentsSection({ meetingId }: { meetingId: string }) {
       if (!res.ok) throw new Error("Failed to post comment");
       setNewComment("");
       await fetchComments();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to post comment");
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDelete = async (commentId: string) => {
-    if (!confirm("Delete this comment?")) return;
     try {
       await fetch(`${BACKEND_API_BASE_URL}/comments/${commentId}`, {
         method: "DELETE",
@@ -90,6 +100,8 @@ export function MeetingCommentsSection({ meetingId }: { meetingId: string }) {
       setComments((prev) => prev.filter((c) => c._id !== commentId));
     } catch {
       setError("Failed to delete comment");
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
@@ -118,15 +130,17 @@ export function MeetingCommentsSection({ meetingId }: { meetingId: string }) {
     setComments((prev) =>
       prev.map((c) => (c._id === updatedComment._id ? updatedComment : c))
     );
-  } catch (err: any) {
-    setError(err.message);
+  } catch (err) {
+    setError(err instanceof Error ? err.message : "Failed to update comment");
   }
 };
 
 
   useEffect(() => {
-    fetchComments();
-  }, [meetingId]);
+    if (token) {
+      fetchComments();
+    }
+  }, [meetingId, token]);
 
   return (
     <div className="mt-12 border rounded-[var(--radius-container)] p-6 bg-card shadow-sm space-y-6">
@@ -179,7 +193,7 @@ export function MeetingCommentsSection({ meetingId }: { meetingId: string }) {
                         <Pencil className="h-4 w-4 mr-2" /> Edit
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={() => handleDelete(comment._id)}
+                        onClick={() => setDeleteTarget(comment._id)}
                         className="hover:bg-destructive/10 focus:bg-destructive/10 text-destructive transition-colors"
                       >
                         <Trash2 className="h-4 w-4 mr-2" /> Delete
@@ -237,6 +251,23 @@ export function MeetingCommentsSection({ meetingId }: { meetingId: string }) {
           </div>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Comment</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this comment? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => deleteTarget && handleDelete(deleteTarget)}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

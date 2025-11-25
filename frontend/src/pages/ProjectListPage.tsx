@@ -49,9 +49,10 @@ function ProjectListPage() {
       const data = await response.json();
       setProjects(data);
       log.info(`Fetched ${data.length} projects where user is a member.`);
-    } catch (err: any) {
-      log.error("Error fetching member projects:", err.message);
-      setError(err.message || "Could not connect to the server.");
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Could not connect to the server.";
+      log.error("Error fetching member projects:", errorMessage);
+      setError(errorMessage);
     } finally {
       setLoading(false);
       log.debug("Member projects fetching completed.");

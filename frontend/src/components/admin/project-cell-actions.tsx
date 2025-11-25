@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { MoreHorizontal, X, ChevronsUpDown, Check } from "lucide-react";
 import { type Row } from "@tanstack/react-table";
+import log from "@/services/logging";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -85,7 +86,7 @@ export function CellActions({ row, onUpdate, onDelete }: CellActionsProps) {
           data.filter((user) => !currentMemberIds.has(user._id))
         );
       } catch (error) {
-        console.error("Failed to search for users:", error);
+        log.error("Failed to search for users:", error);
       } finally {
         setIsSearching(false);
       }
@@ -111,7 +112,7 @@ export function CellActions({ row, onUpdate, onDelete }: CellActionsProps) {
 
   const handleRemoveMember = (memberId: string) => {
     if (memberId === project.owner._id) {
-      console.warn("Attempted to remove the project owner. Action prevented.");
+      log.warn("Attempted to remove the project owner. Action prevented.");
       return;
     }
     setMembers((currentMembers) =>

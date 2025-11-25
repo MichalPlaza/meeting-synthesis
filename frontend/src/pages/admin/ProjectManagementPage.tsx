@@ -6,6 +6,7 @@ import { DataTable } from "@/components/admin/data-table";
 import { AddProjectDialogAdmin } from "@/components/admin/AddProjectDialogAdmin";
 import type { ProjectResponse, ProjectUpdate } from "@/types/project";
 import { useAuth } from "@/AuthContext";
+import log from "@/services/logging";
 
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
 
@@ -41,10 +42,9 @@ export default function ProjectManagementPage() {
 
       const data: ProjectResponse[] = await response.json();
       setProjects(data);
-      console.info("Successfully fetched populated projects.");
-    } catch (err: any) {
-      console.error("Error fetching projects:", err);
-      setError(err.message || "An unknown error occurred.");
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "An unknown error occurred.";
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -58,7 +58,7 @@ export default function ProjectManagementPage() {
     projectId: string,
     data: ProjectUpdate
   ) => {
-    console.log(`Updating project ${projectId} with data:`, data);
+    log.debug(`Updating project ${projectId} with data:`, data);
     try {
       const response = await fetch(
         `${BACKEND_API_BASE_URL}/project/${projectId}`,
@@ -79,16 +79,16 @@ export default function ProjectManagementPage() {
         );
       }
 
-      console.log("Project updated successfully on server.");
+      log.info("Project updated successfully on server.");
 
       await fetchProjects();
     } catch (error) {
-      console.error("Error updating project:", error);
+      log.error("Error updating project:", error);
     }
   };
 
   const handleDeleteProject = async (projectId: string) => {
-    console.log(`Deleting project ${projectId}`);
+    log.debug(`Deleting project ${projectId}`);
     try {
       const response = await fetch(
         `${BACKEND_API_BASE_URL}/project/${projectId}`,
@@ -107,12 +107,12 @@ export default function ProjectManagementPage() {
         );
       }
 
-      console.log("Project deleted successfully on server.");
+      log.info("Project deleted successfully on server.");
       setProjects((prevProjects) =>
         prevProjects.filter((project) => project._id !== projectId)
       );
     } catch (error) {
-      console.error("Error deleting project:", error);
+      log.error("Error deleting project:", error);
     }
   };
 

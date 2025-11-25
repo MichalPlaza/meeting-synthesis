@@ -186,12 +186,13 @@ export function AddProjectDialogAdmin({
       toast.success("Project created successfully!");
       onProjectCreated(newProject);
       handleClose();
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
       log.error(
         "AddProjectDialogAdmin: Error creating project:",
-        error.message
+        errorMessage
       );
-      toast.error(error.message || "An unknown error occurred.");
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
       log.debug("AddProjectDialogAdmin: Project submission finished.");

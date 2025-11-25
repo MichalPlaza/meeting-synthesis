@@ -34,6 +34,18 @@ import ErrorState from "@/components/ErrorState";
 import EmptyState from "@/components/EmptyState";
 import log from "../services/logging";
 import {EditMeetingDialog} from "@/components/EditMeetingDialog.tsx";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import type { KeyTopic, ActionItem, DecisionMade } from "@/types/meeting";
 
 
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
@@ -53,20 +65,21 @@ const updateMeetingField = async (
     meetingId: string,
     token: string | null,
     field: string,
-    value: any
+    value: unknown
 ) => {
   try {
 
-    const body: any = {};
+    const body: Record<string, unknown> = {};
     const parts = field.split(".");
-    let current = body;
+    let current: Record<string, unknown> = body;
 
     for (let i = 0; i < parts.length; i++) {
       if (i === parts.length - 1) {
         current[parts[i]] = value;
       } else {
-        current[parts[i]] = {};
-        current = current[parts[i]];
+        const nested: Record<string, unknown> = {};
+        current[parts[i]] = nested;
+        current = nested;
       }
     }
     const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
@@ -83,8 +96,8 @@ const updateMeetingField = async (
 
     const updatedMeeting: Meeting = await res.json();
     return updatedMeeting;
-  } catch (err: any) {
-    console.error("Error updating meeting field:", err);
+  } catch (err) {
+    log.error("Error updating meeting field:", err);
     throw err;
   }
 };
@@ -119,9 +132,10 @@ function useMeetingData(meetingId: string | undefined) {
       const data: Meeting = await response.json();
       setMeeting(data);
       log.info("Successfully fetched meeting data for ID:", meetingId);
-    } catch (err: any) {
-      log.error("Error fetching meeting data:", err.message);
-      setError(err.message || "Failed to connect to the server.");
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to connect to the server.";
+      log.error("Error fetching meeting data:", errorMessage);
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -154,14 +168,15 @@ function MeetingDetailsPage() {
   const [isEditingSummary, setIsEditingSummary] = useState(false);
   const [editedSummary, setEditedSummary] = useState("");
   const [isEditingTopics, setIsEditingTopics] = useState(false);
-  const [editedTopics, setEditedTopics] = useState([]);
+  const [editedTopics, setEditedTopics] = useState<KeyTopic[]>([]);
   const [isEditingActionItems, setIsEditingActionItems] = useState(false);
-  const [editedActionItems, setEditedActionItems] = useState([]);
+  const [editedActionItems, setEditedActionItems] = useState<ActionItem[]>([]);
   const [isEditingDecisions, setIsEditingDecisions] = useState(false);
-  const [editedDecisions, setEditedDecisions] = useState([]);
+  const [editedDecisions, setEditedDecisions] = useState<DecisionMade[]>([]);
   const [isEditingTranscription, setIsEditingTranscription] = useState(false);
   const [editedTranscription, setEditedTranscription] = useState("");
   const [lastEdits, setLastEdits] = useState<Record<string, MeetingHistory>>({});
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const isProcessing =
     meeting?.processing_status.current_stage !== "completed" &&
@@ -364,8 +379,9 @@ function MeetingDetailsPage() {
 
     setLastEdits(historyMap);
     log.info("Successfully fetched meeting history.");
-  } catch (err: any) {
-    log.error("Error fetching history:", err.message);
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : "Unknown error";
+    log.error("Error fetching history:", errorMessage);
   }
 }, [meetingId, token]);
 
@@ -375,7 +391,6 @@ function MeetingDetailsPage() {
 
   const handleDeleteMeeting = async () => {
   if (!meeting?._id) return;
-  if (!confirm("Are you sure you want to delete this meeting?")) return;
 
   try {
     const res = await fetch(`${BACKEND_API_BASE_URL}/meetings/${meeting._id}`, {
@@ -384,12 +399,15 @@ function MeetingDetailsPage() {
     });
 
     if (res.ok) {
+      toast.success("Meeting deleted successfully");
       navigate("/meetings");
     } else {
-      alert("Failed to delete meeting");
+      toast.error("Failed to delete meeting");
     }
-  } catch (e) {
-    alert("Error deleting meeting");
+  } catch {
+    toast.error("Error deleting meeting");
+  } finally {
+    setShowDeleteDialog(false);
   }
 };
 const handleSaveSummary = async () => {
@@ -417,7 +435,7 @@ const handleAddTopic = () => {
 };
 
 
-const handleRemoveTopic = (index) => {
+const handleRemoveTopic = (index: number) => {
   setEditedTopics(prev => prev.filter((_, i) => i !== index));
 };
 
@@ -444,7 +462,7 @@ const handleAddActionItem = () => {
   ]);
 };
 
-const handleRemoveActionItem = (index) => {
+const handleRemoveActionItem = (index: number) => {
   setEditedActionItems(prev => prev.filter((_, i) => i !== index));
 };
 
@@ -576,11 +594,26 @@ const LastEditedLabel = ({ change }: { change?: { username: string; changed_at: 
             <p className="subtle">Processed on {processedDate}</p>
           </div>
           <div className="flex gap-2 mt-2 sm:mt-0">
-            <Button variant="destructive" onClick={handleDeleteMeeting}>
+            <Button variant="destructive" onClick={() => setShowDeleteDialog(true)}>
               Delete Meeting
             </Button>
           </div>
         </div>
+
+        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Meeting</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this meeting? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteMeeting}>Delete</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         <div className="space-y-4">
           <h4 className="font-semibold flex items-center gap-2 text-lg">

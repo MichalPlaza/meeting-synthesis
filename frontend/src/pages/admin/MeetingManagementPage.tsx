@@ -8,6 +8,7 @@ import { AddMeetingDialog } from "@/components/AddMeetingDialog";
 import type { PopulatedMeeting } from "@/types/meeting";
 import type { Project } from "@/types/project";
 import { useAuth } from "@/AuthContext";
+import log from "@/services/logging";
 
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
 
@@ -33,9 +34,9 @@ export default function MeetingManagementPage() {
       if (!response.ok) throw new Error("Failed to fetch meetings");
       const data: PopulatedMeeting[] = await response.json();
       setMeetings(data);
-      console.log(data);
+      log.debug("Fetched meetings:", data.length);
     } catch (error) {
-      console.error("Error fetching meetings:", error);
+      log.error("Error fetching meetings:", error);
     } finally {
       setIsLoading(false);
     }
@@ -51,7 +52,7 @@ export default function MeetingManagementPage() {
       const data: Project[] = await response.json();
       setProjects(data);
     } catch (error) {
-      console.error("Error fetching projects:", error);
+      log.error("Error fetching projects:", error);
     }
   }, [token]);
 
@@ -73,7 +74,7 @@ export default function MeetingManagementPage() {
       });
       fetchMeetings();
     } catch (error) {
-      console.error("Error deleting meeting:", error);
+      log.error("Error deleting meeting:", error);
     }
   };
 

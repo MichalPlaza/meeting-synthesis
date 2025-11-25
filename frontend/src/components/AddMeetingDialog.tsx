@@ -110,7 +110,6 @@ export function AddMeetingDialog({
         {
           headers: {
             Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
           },
           onUploadProgress: (progressEvent) => {
             const percentCompleted = Math.round(
@@ -149,8 +148,8 @@ export function AddMeetingDialog({
         log.debug("Triggering meeting list refresh after successful upload");
         onMeetingAdded();
       }, 500);
-    } catch (error: any) {
-      const axiosError = error as AxiosError<any>;
+    } catch (error) {
+      const axiosError = error as AxiosError<{ detail?: string }>;
       const errorMessage =
         axiosError.response?.data?.detail ||
         axiosError.message ||

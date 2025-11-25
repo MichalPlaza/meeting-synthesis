@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import log from "@/services/logging";
 
 import {
   Dialog,
@@ -99,7 +100,7 @@ export function AddUserDialog({
         if (!res.ok) throw new Error("Failed to fetch managers");
         const data = await res.json();
         setManagers(
-          data.map((u: any) => ({ id: u._id, full_name: u.full_name }))
+          data.map((u: { _id: string; full_name: string }) => ({ id: u._id, full_name: u.full_name }))
         );
         log.info(`Fetched ${data.length} managers`);
       } catch (err) {
@@ -151,7 +152,7 @@ export function AddUserDialog({
       handleClose();
       onUserCreated();
     } catch (error) {
-      console.error("Error creating user:", error);
+      log.error("Error creating user:", error);
       toast.error(
         error instanceof Error ? error.message : "Failed to create user"
       );
