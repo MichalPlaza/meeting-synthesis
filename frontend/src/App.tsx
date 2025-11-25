@@ -12,6 +12,7 @@ import MeetingDetailsPage from "./pages/MeetingDetailsPage";
 import MeetingsListPage from "./pages/MeetingsListPage";
 import StyleGuidePage from "./pages/StyleGuidePage";
 import { KnowledgeBasePage } from "./pages/KnowledgeBasePage";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 import log from "./services/logging";
 import AdminProtectedRoute from "./components/AdminProtectedRoute";
@@ -27,7 +28,7 @@ function App() {
   log.info("App component rendered");
 
   return (
-    <>
+    <ErrorBoundary>
       <Routes>
         <Route element={<PublicLayout />}>
           <Route
@@ -84,7 +85,7 @@ function App() {
           }
         />
       </Routes>
-    </>
+    </ErrorBoundary>
   );
 }
 

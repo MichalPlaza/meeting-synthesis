@@ -3,6 +3,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from .apis.v1 import (
     endpoints_auth,
     endpoints_meetings,
@@ -15,6 +18,9 @@ from .apis.v1 import (
 )
 from .db.mongodb_utils import close_mongo_connection, connect_to_mongo
 from .core.logging_config import setup_logging
+
+# Rate limiter configuration
+limiter = Limiter(key_func=get_remote_address, default_limits=["100/minute"])
 
 PYTHON_ENV = os.getenv("PYTHON_ENV", "production")
 
@@ -30,7 +36,19 @@ async def lifespan(app: FastAPI):
     await close_mongo_connection()
 
 
-app = FastAPI(title="Meeting Synthesis API", lifespan=lifespan)
+app = FastAPI(
+    title="Meeting Synthesis API",
+    description="API for intelligent meeting management with AI-powered transcription and analysis",
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json",
+    lifespan=lifespan
+)
+
+# Add rate limiter to app state and exception handler
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 if PYTHON_ENV == "development":
     origins = ["*"]

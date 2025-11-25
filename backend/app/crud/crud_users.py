@@ -1,14 +1,14 @@
 import logging
+import re
 from datetime import UTC, datetime
-from pydantic import BaseModel
+
 from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorDatabase
-from numpy.f2py.auxfuncs import throw_error
+from pydantic import BaseModel
 
 from ..models.user import User
 from ..schemas.user_schema import UserCreate, UserUpdate
 from ..services.security import get_password_hash
-import re
 
 logger = logging.getLogger(__name__)
 
@@ -163,6 +163,7 @@ async def get_users_by_manager(database: AsyncIOMotorDatabase, manager_id: str):
         manager_obj_id = ObjectId(manager_id)
     except Exception:
         logger.error(f"Invalid manager ID: {manager_id}")
+        return []
 
     cursor = database["users"].find({"manager_id": manager_obj_id})
     users = [User(**doc) async for doc in cursor]
