@@ -13,8 +13,8 @@ from ..models.mentioned_date import MentionedDate
 from ..models.processing_config import ProcessingConfig
 from ..models.processing_status import ProcessingStatus
 from ..models.py_object_id import PyObjectId
-from ..models.transcrpion import Transcription
-from ..models.enums.proccessing_mode import ProcessingMode
+from ..models.transcription import Transcription
+from ..models.enums.processing_mode import ProcessingMode
 
 
 class MeetingBase(BaseModel):

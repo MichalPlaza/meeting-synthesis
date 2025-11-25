@@ -33,7 +33,7 @@ import {
 import ErrorState from "@/components/ErrorState";
 import EmptyState from "@/components/EmptyState";
 import log from "../services/logging";
-import {EditMeetingDialog} from "@/components/EditMettingDialog.tsx";
+import {EditMeetingDialog} from "@/components/EditMeetingDialog.tsx";
 
 
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;

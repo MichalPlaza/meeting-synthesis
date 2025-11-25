@@ -8,7 +8,7 @@ from .audio_file import AudioFile
 from .processing_config import ProcessingConfig
 from .processing_status import ProcessingStatus
 from .py_object_id import PyObjectId
-from .transcrpion import Transcription
+from .transcription import Transcription
 
 
 class Meeting(BaseModel):

@@ -12,10 +12,10 @@ from app.services.meeting_indexing_service import (
 )
 from app.models.meeting import Meeting
 from app.models.ai_analysis import AIAnalysis
-from app.models.transcrpion import Transcription
+from app.models.transcription import Transcription
 from app.models.audio_file import AudioFile
 from app.models.processing_config import ProcessingConfig
-from app.models.enums.proccessing_mode import ProcessingMode
+from app.models.enums.processing_mode import ProcessingMode
 
 
 def create_test_meeting(**kwargs):

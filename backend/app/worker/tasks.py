@@ -11,7 +11,7 @@ from ..crud import crud_meetings
 from ..schemas.meeting_schema import MeetingUpdate
 from ..models.processing_status import ProcessingStatus
 from ..models.enums.processing_stage import ProcessingStage
-from ..models.transcrpion import Transcription
+from ..models.transcription import Transcription
 from ..services.whisper_service import transcribe_audio
 from .celery_app import celery_app
 
