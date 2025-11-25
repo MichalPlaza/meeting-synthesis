@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { SingleSelect } from "@/components/ui/SingleSelect";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import log from "../services/logging";
 
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
@@ -171,7 +171,7 @@ function RegisterPage() {
             render={({ field, fieldState }) => (
               <div>
                 <label className="block mb-1">Role</label>
-                <SingleSelect
+                <SimpleSelect
                   options={[
                     { value: "developer", label: "Developer" },
                     { value: "scrum_master", label: "Scrum Master" },
@@ -195,9 +195,9 @@ function RegisterPage() {
               render={({ field, fieldState }) => (
                 <div>
                   <label className="block mb-1">Manager</label>
-                  <SingleSelect
+                  <SimpleSelect
                     options={managers.map((m) => ({ value: m.id, label: m.full_name }))}
-                    value={field.value || null}      // RHF trzyma wartość
+                    value={field.value || ""}      // RHF trzyma wartość
                     onValueChange={field.onChange}   // RHF aktualizuje wartość
                     placeholder="Select manager"
                   />

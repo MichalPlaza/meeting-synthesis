@@ -28,7 +28,6 @@ import { toast } from "sonner";
 import { MultiSelect } from "@/components/ui/multi-select";
 import type { Project } from "@/types/project";
 import log from "@/services/logging";
-import { SingleSelect } from "../ui/SingleSelect";
 
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
 
@@ -256,14 +255,14 @@ export function AddProjectDialogAdmin({
                 <FormItem>
                   <FormLabel>Project Manager</FormLabel>
                   <FormControl>
-                    <SingleSelect
+                    <SimpleSelect
                       options={projectManagers.map((manager) => ({
                         value: manager._id,
                         label: `${manager.full_name || manager.username} (${
                           manager.email
                         })`,
                       }))}
-                      value={field.value}
+                      value={field.value || ""}
                       onValueChange={field.onChange}
                       placeholder="Select project manager..."
                       disabled={isSubmitting}

@@ -14,6 +14,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { FileUpload } from "@/components/common/FileUpload";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -197,37 +204,34 @@ export function AddMeetingDialog({
                   </FormItem>
                 )}
               />
-              {/* --- POCZĄTEK ZMIANY: ZASTĄPIENIE COMBOBOXA --- */}
               <FormField
                 control={control}
                 name="projectId"
                 render={({ field }) => (
                   <FormItem>
                     <Label>Project</Label>
-                    <FormControl>
-                      <select
-                        {...field}
-                        className={cn(
-                          "flex h-10 w-full items-center justify-between rounded-[var(--radius-field)] border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
-                          // Pokaż tekst zastępczy, jeśli nic nie jest wybrane
-                          field.value === "" && "text-muted-foreground"
-                        )}
-                      >
-                        <option value="" disabled>
-                          Select a project...
-                        </option>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      disabled={isSubmitting}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a project..." />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
                         {projects.map((project) => (
-                          <option key={project._id} value={project._id}>
+                          <SelectItem key={project._id} value={project._id}>
                             {project.name}
-                          </option>
+                          </SelectItem>
                         ))}
-                      </select>
-                    </FormControl>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              {/* --- KONIEC ZMIANY --- */}
               <FormField
                 control={control}
                 name="tags"
