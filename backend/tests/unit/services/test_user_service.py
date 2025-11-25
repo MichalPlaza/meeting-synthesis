@@ -5,8 +5,9 @@ from bson import ObjectId
 
 from fastapi import HTTPException
 from app.services import user_service
+from app.services.user_service import user_to_response
 from app.schemas.user_schema import UserCreate, UserLogin, UserResponse, Token
-from app.models.user import UserRole
+from app.models.user import UserRole, User
 
 
 @pytest.mark.asyncio
@@ -140,3 +141,86 @@ class TestUserService:
                 await user_service.authenticate_user(db_mock, form_data)
             assert exc_info.value.status_code == 401
             assert "wrong" in exc_info.value.detail.lower()
+
+
+class TestUserToResponse:
+    """Tests for user_to_response helper function."""
+
+    def test_converts_user_to_response(self):
+        """Test successful conversion of User to UserResponse."""
+        user_id = ObjectId()
+        manager_id = ObjectId()
+        created_at = datetime.now(UTC)
+        updated_at = datetime.now(UTC)
+
+        user = User(
+            id=user_id,
+            username="testuser",
+            email="test@example.com",
+            hashed_password="hashed123",
+            full_name="Test User",
+            role="developer",
+            manager_id=manager_id,
+            is_approved=True,
+            can_edit=True,
+            created_at=created_at,
+            updated_at=updated_at,
+        )
+
+        result = user_to_response(user)
+
+        assert isinstance(result, UserResponse)
+        assert result.id == user_id
+        assert result.username == "testuser"
+        assert result.email == "test@example.com"
+        assert result.full_name == "Test User"
+        assert result.role == "developer"
+        assert result.manager_id == manager_id
+        assert result.is_approved is True
+        assert result.can_edit is True
+        assert result.created_at == created_at
+        assert result.updated_at == updated_at
+
+    def test_converts_user_with_none_values(self):
+        """Test conversion with optional None values (full_name, manager_id)."""
+        user_id = ObjectId()
+        created_at = datetime.now(UTC)
+        updated_at = datetime.now(UTC)
+
+        user = User(
+            id=user_id,
+            username="minuser",
+            email="min@example.com",
+            hashed_password="hashed123",
+            full_name=None,
+            role="developer",
+            manager_id=None,
+            is_approved=False,
+            can_edit=False,
+            created_at=created_at,
+            updated_at=updated_at,
+        )
+
+        result = user_to_response(user)
+
+        assert isinstance(result, UserResponse)
+        assert result.full_name is None
+        assert result.manager_id is None
+        assert result.created_at == created_at
+        assert result.updated_at == updated_at
+
+    def test_does_not_include_hashed_password(self):
+        """Test that hashed_password is not in response."""
+        user = User(
+            id=ObjectId(),
+            username="secureuser",
+            email="secure@example.com",
+            hashed_password="super_secret_hash",
+            role="developer",
+        )
+
+        result = user_to_response(user)
+
+        # UserResponse should not have hashed_password attribute
+        result_dict = result.model_dump()
+        assert "hashed_password" not in result_dict

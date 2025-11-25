@@ -158,14 +158,55 @@ async def search_users_by_username(
         
     return users
 
-async def get_users_by_manager(database: AsyncIOMotorDatabase, manager_id: str):
-    try:
-        manager_obj_id = ObjectId(manager_id)
-    except Exception:
-        logger.error(f"Invalid manager ID: {manager_id}")
+async def get_users_by_manager(database: AsyncIOMotorDatabase, manager_id: str) -> list[User]:
+    """Get all users managed by a specific manager.
+
+    Args:
+        database: MongoDB database instance.
+        manager_id: ID of the manager.
+
+    Returns:
+        List of User objects under the manager.
+    """
+    if not ObjectId.is_valid(manager_id):
+        logger.warning(f"Invalid manager ID format: {manager_id}")
         return []
 
-    cursor = database["users"].find({"manager_id": manager_obj_id})
+    cursor = database["users"].find({"manager_id": ObjectId(manager_id)})
     users = [User(**doc) async for doc in cursor]
+    return users
+
+
+async def get_users_by_role(database: AsyncIOMotorDatabase, role: str) -> list[User]:
+    """Get all users with a specific role.
+
+    Args:
+        database: MongoDB database instance.
+        role: Role to filter by.
+
+    Returns:
+        List of User objects with the specified role.
+    """
+    logger.debug(f"Retrieving users with role: {role}")
+    cursor = database["users"].find({"role": role})
+    users = [User(**doc) async for doc in cursor]
+    logger.debug(f"Found {len(users)} users with role {role}")
+    return users
+
+
+async def get_users_by_roles(database: AsyncIOMotorDatabase, roles: list[str]) -> list[User]:
+    """Get all users with any of the specified roles.
+
+    Args:
+        database: MongoDB database instance.
+        roles: List of roles to filter by.
+
+    Returns:
+        List of User objects with any of the specified roles.
+    """
+    logger.debug(f"Retrieving users with roles: {roles}")
+    cursor = database["users"].find({"role": {"$in": roles}})
+    users = [User(**doc) async for doc in cursor]
+    logger.debug(f"Found {len(users)} users with roles {roles}")
     return users
 

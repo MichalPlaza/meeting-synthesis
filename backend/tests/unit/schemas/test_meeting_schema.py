@@ -28,7 +28,7 @@ class TestMeetingSchema:
 
     @pytest.fixture
     def processing_config(self):
-        from app.models.enums.proccessing_mode import ProcessingMode
+        from app.models.enums.processing_mode import ProcessingMode
         return ProcessingConfig(
             language="en",
             processing_mode_selected=ProcessingMode.LOCAL

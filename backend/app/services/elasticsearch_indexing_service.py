@@ -6,12 +6,8 @@ including generating embeddings and managing document lifecycle.
 
 import logging
 from datetime import datetime, UTC
-from elasticsearch import AsyncElasticsearch
-from app.core.elasticsearch_config import (
-    get_elasticsearch_client,
-    close_elasticsearch_client,
-    ELASTICSEARCH_INDEX,
-)
+
+from app.core.elasticsearch_config import elasticsearch_client, ELASTICSEARCH_INDEX
 from app.services.embedding_service import generate_embedding
 
 logger = logging.getLogger(__name__)
@@ -47,9 +43,7 @@ async def index_meeting_document(
     Raises:
         Exception: If indexing fails.
     """
-    client = get_elasticsearch_client()
-
-    try:
+    async with elasticsearch_client() as client:
         # Generate embedding for content
         logger.info(f"Generating embedding for meeting {meeting_id}, type: {content_type}")
         embedding = await generate_embedding(content)
@@ -74,15 +68,9 @@ async def index_meeting_document(
 
         doc_id = response["_id"]
         logger.info(
-            f"✅ Indexed document {doc_id} for meeting {meeting_id} ({content_type})"
+            f"Indexed document {doc_id} for meeting {meeting_id} ({content_type})"
         )
         return doc_id
-
-    except Exception as e:
-        logger.error(f"❌ Failed to index document for meeting {meeting_id}: {e}")
-        raise
-    finally:
-        await close_elasticsearch_client(client)
 
 
 async def index_meeting_documents_batch(documents: list[dict]) -> list[str]:
@@ -102,9 +90,7 @@ async def index_meeting_documents_batch(documents: list[dict]) -> list[str]:
     if not documents:
         return []
 
-    client = get_elasticsearch_client()
-
-    try:
+    async with elasticsearch_client() as client:
         # Prepare bulk operations
         bulk_body = []
 
@@ -137,14 +123,8 @@ async def index_meeting_documents_batch(documents: list[dict]) -> list[str]:
         # Extract document IDs
         doc_ids = [item["index"]["_id"] for item in response["items"]]
 
-        logger.info(f"✅ Bulk indexed {len(doc_ids)} documents")
+        logger.info(f"Bulk indexed {len(doc_ids)} documents")
         return doc_ids
-
-    except Exception as e:
-        logger.error(f"❌ Failed to bulk index documents: {e}")
-        raise
-    finally:
-        await close_elasticsearch_client(client)
 
 
 async def delete_meeting_documents(meeting_id: str) -> int:
@@ -159,22 +139,15 @@ async def delete_meeting_documents(meeting_id: str) -> int:
     Raises:
         Exception: If deletion fails.
     """
-    client = get_elasticsearch_client()
-
-    try:
+    async with elasticsearch_client() as client:
         response = await client.delete_by_query(
-            index=ELASTICSEARCH_INDEX, body={"query": {"term": {"meeting_id": meeting_id}}}
+            index=ELASTICSEARCH_INDEX,
+            body={"query": {"term": {"meeting_id": meeting_id}}}
         )
 
         deleted_count = response["deleted"]
-        logger.info(f"✅ Deleted {deleted_count} documents for meeting {meeting_id}")
+        logger.info(f"Deleted {deleted_count} documents for meeting {meeting_id}")
         return deleted_count
-
-    except Exception as e:
-        logger.error(f"❌ Failed to delete documents for meeting {meeting_id}: {e}")
-        raise
-    finally:
-        await close_elasticsearch_client(client)
 
 
 async def get_index_stats() -> dict:
@@ -187,13 +160,11 @@ async def get_index_stats() -> dict:
         - by_content_type: Breakdown by content type
         - index_size_bytes: Size in bytes
     """
-    client = get_elasticsearch_client()
-
-    try:
+    async with elasticsearch_client() as client:
         # Get basic index stats
         stats = await client.indices.stats(index=ELASTICSEARCH_INDEX)
         index_stats = stats["indices"][ELASTICSEARCH_INDEX]
-        
+
         # Get aggregations for content type breakdown
         agg_query = {
             "size": 0,
@@ -206,16 +177,16 @@ async def get_index_stats() -> dict:
                 }
             }
         }
-        
+
         agg_result = await client.search(index=ELASTICSEARCH_INDEX, body=agg_query)
-        
+
         # Parse aggregation results
         content_type_breakdown = {}
         for bucket in agg_result["aggregations"]["by_content_type"]["buckets"]:
             content_type_breakdown[bucket["key"]] = bucket["doc_count"]
-        
+
         unique_meetings = agg_result["aggregations"]["unique_meetings"]["value"]
-        
+
         return {
             "total_documents": index_stats["total"]["docs"]["count"],
             "total_meetings": unique_meetings,
@@ -223,9 +194,3 @@ async def get_index_stats() -> dict:
             "index_size_bytes": index_stats["total"]["store"]["size_in_bytes"],
             "index_size_mb": round(index_stats["total"]["store"]["size_in_bytes"] / (1024 * 1024), 2),
         }
-
-    except Exception as e:
-        logger.error(f"❌ Failed to get index stats: {e}")
-        raise
-    finally:
-        await close_elasticsearch_client(client)

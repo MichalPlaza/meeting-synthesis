@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import AsyncMock
 from datetime import datetime, timezone
 from bson import ObjectId
-from app.models.enums.proccessing_mode import ProcessingMode
+from app.models.enums.processing_mode import ProcessingMode
 
 from app.crud import crud_meetings
 from app.models.meeting import Meeting

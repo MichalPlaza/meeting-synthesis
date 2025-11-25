@@ -1,5 +1,6 @@
 import logging
 import os
+import pathlib
 import re
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status, Form, Query
 from fastapi.responses import FileResponse
@@ -10,13 +11,12 @@ from typing import List
 from ...auth_dependencies import get_current_user
 from ...core.permissions import require_approval, require_edit_permission
 from ...db.mongodb_utils import get_database
-from ...auth_dependencies import get_current_user
-from ...models.enums.proccessing_mode import ProcessingMode
+from ...models.enums.processing_mode import ProcessingMode
 from ...models.user import User
 from ...schemas.meeting_schema import MeetingCreate, MeetingResponse, MeetingUpdate, MeetingCreateForm, \
     MeetingPartialUpdate, MeetingResponsePopulated
 from ...services import meeting_service
-from ...crud import crud_meetings
+from ...crud import crud_meetings, crud_projects
 
 router = APIRouter(
     tags=["meetings"],
@@ -24,11 +24,71 @@ router = APIRouter(
 )
 logger = logging.getLogger(__name__)
 
+# Base upload directory (resolved to absolute path)
+UPLOAD_DIR = pathlib.Path("uploads").resolve()
+
 
 def sanitize_filename(name: str) -> str:
+    """Sanitize filename by removing dangerous characters."""
     name = re.sub(r'[<>:"/\\|?*]', '_', name)
     name = re.sub(r'\s+', '_', name)
+    # Remove path traversal sequences
+    name = name.replace('..', '_')
     return name
+
+
+def safe_file_path(base_dir: pathlib.Path, filename: str) -> pathlib.Path:
+    """
+    Safely join base directory with filename, preventing path traversal attacks.
+
+    Args:
+        base_dir: Base directory (must be absolute path)
+        filename: Filename to join (may contain malicious sequences)
+
+    Returns:
+        Safe absolute path within base_dir
+
+    Raises:
+        ValueError: If resulting path would be outside base_dir
+    """
+    # Get just the filename, removing any directory components
+    safe_name = pathlib.Path(filename).name
+
+    # Resolve the full path
+    file_path = (base_dir / safe_name).resolve()
+
+    # Verify the path is within base_dir
+    try:
+        file_path.relative_to(base_dir)
+    except ValueError:
+        raise ValueError(f"Path traversal attempt detected: {filename}")
+
+    return file_path
+
+
+async def user_can_access_meeting(
+    database: AsyncIOMotorDatabase,
+    user: User,
+    meeting
+) -> bool:
+    """
+    Check if user has access to a meeting based on project membership.
+
+    Admin users have access to all meetings.
+    Other users must be members of the meeting's project.
+    """
+    # Admins can access everything
+    if user.role == "admin":
+        return True
+
+    # Check if user is member of the meeting's project
+    project = await crud_projects.get_project_by_id(database, str(meeting.project_id))
+    if not project:
+        return False
+
+    # Check if user is in project members
+    user_id_str = str(user.id)
+    return user_id_str in [str(m) for m in project.members]
 
 
 @router.post("/", response_model=MeetingResponse, status_code=status.HTTP_201_CREATED)
@@ -149,29 +209,54 @@ async def delete_meeting(
 @router.get("/{meeting_id}/download")
 async def download_meeting_audio(
         meeting_id: str,
-        database: AsyncIOMotorDatabase = Depends(get_database)
+        database: AsyncIOMotorDatabase = Depends(get_database),
+        current_user: User = Depends(get_current_user),
 ):
-    logger.info(f"Downloading audio for meeting with ID: {meeting_id}")
+    """
+    Download audio file for a meeting.
+
+    Requires authentication and authorization (user must have access to the meeting's project).
+    """
+    logger.info(f"User {current_user.username} requesting download for meeting ID: {meeting_id}")
+
+    # Fetch meeting
     meeting = await crud_meetings.get_meeting_by_id(database, meeting_id)
     if not meeting or not meeting.audio_file or not meeting.audio_file.storage_path_or_url:
         logger.warning(f"Meeting or audio file not found for meeting ID: {meeting_id}")
         raise HTTPException(status_code=404, detail="Meeting or audio file not found")
 
-    storage_filename = os.path.basename(meeting.audio_file.storage_path_or_url)
-    local_file_path = os.path.join("uploads", storage_filename)
+    # Authorization check - user must have access to the meeting's project
+    if not await user_can_access_meeting(database, current_user, meeting):
+        logger.warning(f"User {current_user.username} denied access to meeting {meeting_id}")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have access to this meeting"
+        )
 
-    if not os.path.exists(local_file_path):
+    # Safe path construction to prevent path traversal attacks
+    try:
+        local_file_path = safe_file_path(UPLOAD_DIR, meeting.audio_file.storage_path_or_url)
+    except ValueError as e:
+        logger.error(f"Path traversal attempt for meeting {meeting_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid file path"
+        )
+
+    if not local_file_path.exists():
         logger.error(f"Audio file not found on server for meeting ID: {meeting_id} at path: {local_file_path}")
         raise HTTPException(status_code=404, detail="Audio file not found on server")
 
+    # Prepare user-friendly filename
     meeting_date = meeting.meeting_datetime.strftime("%Y-%m-%d")
     sanitized_title = sanitize_filename(meeting.title)
     original_extension = os.path.splitext(meeting.audio_file.original_filename)[1]
 
     user_friendly_filename = f"{meeting_date}_{sanitized_title}{original_extension}"
-    logger.info(f"Serving audio file for meeting ID: {meeting_id} with filename: {user_friendly_filename}")
+    logger.info(f"Serving audio file for meeting ID: {meeting_id} to user {current_user.username}")
+
     return FileResponse(
-        path=local_file_path,
+        path=str(local_file_path),
         media_type='application/octet-stream',
         filename=user_friendly_filename
     )

@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from .enums.proccessing_mode import ProcessingMode
+from .enums.processing_mode import ProcessingMode
 
 
 class ProcessingConfig(BaseModel):
