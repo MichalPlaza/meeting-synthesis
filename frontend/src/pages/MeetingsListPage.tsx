@@ -6,6 +6,7 @@ import { type Project } from "@/types/project";
 import { Button } from "@/components/ui/button";
 import { PlusIcon, Mic } from "lucide-react";
 import { useAuth } from "@/AuthContext";
+import { useDebounce } from "@/hooks/useDebounce";
 import { MeetingListItemSkeleton } from "@/components/MeetingListItemSkeleton";
 import ErrorState from "@/components/ErrorState";
 import EmptyState from "@/components/EmptyState";
@@ -26,6 +27,7 @@ function MeetingsListPage() {
   const [isAddMeetingDialogOpen, setIsAddMeetingDialogOpen] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState("newest");
@@ -131,8 +133,8 @@ function MeetingsListPage() {
     const filtered = meetings
       .filter((meeting) => {
         const searchMatch =
-          searchTerm.trim() === "" ||
-          meeting.title.toLowerCase().includes(searchTerm.toLowerCase());
+          debouncedSearchTerm.trim() === "" ||
+          meeting.title.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
         const projectMatch =
           selectedProjects.length === 0 ||
           selectedProjects.includes(meeting.project_id);
@@ -162,7 +164,7 @@ function MeetingsListPage() {
       });
     log.debug(`Filtered down to ${filtered.length} meetings.`);
     return filtered;
-  }, [meetings, searchTerm, selectedProjects, selectedTags, sortBy]);
+  }, [meetings, debouncedSearchTerm, selectedProjects, selectedTags, sortBy]);
 
   if (error) {
     log.error("MeetingsListPage: Error state displayed.", error);
