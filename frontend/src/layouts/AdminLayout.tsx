@@ -5,6 +5,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { useAuth } from "@/AuthContext";
 import { Toaster } from "sonner";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { MobileNav } from "@/components/MobileNav";
 import { cn } from "@/lib/utils";
 import { AdminSubNav } from "@/components/admin/AdminSubNav";
 
@@ -84,6 +85,7 @@ function AdminLayout() {
               Log Out
             </Button>
             <ThemeToggle />
+            <MobileNav />
           </nav>
         </div>
       </header>

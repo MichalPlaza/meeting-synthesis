@@ -13,16 +13,19 @@ interface SourceCardProps {
 }
 
 export function SourceCard({ source, onNavigateToMeeting }: SourceCardProps) {
-  const contentTypeColors: Record<string, string> = {
-    transcription:
-      "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
-    summary:
-      "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300",
-    key_topic:
-      "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
-    action_item:
-      "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300",
-    decision: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
+  const contentTypeVariants: Record<
+    string,
+    | "content-transcription"
+    | "content-summary"
+    | "content-key-topic"
+    | "content-action-item"
+    | "content-decision"
+  > = {
+    transcription: "content-transcription",
+    summary: "content-summary",
+    key_topic: "content-key-topic",
+    action_item: "content-action-item",
+    decision: "content-decision",
   };
 
   const contentTypeLabels: Record<string, string> = {
@@ -58,10 +61,10 @@ export function SourceCard({ source, onNavigateToMeeting }: SourceCardProps) {
 
         <div className="flex items-center gap-2 mb-2">
           <Badge
-            variant="secondary"
-            className={`text-xs ${
-              contentTypeColors[source.content_type] || ""
-            }`}
+            variant={
+              contentTypeVariants[source.content_type] || "secondary"
+            }
+            className="text-xs"
           >
             {contentTypeLabels[source.content_type] || source.content_type}
           </Badge>

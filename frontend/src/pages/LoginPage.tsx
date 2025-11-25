@@ -174,7 +174,7 @@ function LoginPage() {
                 type="submit"
                 className="w-full !mt-8"
                 size="lg"
-                disabled={isSubmitting}
+                loading={isSubmitting}
               >
                 {isSubmitting ? "Logging in..." : "Log in"}
               </Button>

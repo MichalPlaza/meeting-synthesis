@@ -271,7 +271,7 @@ export function AddMeetingDialog({
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button type="submit" loading={isSubmitting}>
                 {isSubmitting ? "Uploading..." : "Add Meeting"}
               </Button>
             </DialogFooter>

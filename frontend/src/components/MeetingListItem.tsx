@@ -4,6 +4,7 @@ import { format, formatDistanceToNow } from "date-fns";
 import { Checkbox } from "./ui/checkbox";
 import { Clock, Folder } from "lucide-react";
 import { getTagColor } from "@/lib/utils";
+import { Badge } from "./ui/badge";
 import type { Project } from "@/types/project";
 import log from "../services/logging";
 
@@ -48,14 +49,9 @@ function MeetingListItem({ meeting, project }: MeetingListItemProps) {
             {meeting.tags && meeting.tags.length > 0 && (
               <div className="flex flex-wrap items-center gap-2">
                 {meeting.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className={`px-2.5 py-0.5 text-xs font-bold rounded-[var(--radius-pill)] ${getTagColor(
-                      tag
-                    )}`}
-                  >
+                  <Badge key={tag} variant={getTagColor(tag)}>
                     {tag}
-                  </span>
+                  </Badge>
                 ))}
               </div>
             )}

@@ -207,7 +207,7 @@ function RegisterPage() {
             />
           )}
 
-          <Button type="submit" className="w-full mt-4" size="lg" disabled={isSubmitting}>
+          <Button type="submit" className="w-full mt-4" size="lg" loading={isSubmitting}>
             {isSubmitting ? "Creating account..." : "Create account"}
           </Button>
         </form>

@@ -33,6 +33,32 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-tag-blue: var(--tag-blue);
+  --color-tag-blue-foreground: var(--tag-blue-foreground);
+  --color-tag-green: var(--tag-green);
+  --color-tag-green-foreground: var(--tag-green-foreground);
+  --color-tag-purple: var(--tag-purple);
+  --color-tag-purple-foreground: var(--tag-purple-foreground);
+  --color-tag-orange: var(--tag-orange);
+  --color-tag-orange-foreground: var(--tag-orange-foreground);
+  --color-tag-pink: var(--tag-pink);
+  --color-tag-pink-foreground: var(--tag-pink-foreground);
+  --color-tag-yellow: var(--tag-yellow);
+  --color-tag-yellow-foreground: var(--tag-yellow-foreground);
+  --color-tag-cyan: var(--tag-cyan);
+  --color-tag-cyan-foreground: var(--tag-cyan-foreground);
+  --color-tag-red: var(--tag-red);
+  --color-tag-red-foreground: var(--tag-red-foreground);
+  --color-content-transcription: var(--content-transcription);
+  --color-content-transcription-foreground: var(--content-transcription-foreground);
+  --color-content-summary: var(--content-summary);
+  --color-content-summary-foreground: var(--content-summary-foreground);
+  --color-content-key-topic: var(--content-key-topic);
+  --color-content-key-topic-foreground: var(--content-key-topic-foreground);
+  --color-content-action-item: var(--content-action-item);
+  --color-content-action-item-foreground: var(--content-action-item-foreground);
+  --color-content-decision: var(--content-decision);
+  --color-content-decision-foreground: var(--content-decision-foreground);
 }
 
 /*
@@ -77,6 +103,36 @@
   /* Ring (obwódka focus) */
   /* --- ZMIANA: Przywracamy przezroczystość do definicji zmiennej --- */
   --ring: oklch(30% 0.02 240 / 50%);
+
+  /* Tag Colors - Semantic colors for tags */
+  --tag-blue: oklch(85% 0.05 240);
+  --tag-blue-foreground: oklch(30% 0.08 240);
+  --tag-green: oklch(85% 0.05 145);
+  --tag-green-foreground: oklch(25% 0.08 145);
+  --tag-purple: oklch(85% 0.05 285);
+  --tag-purple-foreground: oklch(30% 0.08 285);
+  --tag-orange: oklch(85% 0.08 50);
+  --tag-orange-foreground: oklch(25% 0.10 50);
+  --tag-pink: oklch(85% 0.08 350);
+  --tag-pink-foreground: oklch(30% 0.10 350);
+  --tag-yellow: oklch(90% 0.10 90);
+  --tag-yellow-foreground: oklch(25% 0.08 90);
+  --tag-cyan: oklch(85% 0.06 195);
+  --tag-cyan-foreground: oklch(25% 0.08 195);
+  --tag-red: oklch(85% 0.10 25);
+  --tag-red-foreground: oklch(25% 0.10 25);
+
+  /* Content Type Colors - For knowledge base source types */
+  --content-transcription: var(--tag-blue);
+  --content-transcription-foreground: var(--tag-blue-foreground);
+  --content-summary: var(--tag-purple);
+  --content-summary-foreground: var(--tag-purple-foreground);
+  --content-key-topic: var(--tag-green);
+  --content-key-topic-foreground: var(--tag-green-foreground);
+  --content-action-item: var(--tag-orange);
+  --content-action-item-foreground: var(--tag-orange-foreground);
+  --content-decision: var(--tag-red);
+  --content-decision-foreground: var(--tag-red-foreground);
 
   /* --- SYSTEM ZAOKRĄGLEŃ --- */
   --radius-container: 0.75rem;
@@ -126,6 +182,24 @@
   /* Ring (obwódka focus) */
   /* --- ZMIANA: Przywracamy przezroczystość do definicji zmiennej --- */
   --ring: oklch(80% 0.02 240 / 50%);
+
+  /* Tag Colors - Dark mode variants */
+  --tag-blue: oklch(30% 0.08 240);
+  --tag-blue-foreground: oklch(85% 0.05 240);
+  --tag-green: oklch(25% 0.08 145);
+  --tag-green-foreground: oklch(85% 0.05 145);
+  --tag-purple: oklch(30% 0.08 285);
+  --tag-purple-foreground: oklch(85% 0.05 285);
+  --tag-orange: oklch(25% 0.10 50);
+  --tag-orange-foreground: oklch(85% 0.08 50);
+  --tag-pink: oklch(30% 0.10 350);
+  --tag-pink-foreground: oklch(85% 0.08 350);
+  --tag-yellow: oklch(25% 0.08 90);
+  --tag-yellow-foreground: oklch(90% 0.10 90);
+  --tag-cyan: oklch(25% 0.08 195);
+  --tag-cyan-foreground: oklch(85% 0.06 195);
+  --tag-red: oklch(25% 0.10 25);
+  --tag-red-foreground: oklch(85% 0.10 25);
 }
 
 /*
