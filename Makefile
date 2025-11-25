@@ -22,6 +22,7 @@ stop:
 	@pkill -f "uvicorn app.main:app" || true
 	@pkill -f "celery -A app.worker.celery_app worker" || true
 	@pkill -f "celery -A app.worker.celery_app beat" || true
+	@pkill -f "notification_service" || true
 	@pkill -f "vite" || true
 	@docker-compose down
 	@brew services stop redis 2>/dev/null || true

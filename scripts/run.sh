@@ -65,6 +65,14 @@ cd ..
 echo -e "${GREEN}✅ Frontend dependencies installed${NC}"
 echo ""
 
+# Install notification service dependencies
+echo -e "${BLUE}📦 Installing notification service dependencies...${NC}"
+cd notification_service
+poetry install --no-interaction --quiet 2>/dev/null || poetry install
+cd ..
+echo -e "${GREEN}✅ Notification service dependencies installed${NC}"
+echo ""
+
 # Start all services
 echo -e "${BLUE}========================================${NC}"
 echo -e "${BLUE}🚀 Starting all services...${NC}"
@@ -72,6 +80,7 @@ echo -e "${BLUE}========================================${NC}"
 echo ""
 echo -e "${YELLOW}Backend:             http://localhost:8000${NC}"
 echo -e "${YELLOW}API Docs:            http://localhost:8000/docs${NC}"
+echo -e "${YELLOW}WebSocket:           ws://localhost:8001${NC}"
 echo -e "${YELLOW}Frontend:            http://localhost:3000${NC}"
 echo ""
 echo -e "${BLUE}Press Ctrl+C to stop all services${NC}"
@@ -116,6 +125,14 @@ CELERY_BEAT_PID=$!
 echo -e "${YELLOW}  ✓ Celery beat started (PID: $CELERY_BEAT_PID)${NC}"
 cd ..
 
+# Start notification service (WebSocket server)
+cd notification_service
+echo -e "${BLUE}  → Starting notification service (WebSocket) on port 8001${NC}"
+poetry run uvicorn app.main:app --host 0.0.0.0 --port 8001 --log-level info > ../logs/notification_service.log 2>&1 &
+NOTIFICATION_PID=$!
+echo -e "${BLUE}  ✓ Notification service started (PID: $NOTIFICATION_PID)${NC}"
+cd ..
+
 # Start frontend
 echo -e "${BLUE}  → Starting frontend on port 3000${NC}"
 cd frontend
@@ -136,6 +153,7 @@ echo -e "${BLUE}📊 Service Status:${NC}"
 echo -e "${GREEN}  Backend:       Running on http://localhost:8000 (PID: $BACKEND_PID)${NC}"
 echo -e "${YELLOW}  Celery Worker: Running (PID: $CELERY_WORKER_PID)${NC}"
 echo -e "${YELLOW}  Celery Beat:   Running (PID: $CELERY_BEAT_PID)${NC}"
+echo -e "${BLUE}  Notification:  Running on ws://localhost:8001 (PID: $NOTIFICATION_PID)${NC}"
 echo -e "${BLUE}  Frontend:      Running on http://localhost:3000 (PID: $FRONTEND_PID)${NC}"
 echo ""
 echo -e "${BLUE}📋 Showing logs from all services...${NC}"
@@ -146,6 +164,7 @@ echo ""
 tail -f logs/backend.log 2>/dev/null | sed "s/^/$(echo -e '\033[0;32m')[BACKEND]$(echo -e '\033[0m') /" &
 tail -f logs/celery_worker.log 2>/dev/null | sed "s/^/$(echo -e '\033[0;33m')[CELERY_WORKER]$(echo -e '\033[0m') /" &
 tail -f logs/celery_beat.log 2>/dev/null | sed "s/^/$(echo -e '\033[0;35m')[CELERY_BEAT]$(echo -e '\033[0m') /" &
+tail -f logs/notification_service.log 2>/dev/null | sed "s/^/$(echo -e '\033[0;34m')[NOTIFICATION]$(echo -e '\033[0m') /" &
 tail -f logs/frontend.log 2>/dev/null | sed "s/^/$(echo -e '\033[0;36m')[FRONTEND]$(echo -e '\033[0m') /" &
 
 # Wait for Ctrl+C
