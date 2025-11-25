@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import {useParams, Link, useNavigate} from "react-router-dom";
 import { useAuth } from "@/AuthContext";
 import type { Meeting } from "@/types/meeting";
-
+import type { MeetingHistory } from  "@/types/meeting-history"
 import { format } from "date-fns";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -161,6 +161,7 @@ function MeetingDetailsPage() {
   const [editedDecisions, setEditedDecisions] = useState([]);
   const [isEditingTranscription, setIsEditingTranscription] = useState(false);
   const [editedTranscription, setEditedTranscription] = useState("");
+  const [lastEdits, setLastEdits] = useState<Record<string, MeetingHistory>>({});
 
   const isProcessing =
     meeting?.processing_status.current_stage !== "completed" &&
@@ -334,6 +335,44 @@ function MeetingDetailsPage() {
     log.debug("Playback rate cycled to:", PLAYBACK_RATES[nextIndex]);
   };
 
+  const fetchHistory = useCallback(async () => {
+  if (!token || !meetingId) return;
+
+  try {
+    const response = await fetch(
+      `${BACKEND_API_BASE_URL}/meeting_history/${meetingId}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        setLastEdits({});
+        return;
+      }
+      log.warn(`Failed to fetch history. Status: ${response.status}`);
+      return;
+    }
+
+    const data: MeetingHistory[] = await response.json();
+
+    const historyMap: Record<string, MeetingHistory> = {};
+    data.forEach((change) => {
+      historyMap[change.field] = change;
+    });
+
+    setLastEdits(historyMap);
+
+    setLastEdits(historyMap);
+    log.info("Successfully fetched meeting history.");
+  } catch (err: any) {
+    log.error("Error fetching history:", err.message);
+  }
+}, [meetingId, token]);
+
+  useEffect(() => {
+    fetchHistory();
+  }, [fetchHistory]);
+
   const handleDeleteMeeting = async () => {
   if (!meeting?._id) return;
   if (!confirm("Are you sure you want to delete this meeting?")) return;
@@ -364,7 +403,8 @@ const handleSaveSummary = async () => {
   );
 
   if (updatedMeeting) {
-    refetch();
+    await refetch();
+    await fetchHistory();
     setIsEditingSummary(false);
   }
 };
@@ -456,9 +496,22 @@ const handleSaveTranscription = async () => {
   }
 };
 
+const LastEditedLabel = ({ change }: { change?: { username: string; changed_at: string } }) => {
+  if (!change) return null;
 
+  const dateStr = new Date(change.changed_at).toLocaleString('en-EN', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
 
-
+  return (
+    <div className="text-xs text-muted-foreground font-normal ml-1 mt-1">
+      Last edited by <span className="font-medium text-foreground">{change.username}</span> on {dateStr}
+    </div>
+  );
+};
 
 
 
@@ -643,54 +696,72 @@ const handleSaveTranscription = async () => {
               )}
             </div>
         ) : (
-            <Tabs defaultValue="summary" className="w-full">
+            <Tabs defaultValue="transcript" className="w-full">
               <TabsList className="grid w-full grid-cols-5 mb-4">
+                <TabsTrigger value="transcript">Transcript</TabsTrigger>
                 <TabsTrigger value="summary">Summary</TabsTrigger>
                 <TabsTrigger value="topics">Topics</TabsTrigger>
                 <TabsTrigger value="action-items">Action Items</TabsTrigger>
                 <TabsTrigger value="decisions">Decisions</TabsTrigger>
-                <TabsTrigger value="transcript">Transcript</TabsTrigger>
               </TabsList>
 
               {/* SUMMARY */}
               <TabsContent value="summary">
                 <div className="p-6 space-y-4 flex flex-col gap-2">
-                  <div className="flex items-center justify-between">
-                    <div className="text-xl font-semibold flex items-center gap-3">
-                      <Sparkles size={20}/> <h4>Summary</h4>
+                  {/* HEADER SECTION */}
+                  <div className="flex items-start justify-between">
+                    <div className="flex flex-col">
+                      <div className="text-xl font-semibold flex items-center gap-3">
+                        <Sparkles size={20} />
+                        <h4>Summary</h4>
+                      </div>
+
+                      {/* Tutaj wyświetlamy info, jeśli istnieje wpis w lastEdits */}
+                      <LastEditedLabel change={lastEdits["ai_analysis.summary"]} />
                     </div>
+
+                    {/* Prawa strona: Przyciski */}
                     {!isEditingSummary ? (
-                        <Button size="sm" variant="outline" onClick={() => setIsEditingSummary(true)}>
-                          Edit
-                        </Button>
+                      <Button size="sm" variant="outline" onClick={() => setIsEditingSummary(true)}>
+                        Edit
+                      </Button>
                     ) : (
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="outline" onClick={handleSaveSummary}>Save</Button>
-                          <Button size="sm" variant="ghost" onClick={() => {
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline" onClick={handleSaveSummary}>
+                          Save
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
                             setIsEditingSummary(false);
-                            setEditedSummary(meeting.ai_analysis?.summary || "")
-                          }}>
-                            Cancel
-                          </Button>
-                        </div>
+                            setEditedSummary(meeting.ai_analysis?.summary || "");
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
                     )}
                   </div>
 
+                  {/* CONTENT SECTION */}
                   {isEditingSummary ? (
-                      <textarea
-                          className="w-full p-2 border rounded h-72 resize-y"
-                          value={editedSummary}
-                          onChange={(e) => setEditedSummary(e.target.value)}
-                      />
+                    <textarea
+                      className="w-full p-2 border rounded h-72 resize-y bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                      value={editedSummary}
+                      onChange={(e) => setEditedSummary(e.target.value)}
+                    />
                   ) : meeting.ai_analysis?.summary ? (
-                      <p className="text-foreground/80 leading-relaxed">{meeting.ai_analysis.summary}</p>
+                    <p className="text-foreground/80 leading-relaxed whitespace-pre-wrap">
+                      {meeting.ai_analysis.summary}
+                    </p>
                   ) : (
-                      <EmptyState
-                          icon={Sparkles}
-                          title="Summary Not Available"
-                          description="AI analysis could not be performed for this meeting."
-                          className="py-8"
-                      />
+                    <EmptyState
+                      icon={Sparkles}
+                      title="Summary Not Available"
+                      description="AI analysis could not be performed for this meeting."
+                      className="py-8"
+                    />
                   )}
                 </div>
               </TabsContent>
@@ -699,9 +770,14 @@ const handleSaveTranscription = async () => {
               {/* TOPICS */}
               <TabsContent value="topics">
                 <div className="p-6 space-y-4 flex flex-col gap-2">
-                  <div className="flex items-center justify-between">
-                    <div className="text-xl font-semibold flex items-center gap-3">
-                      <ListTree size={20}/> <h4>Key Topics</h4>
+                  {/* HEADER */}
+                  <div className="flex items-start justify-between">
+                    <div className="flex flex-col">
+                      <div className="text-xl font-semibold flex items-center gap-3">
+                        <ListTree size={20}/> <h4>Key Topics</h4>
+                      </div>
+                      {/* INFO O EDYCJI */}
+                      <LastEditedLabel change={lastEdits["ai_analysis.key_topics"]} />
                     </div>
 
                     {!isEditingTopics ? (
@@ -801,10 +877,12 @@ const handleSaveTranscription = async () => {
               {/* ACTION ITEMS */}
               <TabsContent value="action-items">
                 <div className="p-6 space-y-4 flex flex-col gap-2">
-                  {/* HEADER */}
-                  <div className="flex items-center justify-between">
-                    <div className="text-xl font-semibold flex items-center gap-3">
-                      <CheckSquare size={20}/> <h4>Action Items</h4>
+                  <div className="flex items-start justify-between">
+                    <div className="flex flex-col">
+                      <div className="text-xl font-semibold flex items-center gap-3">
+                        <CheckSquare size={20}/> <h4>Action Items</h4>
+                      </div>
+                      <LastEditedLabel change={lastEdits["ai_analysis.action_items"]} />
                     </div>
 
                     {!isEditingActionItems ? (
@@ -930,14 +1008,15 @@ const handleSaveTranscription = async () => {
                 </div>
               </TabsContent>
 
-
               {/* DECISIONS */}
               <TabsContent value="decisions">
                 <div className="p-6 space-y-4 flex flex-col gap-2">
-                  {/* HEADER */}
-                  <div className="flex items-center justify-between">
-                    <div className="text-xl font-semibold flex items-center gap-3">
-                      <Flag size={20}/> <h4>Decisions</h4>
+                  <div className="flex items-start justify-between">
+                    <div className="flex flex-col">
+                      <div className="text-xl font-semibold flex items-center gap-3">
+                        <Flag size={20}/> <h4>Decisions</h4>
+                      </div>
+                      <LastEditedLabel change={lastEdits["ai_analysis.decisions_made"]} />
                     </div>
 
                     {!isEditingDecisions ? (
@@ -1021,65 +1100,67 @@ const handleSaveTranscription = async () => {
 
 
               {/* TRANSCRIPT */}
-              <TabsContent value="transcript">
-                <div className="p-6 space-y-4 flex flex-col gap-2">
-                  {/* HEADER */}
-                  <div className="flex items-center justify-between">
+             <TabsContent value="transcript">
+              <div className="p-6 space-y-4 flex flex-col gap-2">
+                <div className="flex items-start justify-between">
+                  <div className="flex flex-col">
                     <div className="text-xl font-semibold flex items-center gap-3">
                       <FileText size={20}/> <h4>Full Transcript</h4>
                     </div>
-
-                    {!isEditingTranscription ? (
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setIsEditingTranscription(true)}
-                        >
-                          Edit
-                        </Button>
-                    ) : (
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="outline" onClick={handleSaveTranscription}>
-                            Save
-                          </Button>
-                          <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => {
-                                setIsEditingTranscription(false);
-                                setEditedTranscription(meeting.transcription?.full_text || "");
-                              }}
-                          >
-                            Cancel
-                          </Button>
-                        </div>
-                    )}
+                    <LastEditedLabel change={lastEdits["transcription.full_text"]} />
                   </div>
 
-                  {/* EDIT MODE */}
-                  {isEditingTranscription ? (
-                      <textarea
-                          className="w-full p-2 border rounded h-126 resize-y"
-                          value={editedTranscription}
-                          onChange={(e) => setEditedTranscription(e.target.value)}
-                      />
+                  {!isEditingTranscription ? (
+                      <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setIsEditingTranscription(true)}
+                      >
+                        Edit
+                      </Button>
                   ) : (
-                      /* READONLY MODE */
-                      meeting.transcription?.full_text ? (
-                          <div className="whitespace-pre-wrap text-foreground/90 leading-relaxed">
-                            {meeting.transcription.full_text}
-                          </div>
-                      ) : (
-                          <EmptyState
-                              icon={FileText}
-                              title="No Transcript Available"
-                              description="Transcription is not yet complete or failed for this meeting."
-                              className="py-8"
-                          />
-                      )
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline" onClick={handleSaveTranscription}>
+                          Save
+                        </Button>
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setIsEditingTranscription(false);
+                              setEditedTranscription(meeting.transcription?.full_text || "");
+                            }}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
                   )}
                 </div>
-              </TabsContent>
+
+                {/* EDIT MODE */}
+                {isEditingTranscription ? (
+                    <textarea
+                        className="w-full p-2 border rounded h-126 resize-y"
+                        value={editedTranscription}
+                        onChange={(e) => setEditedTranscription(e.target.value)}
+                    />
+                ) : (
+                    /* READONLY MODE */
+                    meeting.transcription?.full_text ? (
+                        <div className="whitespace-pre-wrap text-foreground/90 leading-relaxed">
+                          {meeting.transcription.full_text}
+                        </div>
+                    ) : (
+                        <EmptyState
+                            icon={FileText}
+                            title="No Transcript Available"
+                            description="Transcription is not yet complete or failed for this meeting."
+                            className="py-8"
+                        />
+                    )
+                )}
+              </div>
+            </TabsContent>
             </Tabs>
         )
         }

@@ -3,16 +3,18 @@ import logging
 import os
 import shutil
 import uuid
-from mutagen.mp3 import MP3
-from mutagen.wave import WAVE
-from mutagen.flac import FLAC
-from mutagen.mp4 import MP4
 
+from bson import ObjectId
 from fastapi import UploadFile, HTTPException
 from motor.motor_asyncio import AsyncIOMotorDatabase
-from pydantic import BaseModel
+from mutagen.flac import FLAC
+from mutagen.mp3 import MP3
+from mutagen.mp4 import MP4
+from mutagen.wave import WAVE
 
 from ..crud import crud_meetings
+from ..crud.crud_meeting_history import save_changes_history
+from ..crud.crud_meetings import update_meeting_fields
 from ..models.audio_file import AudioFile
 from ..models.meeting import Meeting
 from ..schemas.meeting_schema import MeetingCreate, MeetingUpdate, MeetingCreateForm, MeetingResponse, \
@@ -191,7 +193,13 @@ async def handle_meeting_upload(
     return MeetingResponse(**response_data)
 
 
-async def partial_update_meeting(db, meeting_id, update_data: MeetingPartialUpdate):
+async def partial_update_meeting(db, meeting_id, update_data: MeetingPartialUpdate, user):
+    oid = ObjectId(meeting_id)
+
+    old_doc = await db["meetings"].find_one({"_id": oid})
+    if not old_doc:
+        return None
+
     update_dict = {}
     for k, v in update_data.model_dump(exclude_unset=True).items():
         if isinstance(v, dict):
@@ -200,7 +208,15 @@ async def partial_update_meeting(db, meeting_id, update_data: MeetingPartialUpda
         else:
             update_dict[k] = v
 
-    result = await crud_meetings.update_meeting_fields(db, meeting_id, update_dict)
+    await save_changes_history(
+        db=db,
+        meeting_id=meeting_id,
+        old_doc=old_doc,
+        update_fields=update_dict,
+        user=user
+    )
+
+    result = await update_meeting_fields(db, meeting_id, update_dict)
     return result
 
 

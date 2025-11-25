@@ -10,7 +10,8 @@ from .apis.v1 import (
     endpoints_users,
     endpoints_knowledge_base,
     endpoints_comments,
-    endpoints_admin
+    endpoints_admin,
+    endpoints_meeting_history
 )
 from .db.mongodb_utils import close_mongo_connection, connect_to_mongo
 from .core.logging_config import setup_logging
@@ -59,3 +60,4 @@ app.include_router(endpoints_users.router, prefix="/users", tags=["users"])
 app.include_router(endpoints_knowledge_base.router, prefix="/api/v1", tags=["knowledge-base"])
 app.include_router(endpoints_comments.router, prefix="/comments", tags=["comments"])
 app.include_router(endpoints_admin.router, prefix="/admin", tags=["admin"])
+app.include_router(endpoints_meeting_history.router, prefix="/meeting_history", tags=["meeting_history"])

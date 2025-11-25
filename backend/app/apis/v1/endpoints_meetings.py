@@ -7,10 +7,12 @@ from datetime import datetime
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from typing import List
 
+from ...auth_dependencies import get_current_user
 from ...core.permissions import require_approval, require_edit_permission
 from ...db.mongodb_utils import get_database
 from ...auth_dependencies import get_current_user
 from ...models.enums.proccessing_mode import ProcessingMode
+from ...models.user import User
 from ...schemas.meeting_schema import MeetingCreate, MeetingResponse, MeetingUpdate, MeetingCreateForm, \
     MeetingPartialUpdate, MeetingResponsePopulated
 from ...services import meeting_service
@@ -180,8 +182,10 @@ async def partial_update_meeting(
         meeting_id: str,
         update_data: MeetingPartialUpdate,
         database: AsyncIOMotorDatabase = Depends(get_database),
+        user: User = Depends(get_current_user),
 ):
-    updated = await meeting_service.partial_update_meeting(database, meeting_id, update_data)
+
+    updated = await meeting_service.partial_update_meeting(database, meeting_id, update_data, user)
     if not updated:
         raise HTTPException(status_code=404, detail="Meeting not found")
     return updated
