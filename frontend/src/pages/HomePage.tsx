@@ -47,8 +47,8 @@ function HomePage() {
       <section id="features" className="w-full">
         <h2 className="mb-12">Key Features</h2>
         <ul className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-          {features.map((feature, index) => (
-            <FeatureCard key={index} feature={feature} />
+          {features.map((feature) => (
+            <FeatureCard key={feature.title} feature={feature} />
           ))}
         </ul>
       </section>

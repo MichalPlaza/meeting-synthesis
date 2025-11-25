@@ -47,6 +47,20 @@ import {
 } from "@/components/ui/alert-dialog";
 import type { KeyTopic, ActionItem, DecisionMade } from "@/types/meeting";
 
+// Client-side types with temporary IDs for React keys
+interface EditableKeyTopic extends KeyTopic {
+  _tempId: string;
+}
+
+interface EditableActionItem extends ActionItem {
+  _tempId: string;
+}
+
+interface EditableDecisionMade extends DecisionMade {
+  _tempId: string;
+}
+
+const generateTempId = () => crypto.randomUUID();
 
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
 
@@ -108,15 +122,60 @@ function useMeetingData(meetingId: string | undefined) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    const abortController = new AbortController();
 
-  const fetchMeeting = useCallback(async () => {
-    log.debug("Fetching meeting data for ID:", meetingId);
-    if (!token || !meetingId) {
-      log.warn("Authentication token or Meeting ID is missing for fetchMeeting.");
-      setError("Authentication token or Meeting ID is missing.");
-      setLoading(false);
-      return;
-    }
+    const fetchMeeting = async () => {
+      log.debug("Fetching meeting data for ID:", meetingId);
+      if (!token || !meetingId) {
+        log.warn("Authentication token or Meeting ID is missing for fetchMeeting.");
+        setError("Authentication token or Meeting ID is missing.");
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await fetch(
+          `${BACKEND_API_BASE_URL}/meetings/${meetingId}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+            signal: abortController.signal
+          }
+        );
+        if (!response.ok) {
+          log.error(`Failed to fetch meeting ${meetingId}. Status: ${response.status}`);
+          throw new Error(`Failed to fetch meeting (Status: ${response.status})`);
+        }
+        const data: Meeting = await response.json();
+        setMeeting(data);
+        log.info("Successfully fetched meeting data for ID:", meetingId);
+      } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') {
+          log.debug("Meeting fetch aborted");
+          return;
+        }
+        const errorMessage = err instanceof Error ? err.message : "Failed to connect to the server.";
+        log.error("Error fetching meeting data:", errorMessage);
+        setError(errorMessage);
+      } finally {
+        if (!abortController.signal.aborted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchMeeting();
+
+    return () => {
+      abortController.abort();
+    };
+  }, [meetingId, token]);
+
+  const refetch = useCallback(async () => {
+    log.debug("Refetching meeting data for ID:", meetingId);
+    if (!token || !meetingId) return;
 
     setLoading(true);
     setError(null);
@@ -126,26 +185,20 @@ function useMeetingData(meetingId: string | undefined) {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (!response.ok) {
-        log.error(`Failed to fetch meeting ${meetingId}. Status: ${response.status}`);
         throw new Error(`Failed to fetch meeting (Status: ${response.status})`);
       }
       const data: Meeting = await response.json();
       setMeeting(data);
-      log.info("Successfully fetched meeting data for ID:", meetingId);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to connect to the server.";
-      log.error("Error fetching meeting data:", errorMessage);
+      log.error("Error refetching meeting data:", errorMessage);
       setError(errorMessage);
     } finally {
       setLoading(false);
     }
   }, [meetingId, token]);
 
-  useEffect(() => {
-    fetchMeeting();
-  }, [fetchMeeting]);
-
-  return { meeting, loading, error, refetch: fetchMeeting };
+  return { meeting, loading, error, refetch };
 }
 
 function MeetingDetailsPage() {
@@ -168,11 +221,11 @@ function MeetingDetailsPage() {
   const [isEditingSummary, setIsEditingSummary] = useState(false);
   const [editedSummary, setEditedSummary] = useState("");
   const [isEditingTopics, setIsEditingTopics] = useState(false);
-  const [editedTopics, setEditedTopics] = useState<KeyTopic[]>([]);
+  const [editedTopics, setEditedTopics] = useState<EditableKeyTopic[]>([]);
   const [isEditingActionItems, setIsEditingActionItems] = useState(false);
-  const [editedActionItems, setEditedActionItems] = useState<ActionItem[]>([]);
+  const [editedActionItems, setEditedActionItems] = useState<EditableActionItem[]>([]);
   const [isEditingDecisions, setIsEditingDecisions] = useState(false);
-  const [editedDecisions, setEditedDecisions] = useState<DecisionMade[]>([]);
+  const [editedDecisions, setEditedDecisions] = useState<EditableDecisionMade[]>([]);
   const [isEditingTranscription, setIsEditingTranscription] = useState(false);
   const [editedTranscription, setEditedTranscription] = useState("");
   const [lastEdits, setLastEdits] = useState<Record<string, MeetingHistory>>({});
@@ -202,18 +255,27 @@ function MeetingDetailsPage() {
 
   useEffect(() => {
     if (meeting?.ai_analysis?.decisions_made) {
-      setEditedDecisions(meeting.ai_analysis.decisions_made);
+      setEditedDecisions(meeting.ai_analysis.decisions_made.map(item => ({
+        ...item,
+        _tempId: generateTempId()
+      })));
     }
   }, [meeting]);
   useEffect(() => {
     if (meeting?.ai_analysis?.action_items) {
-      setEditedActionItems(meeting.ai_analysis.action_items);
+      setEditedActionItems(meeting.ai_analysis.action_items.map(item => ({
+        ...item,
+        _tempId: generateTempId()
+      })));
     }
   }, [meeting]);
 
   useEffect(() => {
     if (meeting?.ai_analysis?.key_topics) {
-      setEditedTopics(meeting.ai_analysis.key_topics);
+      setEditedTopics(meeting.ai_analysis.key_topics.map(item => ({
+        ...item,
+        _tempId: generateTempId()
+      })));
     }
   }, [meeting]);
 
@@ -430,23 +492,26 @@ const handleSaveSummary = async () => {
 const handleAddTopic = () => {
   setEditedTopics(prev => [
     ...prev,
-    { topic: "", details: "" }
+    { topic: "", details: "", _tempId: generateTempId() }
   ]);
 };
 
 
-const handleRemoveTopic = (index: number) => {
-  setEditedTopics(prev => prev.filter((_, i) => i !== index));
+const handleRemoveTopic = (tempId: string) => {
+  setEditedTopics(prev => prev.filter(item => item._tempId !== tempId));
 };
 
 const handleSaveTopics = async () => {
   if (!meeting?._id) return;
 
+  // Strip _tempId before sending to API
+  const topicsToSave = editedTopics.map(({ _tempId, ...topic }) => topic);
+
   const updated = await updateMeetingField(
     meeting._id,
     token,
     "ai_analysis.key_topics",
-    editedTopics
+    topicsToSave
   );
 
   if (updated) {
@@ -458,22 +523,25 @@ const handleSaveTopics = async () => {
 const handleAddActionItem = () => {
   setEditedActionItems(prev => [
     ...prev,
-    { description: "", assigned_to: "", due_date: "", user_comment: "" }
+    { description: "", assigned_to: "", due_date: "", user_comment: "", _tempId: generateTempId() }
   ]);
 };
 
-const handleRemoveActionItem = (index: number) => {
-  setEditedActionItems(prev => prev.filter((_, i) => i !== index));
+const handleRemoveActionItem = (tempId: string) => {
+  setEditedActionItems(prev => prev.filter(item => item._tempId !== tempId));
 };
 
 const handleSaveActionItems = async () => {
   if (!meeting?._id) return;
 
+  // Strip _tempId before sending to API
+  const actionItemsToSave = editedActionItems.map(({ _tempId, ...item }) => item);
+
   const updated = await updateMeetingField(
     meeting._id,
     token,
     "ai_analysis.action_items",
-    editedActionItems
+    actionItemsToSave
   );
 
   if (updated) {
@@ -485,11 +553,14 @@ const handleSaveActionItems = async () => {
 const handleSaveDecisions = async () => {
   if (!meeting?._id) return;
 
+  // Strip _tempId before sending to API
+  const decisionsToSave = editedDecisions.map(({ _tempId, ...item }) => item);
+
   const updated = await updateMeetingField(
     meeting._id,
     token,
     "ai_analysis.decisions_made",
-    editedDecisions
+    decisionsToSave
   );
 
   if (updated) {
@@ -517,7 +588,7 @@ const handleSaveTranscription = async () => {
 const LastEditedLabel = ({ change }: { change?: { username: string; changed_at: string } }) => {
   if (!change) return null;
 
-  const dateStr = new Date(change.changed_at).toLocaleString('en-EN', {
+  const dateStr = new Date(change.changed_at).toLocaleString('en-US', {
     day: 'numeric',
     month: 'short',
     hour: '2-digit',
@@ -831,7 +902,10 @@ const LastEditedLabel = ({ change }: { change?: { username: string; changed_at: 
                               variant="ghost"
                               onClick={() => {
                                 setIsEditingTopics(false);
-                                setEditedTopics(meeting.ai_analysis?.key_topics || []);
+                                setEditedTopics((meeting.ai_analysis?.key_topics || []).map(item => ({
+                                  ...item,
+                                  _tempId: generateTempId()
+                                })));
                               }}
                           >
                             Cancel
@@ -843,17 +917,17 @@ const LastEditedLabel = ({ change }: { change?: { username: string; changed_at: 
                   {/* EDIT MODE */}
                   {isEditingTopics ? (
                       <div className="space-y-4">
-                        {editedTopics.map((item, index) => (
-                            <div key={index} className="space-y-2 border p-3 rounded">
+                        {editedTopics.map((item) => (
+                            <div key={item._tempId} className="space-y-2 border p-3 rounded">
                               <input
                                   type="text"
                                   className="w-full p-2 border rounded"
                                   placeholder="Topic..."
                                   value={item.topic}
                                   onChange={(e) => {
-                                    const updated = [...editedTopics];
-                                    updated[index].topic = e.target.value;
-                                    setEditedTopics(updated);
+                                    setEditedTopics(prev => prev.map(t =>
+                                      t._tempId === item._tempId ? { ...t, topic: e.target.value } : t
+                                    ));
                                   }}
                               />
                               <textarea
@@ -861,15 +935,15 @@ const LastEditedLabel = ({ change }: { change?: { username: string; changed_at: 
                                   placeholder="Details..."
                                   value={item.details}
                                   onChange={(e) => {
-                                    const updated = [...editedTopics];
-                                    updated[index].details = e.target.value;
-                                    setEditedTopics(updated);
+                                    setEditedTopics(prev => prev.map(t =>
+                                      t._tempId === item._tempId ? { ...t, details: e.target.value } : t
+                                    ));
                                   }}
                               />
 
                               <button
                                   className="text-red-500 text-sm"
-                                  onClick={() => handleRemoveTopic(index)}
+                                  onClick={() => handleRemoveTopic(item._tempId)}
                               >
                                 Remove
                               </button>
@@ -888,7 +962,7 @@ const LastEditedLabel = ({ change }: { change?: { username: string; changed_at: 
                       meeting.ai_analysis?.key_topics && meeting.ai_analysis.key_topics.length > 0 ? (
                           <div className="space-y-4">
                             {meeting.ai_analysis.key_topics.map((item, index) => (
-                                <div key={index}>
+                                <div key={`${item.topic}-${index}`}>
                                   <h4 className="font-semibold">{item.topic}</h4>
                                   <p className="text-foreground/80">{item.details}</p>
                                 </div>
@@ -936,7 +1010,10 @@ const LastEditedLabel = ({ change }: { change?: { username: string; changed_at: 
                               variant="ghost"
                               onClick={() => {
                                 setIsEditingActionItems(false);
-                                setEditedActionItems(meeting.ai_analysis?.action_items || []);
+                                setEditedActionItems((meeting.ai_analysis?.action_items || []).map(item => ({
+                                  ...item,
+                                  _tempId: generateTempId()
+                                })));
                               }}
                           >
                             Cancel
@@ -948,17 +1025,17 @@ const LastEditedLabel = ({ change }: { change?: { username: string; changed_at: 
                   {/* EDIT MODE */}
                   {isEditingActionItems ? (
                       <div className="space-y-4">
-                        {editedActionItems.map((item, index) => (
-                            <div key={index} className="space-y-2 border p-3 rounded">
+                        {editedActionItems.map((item) => (
+                            <div key={item._tempId} className="space-y-2 border p-3 rounded">
                               <input
                                   type="text"
                                   className="w-full p-2 border rounded"
                                   placeholder="Description..."
                                   value={item.description}
                                   onChange={(e) => {
-                                    const updated = [...editedActionItems];
-                                    updated[index].description = e.target.value;
-                                    setEditedActionItems(updated);
+                                    setEditedActionItems(prev => prev.map(ai =>
+                                      ai._tempId === item._tempId ? { ...ai, description: e.target.value } : ai
+                                    ));
                                   }}
                               />
                               <input
@@ -967,9 +1044,9 @@ const LastEditedLabel = ({ change }: { change?: { username: string; changed_at: 
                                   placeholder="Assigned to..."
                                   value={item.assigned_to}
                                   onChange={(e) => {
-                                    const updated = [...editedActionItems];
-                                    updated[index].assigned_to = e.target.value;
-                                    setEditedActionItems(updated);
+                                    setEditedActionItems(prev => prev.map(ai =>
+                                      ai._tempId === item._tempId ? { ...ai, assigned_to: e.target.value } : ai
+                                    ));
                                   }}
                               />
                               <input
@@ -977,9 +1054,9 @@ const LastEditedLabel = ({ change }: { change?: { username: string; changed_at: 
                                   className="w-full p-2 border rounded"
                                   value={item.due_date || ""}
                                   onChange={(e) => {
-                                    const updated = [...editedActionItems];
-                                    updated[index].due_date = e.target.value;
-                                    setEditedActionItems(updated);
+                                    setEditedActionItems(prev => prev.map(ai =>
+                                      ai._tempId === item._tempId ? { ...ai, due_date: e.target.value } : ai
+                                    ));
                                   }}
                               />
                               <textarea
@@ -987,16 +1064,14 @@ const LastEditedLabel = ({ change }: { change?: { username: string; changed_at: 
                                   placeholder="User comment..."
                                   value={item.user_comment}
                                   onChange={(e) => {
-                                    const updated = [...editedActionItems];
-                                    updated[index].user_comment = e.target.value;
-                                    setEditedActionItems(updated);
+                                    setEditedActionItems(prev => prev.map(ai =>
+                                      ai._tempId === item._tempId ? { ...ai, user_comment: e.target.value } : ai
+                                    ));
                                   }}
                               />
                               <button
                                   className="text-red-500 text-sm"
-                                  onClick={() => {
-                                    setEditedActionItems(prev => prev.filter((_, i) => i !== index));
-                                  }}
+                                  onClick={() => handleRemoveActionItem(item._tempId)}
                               >
                                 Remove
                               </button>
@@ -1015,7 +1090,7 @@ const LastEditedLabel = ({ change }: { change?: { username: string; changed_at: 
                       meeting.ai_analysis?.action_items && meeting.ai_analysis.action_items.length > 0 ? (
                           <div className="space-y-4">
                             {meeting.ai_analysis.action_items.map((item, index) => (
-                                <div key={index} className="flex flex-col gap-1 border p-3 rounded">
+                                <div key={`${item.description}-${index}`} className="flex flex-col gap-1 border p-3 rounded">
                                   <span className="font-semibold">{item.description}</span>
                                   <span className="text-sm text-muted-foreground">
                               {item.assigned_to && `Assigned: ${item.assigned_to}`}
@@ -1070,7 +1145,10 @@ const LastEditedLabel = ({ change }: { change?: { username: string; changed_at: 
                               variant="ghost"
                               onClick={() => {
                                 setIsEditingDecisions(false);
-                                setEditedDecisions(meeting.ai_analysis?.decisions_made || []);
+                                setEditedDecisions((meeting.ai_analysis?.decisions_made || []).map(item => ({
+                                  ...item,
+                                  _tempId: generateTempId()
+                                })));
                               }}
                           >
                             Cancel
@@ -1082,22 +1160,22 @@ const LastEditedLabel = ({ change }: { change?: { username: string; changed_at: 
                   {/* EDIT MODE */}
                   {isEditingDecisions ? (
                       <div className="space-y-4">
-                        {editedDecisions.map((item, index) => (
-                            <div key={index} className="space-y-2 border p-3 rounded">
+                        {editedDecisions.map((item) => (
+                            <div key={item._tempId} className="space-y-2 border p-3 rounded">
                               <input
                                   type="text"
                                   className="w-full p-2 border rounded"
                                   placeholder="Decision description..."
                                   value={item.description}
                                   onChange={(e) => {
-                                    const updated = [...editedDecisions];
-                                    updated[index].description = e.target.value;
-                                    setEditedDecisions(updated);
+                                    setEditedDecisions(prev => prev.map(d =>
+                                      d._tempId === item._tempId ? { ...d, description: e.target.value } : d
+                                    ));
                                   }}
                               />
                               <button
                                   className="text-red-500 text-sm"
-                                  onClick={() => setEditedDecisions(prev => prev.filter((_, i) => i !== index))}
+                                  onClick={() => setEditedDecisions(prev => prev.filter(d => d._tempId !== item._tempId))}
                               >
                                 Remove
                               </button>
@@ -1106,7 +1184,7 @@ const LastEditedLabel = ({ change }: { change?: { username: string; changed_at: 
 
                         <button
                             className="mt-2 border p-2 rounded w-full"
-                            onClick={() => setEditedDecisions(prev => [...prev, {description: ""}])}
+                            onClick={() => setEditedDecisions(prev => [...prev, {description: "", _tempId: generateTempId()}])}
                         >
                           Add Decision
                         </button>
@@ -1116,7 +1194,7 @@ const LastEditedLabel = ({ change }: { change?: { username: string; changed_at: 
                       meeting.ai_analysis?.decisions_made && meeting.ai_analysis.decisions_made.length > 0 ? (
                           <ul className="space-y-2 list-disc pl-5">
                             {meeting.ai_analysis.decisions_made.map((item, index) => (
-                                <li key={index} className="text-foreground/80">{item.description}</li>
+                                <li key={`${item.description}-${index}`} className="text-foreground/80">{item.description}</li>
                             ))}
                           </ul>
                       ) : (
