@@ -9,9 +9,9 @@ import {
   Bell,
   Terminal,
 } from "lucide-react";
-import ProjectCardSkeleton from "@/components/ProjectCardSkeleton";
-import EmptyState from "@/components/EmptyState";
-import ErrorState from "@/components/ErrorState";
+import ProjectCardSkeleton from "@/components/features/projects/ProjectCardSkeleton";
+import EmptyState from "@/components/common/EmptyState";
+import ErrorState from "@/components/common/ErrorState";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";

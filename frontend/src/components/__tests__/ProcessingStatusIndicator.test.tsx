@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterEach, afterAll } from "vitest";
 import { render, screen } from "@/test/helpers";
-import { ProcessingStatusIndicator } from "@/components/ProcessingStatusIndicator";
+import { ProcessingStatusIndicator } from "@/components/features/meetings/ProcessingStatusIndicator";
 import type { Meeting } from "@/types/meeting";
 import { server } from "@/test/mocks/server";
 

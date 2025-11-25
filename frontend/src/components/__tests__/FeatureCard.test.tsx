@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterEach, afterAll } from "vitest";
 import { render, screen } from "@/test/helpers";
-import FeatureCard from "@/components/FeatureCard";
+import FeatureCard from "@/components/layout/FeatureCard";
 import { server } from "@/test/mocks/server";
 
 // Start MSW server for this test file (also provides localStorage polyfill)

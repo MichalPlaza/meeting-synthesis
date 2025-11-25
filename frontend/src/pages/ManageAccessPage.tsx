@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { CheckIcon, XIcon, UserIcon, RefreshCcw } from "lucide-react";
-import { useAuth } from "@/AuthContext";
-import ErrorState from "@/components/ErrorState";
-import EmptyState from "@/components/EmptyState";
+import { useAuth } from "@/contexts/AuthContext";
+import ErrorState from "@/components/common/ErrorState";
+import EmptyState from "@/components/common/EmptyState";
 import log from "../services/logging";
 
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;

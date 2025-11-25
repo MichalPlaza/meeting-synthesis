@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } 
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import { AddMeetingDialog } from "@/components/AddMeetingDialog";
-import { AuthProvider } from "@/AuthContext";
+import { AddMeetingDialog } from "@/components/features/meetings/AddMeetingDialog";
+import { AuthProvider } from "@/contexts/AuthContext";
 import { server } from "@/test/mocks/server";
 import { http, HttpResponse } from "msw";
 import { mockDeveloper } from "@/test/mocks/fixtures";

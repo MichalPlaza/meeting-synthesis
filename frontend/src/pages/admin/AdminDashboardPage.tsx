@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/card";
 import { Users, FolderKanban, BookUser } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { TimeSeriesChart } from "@/components/admin/TimeSeriesChart";
 import log from "@/services/logging";
 

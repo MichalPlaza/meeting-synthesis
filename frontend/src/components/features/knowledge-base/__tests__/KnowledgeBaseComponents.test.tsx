@@ -4,9 +4,9 @@
 
 import { describe, it, expect, vi, beforeAll, afterEach, afterAll, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { SourceCard } from "@/components/knowledge-base/SourceCard";
-import { SourceList } from "@/components/knowledge-base/SourceList";
-import { FilterPanel } from "@/components/knowledge-base/FilterPanel";
+import { SourceCard } from "@/components/features/knowledge-base/SourceCard";
+import { SourceList } from "@/components/features/knowledge-base/SourceList";
+import { FilterPanel } from "@/components/features/knowledge-base/FilterPanel";
 import type { MessageSource, FilterContext } from "@/types/knowledge-base";
 import { server } from "@/test/mocks/server";
 

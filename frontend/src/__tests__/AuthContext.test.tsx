@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from "vitest";
 import { renderHook, waitFor, act } from "@testing-library/react";
 import { BrowserRouter } from "react-router-dom";
-import { AuthProvider, useAuth } from "@/AuthContext";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import type { ReactNode } from "react";
 import { server } from "@/test/mocks/server";
 import { http, HttpResponse } from "msw";

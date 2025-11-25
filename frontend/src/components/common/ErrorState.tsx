@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { type LucideIcon, AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
 import React, { useState } from "react";
-import { Button } from "./ui/button";
+import { Button } from "@/components/ui/button";
 
 interface ErrorStateProps {
   icon?: LucideIcon;

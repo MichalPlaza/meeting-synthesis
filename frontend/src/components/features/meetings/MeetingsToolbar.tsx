@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Search, ChevronDown } from "lucide-react";
-import log from "../services/logging";
+import log from "@/services/logging";
 
 // Definicje typów dla opcji filtrów
 type FilterOption = {

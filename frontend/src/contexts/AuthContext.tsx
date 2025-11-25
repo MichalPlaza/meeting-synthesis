@@ -6,8 +6,8 @@ import {
   type ReactNode,
 } from "react";
 import { useNavigate } from "react-router-dom";
-import log from "./services/logging";
-import type { UserResponse } from "./types/user";
+import log from "@/services/logging";
+import type { UserResponse } from "@/types/user";
 
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
 

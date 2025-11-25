@@ -5,7 +5,7 @@ import { getProjectColumns } from "@/components/admin/project-columns";
 import { DataTable } from "@/components/admin/data-table";
 import { AddProjectDialogAdmin } from "@/components/admin/AddProjectDialogAdmin";
 import type { ProjectResponse, ProjectUpdate } from "@/types/project";
-import { useAuth } from "@/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import log from "@/services/logging";
 
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;

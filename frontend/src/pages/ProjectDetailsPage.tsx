@@ -1,15 +1,15 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import MeetingListItem from "@/components/MeetingListItem";
+import MeetingListItem from "@/components/features/meetings/MeetingListItem";
 import type { Project } from "@/types/project";
 import type { Meeting } from "@/types/meeting";
-import { useAuth } from "@/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Mic, PlusIcon, FolderOpen } from "lucide-react";
-import EmptyState from "@/components/EmptyState";
-import ErrorState from "@/components/ErrorState";
+import EmptyState from "@/components/common/EmptyState";
+import ErrorState from "@/components/common/ErrorState";
 import log from "../services/logging";
-import {EditProjectDialog} from "@/components/EditProjectDialog.tsx";
+import {EditProjectDialog} from "@/components/features/projects/EditProjectDialog";
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
 
 function ProjectDetailsPage() {

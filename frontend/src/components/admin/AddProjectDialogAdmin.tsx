@@ -22,7 +22,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { SimpleSelect } from "@/components/ui/simple-select";
-import { useAuth } from "@/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import type { UserResponse } from "@/types/user";
 import { toast } from "sonner";
 import { MultiSelect } from "@/components/ui/multi-select";

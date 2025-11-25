@@ -11,11 +11,11 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
-import { FileUpload } from "./FileUpload";
-import { useAuth } from "@/AuthContext";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { FileUpload } from "@/components/common/FileUpload";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import type { Project } from "@/types/project";
 import type { Meeting } from "@/types/meeting";
@@ -27,7 +27,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { cn } from "@/lib/utils";
-import log from "../services/logging";
+import log from "@/services/logging";
 
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
 

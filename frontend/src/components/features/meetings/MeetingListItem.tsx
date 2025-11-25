@@ -1,12 +1,12 @@
 import { Link } from "react-router-dom";
 import type { Meeting } from "@/types/meeting";
 import { format, formatDistanceToNow } from "date-fns";
-import { Checkbox } from "./ui/checkbox";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Clock, Folder } from "lucide-react";
 import { getTagColor } from "@/lib/utils";
-import { Badge } from "./ui/badge";
+import { Badge } from "@/components/ui/badge";
 import type { Project } from "@/types/project";
-import log from "../services/logging";
+import log from "@/services/logging";
 
 interface MeetingListItemProps {
   meeting: Meeting;

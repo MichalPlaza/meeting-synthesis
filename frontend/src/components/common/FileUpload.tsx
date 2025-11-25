@@ -1,9 +1,9 @@
 import { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import { UploadCloud, File as FileIcon, X } from "lucide-react";
-import { Button } from "./ui/button";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import log from "../services/logging";
+import log from "@/services/logging";
 
 interface FileUploadProps {
   onFileSelect: (file: File | null) => void;

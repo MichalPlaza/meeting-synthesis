@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeAll, afterEach, afterAll } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MeetingsToolbar } from "@/components/MeetingsToolbar";
+import { MeetingsToolbar } from "@/components/features/meetings/MeetingsToolbar";
 import { server } from "@/test/mocks/server";
 
 // Start MSW server for this test file (also provides localStorage polyfill)

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeAll, afterEach, afterAll } from "vitest";
 import { render, screen } from "@/test/helpers";
-import { FileUpload } from "@/components/FileUpload";
+import { FileUpload } from "@/components/common/FileUpload";
 import { server } from "@/test/mocks/server";
 
 // Start MSW server for this test file (also provides localStorage polyfill)

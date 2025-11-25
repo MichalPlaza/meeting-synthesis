@@ -5,7 +5,7 @@ import { getUserColumns } from "@/components/admin/user-columns";
 import { DataTable } from "@/components/admin/data-table";
 import { AddUserDialog } from "@/components/admin/AddUserDialog";
 import type { UserResponse, UserUpdate } from "@/types/user";
-import { useAuth } from "@/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import log from "@/services/logging";
 
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;

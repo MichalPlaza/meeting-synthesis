@@ -7,7 +7,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import type { Meeting } from "@/types/meeting";
-import log from "../services/logging";
+import log from "@/services/logging";
 
 interface ProcessingStatusIndicatorProps {
   status: Meeting["processing_status"];

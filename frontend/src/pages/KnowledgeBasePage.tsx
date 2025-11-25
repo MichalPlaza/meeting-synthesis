@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useAuth } from "@/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Send, Loader2, Sparkles, Copy, Check } from "lucide-react";
@@ -8,7 +8,7 @@ import log from "@/services/logging";
 import { sendMessageStream } from "@/services/knowledge-base";
 import type { ChatMessage } from "@/types/knowledge-base";
 import { cn } from "@/lib/utils";
-import { SourceList } from "@/components/knowledge-base/SourceList";
+import { SourceList } from "@/components/features/knowledge-base/SourceList";
 
 export function KnowledgeBasePage() {
   log.info("KnowledgeBasePage rendered");

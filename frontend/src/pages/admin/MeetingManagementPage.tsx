@@ -4,10 +4,10 @@ import { Button } from "@/components/ui/button";
 import { getMeetingColumns } from "@/components/admin/meeting-columns";
 import { DataTable } from "@/components/admin/data-table";
 import { MeetingDetailsDialog } from "@/components/admin/meeting-details-dialog";
-import { AddMeetingDialog } from "@/components/AddMeetingDialog";
+import { AddMeetingDialog } from "@/components/features/meetings/AddMeetingDialog";
 import type { PopulatedMeeting } from "@/types/meeting";
 import type { Project } from "@/types/project";
-import { useAuth } from "@/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import log from "@/services/logging";
 
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;

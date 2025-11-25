@@ -1,16 +1,16 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import MeetingListItem from "@/components/MeetingListItem";
-import { MeetingsToolbar } from "@/components/MeetingsToolbar";
+import MeetingListItem from "@/components/features/meetings/MeetingListItem";
+import { MeetingsToolbar } from "@/components/features/meetings/MeetingsToolbar";
 import { type Meeting } from "@/types/meeting";
 import { type Project } from "@/types/project";
 import { Button } from "@/components/ui/button";
 import { PlusIcon, Mic } from "lucide-react";
-import { useAuth } from "@/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { useDebounce } from "@/hooks/useDebounce";
-import { MeetingListItemSkeleton } from "@/components/MeetingListItemSkeleton";
-import ErrorState from "@/components/ErrorState";
-import EmptyState from "@/components/EmptyState";
-import { AddMeetingDialog } from "@/components/AddMeetingDialog";
+import { MeetingListItemSkeleton } from "@/components/features/meetings/MeetingListItemSkeleton";
+import ErrorState from "@/components/common/ErrorState";
+import EmptyState from "@/components/common/EmptyState";
+import { AddMeetingDialog } from "@/components/features/meetings/AddMeetingDialog";
 import log from "../services/logging";
 
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;

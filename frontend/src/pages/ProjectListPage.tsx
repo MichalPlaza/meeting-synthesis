@@ -1,15 +1,15 @@
 import { useState, useEffect, useCallback } from "react";
-import ProjectCard from "@/components/ProjectCard";
+import ProjectCard from "@/components/features/projects/ProjectCard";
 import type { Project } from "@/types/project";
-import { useAuth } from "@/AuthContext";
-import ProjectCardSkeleton from "@/components/ProjectCardSkeleton";
-import EmptyState from "@/components/EmptyState";
-import ErrorState from "@/components/ErrorState";
+import { useAuth } from "@/contexts/AuthContext";
+import ProjectCardSkeleton from "@/components/features/projects/ProjectCardSkeleton";
+import EmptyState from "@/components/common/EmptyState";
+import ErrorState from "@/components/common/ErrorState";
 import { Button } from "@/components/ui/button";
 import { FolderOpen, PlusIcon } from "lucide-react";
-import { ProjectsToolbar } from "@/components/ProjectsToolbar";
+import { ProjectsToolbar } from "@/components/features/projects/ProjectsToolbar";
 import { useDebounce } from "@/hooks/useDebounce";
-import { AddProjectDialog } from "@/components/AddProjectDialog";
+import { AddProjectDialog } from "@/components/features/projects/AddProjectDialog";
 import log from "../services/logging";
 
 const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;

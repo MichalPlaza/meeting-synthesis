@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeAll, afterEach, afterAll } from "vitest";
 import { render, screen } from "@/test/helpers";
 import userEvent from "@testing-library/user-event";
-import ErrorState from "@/components/ErrorState";
+import ErrorState from "@/components/common/ErrorState";
 import { AlertCircle } from "lucide-react";
 import { server } from "@/test/mocks/server";
 

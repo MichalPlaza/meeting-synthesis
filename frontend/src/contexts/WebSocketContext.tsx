@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
-import { useAuth } from "./AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { LiveRegion } from "./components/LiveRegion";
-import log from "./services/logging";
+import { LiveRegion } from "@/components/common/LiveRegion";
+import log from "@/services/logging";
 
 const NOTIFICATION_SERVICE_URL = import.meta.env.VITE_WEBSOCKET_URL || "ws://localhost:8001";
 

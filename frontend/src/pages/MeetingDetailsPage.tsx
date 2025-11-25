@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import {useParams, Link, useNavigate} from "react-router-dom";
-import { useAuth } from "@/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import type { Meeting } from "@/types/meeting";
 import type { MeetingHistory } from  "@/types/meeting-history"
 import { format } from "date-fns";
@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Separator } from "@/components/ui/separator";
-import { MeetingCommentsSection} from "@/components/MeetingCommentsSection";
+import { MeetingCommentsSection} from "@/components/features/meetings/MeetingCommentsSection";
 import {
   PlayIcon,
   PauseIcon,
@@ -30,10 +30,10 @@ import {
   RotateCcw,
   AlertTriangle,
 } from "lucide-react";
-import ErrorState from "@/components/ErrorState";
-import EmptyState from "@/components/EmptyState";
+import ErrorState from "@/components/common/ErrorState";
+import EmptyState from "@/components/common/EmptyState";
 import log from "../services/logging";
-import {EditMeetingDialog} from "@/components/EditMeetingDialog.tsx";
+import {EditMeetingDialog} from "@/components/features/meetings/EditMeetingDialog";
 import { toast } from "sonner";
 import {
   AlertDialog,

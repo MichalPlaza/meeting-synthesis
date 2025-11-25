@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useMemo } from "react";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
-import log from "../services/logging";
+import log from "@/services/logging";
 
 interface Feature {
   title: string;
