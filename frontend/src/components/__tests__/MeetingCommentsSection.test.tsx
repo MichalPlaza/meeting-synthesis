@@ -17,9 +17,8 @@ const API_BASE = "http://localhost:8000";
 const TEST_MEETING_ID = "meeting-001";
 
 const renderCommentsSection = (meetingId: string = TEST_MEETING_ID) => {
-  // Set up auth state
-  localStorage.setItem("access_token", "test-token");
-  localStorage.setItem("user", JSON.stringify(mockDeveloper));
+  // Set up auth state with refresh_token to trigger auth flow
+  localStorage.setItem("refresh_token", "test-refresh-token");
 
   return render(
     <MemoryRouter>

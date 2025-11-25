@@ -1,7 +1,13 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll, afterEach, afterAll } from "vitest";
 import { render, screen } from "@/test/helpers";
 import { ProcessingStatusIndicator } from "@/components/ProcessingStatusIndicator";
 import type { Meeting } from "@/types/meeting";
+import { server } from "@/test/mocks/server";
+
+// Start MSW server for this test file (also provides localStorage polyfill)
+beforeAll(() => server.listen({ onUnhandledRequest: "warn" }));
+afterEach(() => server.resetHandlers());
+afterAll(() => server.close());
 
 describe("ProcessingStatusIndicator", () => {
   it("renders nothing when status is completed", () => {

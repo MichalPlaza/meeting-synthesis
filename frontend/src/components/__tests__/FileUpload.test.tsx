@@ -1,6 +1,12 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeAll, afterEach, afterAll } from "vitest";
 import { render, screen } from "@/test/helpers";
 import { FileUpload } from "@/components/FileUpload";
+import { server } from "@/test/mocks/server";
+
+// Start MSW server for this test file (also provides localStorage polyfill)
+beforeAll(() => server.listen({ onUnhandledRequest: "warn" }));
+afterEach(() => server.resetHandlers());
+afterAll(() => server.close());
 
 describe("FileUpload", () => {
   it("renders dropzone when no file is selected", () => {

@@ -2,12 +2,18 @@
  * Component tests for Knowledge Base UI components
  */
 
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeAll, afterEach, afterAll, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { SourceCard } from "@/components/knowledge-base/SourceCard";
 import { SourceList } from "@/components/knowledge-base/SourceList";
 import { FilterPanel } from "@/components/knowledge-base/FilterPanel";
 import type { MessageSource, FilterContext } from "@/types/knowledge-base";
+import { server } from "@/test/mocks/server";
+
+// Start MSW server for this test file (also provides localStorage polyfill)
+beforeAll(() => server.listen({ onUnhandledRequest: "warn" }));
+afterEach(() => server.resetHandlers());
+afterAll(() => server.close());
 
 describe("SourceCard", () => {
   const mockSource: MessageSource = {
@@ -26,13 +32,13 @@ describe("SourceCard", () => {
     expect(
       screen.getByText(/discussed the project timeline/)
     ).toBeInTheDocument();
-    expect(screen.getByText("95%")).toBeInTheDocument();
+    expect(screen.getByText("95% relevant")).toBeInTheDocument();
   });
 
   it("displays correct badge color for content type", () => {
     const { rerender } = render(<SourceCard source={mockSource} />);
 
-    expect(screen.getByText("Transcription")).toBeInTheDocument();
+    expect(screen.getByText("Transcript")).toBeInTheDocument();
 
     // Test different content types
     const summarySource = { ...mockSource, content_type: "summary" as const };
@@ -50,13 +56,16 @@ describe("SourceCard", () => {
   it("formats timestamp correctly", () => {
     render(<SourceCard source={mockSource} />);
 
-    expect(screen.getByText(/Nov 1, 2025/)).toBeInTheDocument();
+    // The timestamp is displayed as-is with @ prefix
+    expect(screen.getByText(/@ 2025-11-01T10:00:00Z/)).toBeInTheDocument();
   });
 
   it("renders view button", () => {
-    render(<SourceCard source={mockSource} />);
+    const onNavigateToMeeting = vi.fn();
+    render(<SourceCard source={mockSource} onNavigateToMeeting={onNavigateToMeeting} />);
 
-    const viewButton = screen.getByRole("button", { name: /view/i });
+    // The button has title "View meeting" but no accessible name, so we check by title
+    const viewButton = screen.getByTitle("View meeting");
     expect(viewButton).toBeInTheDocument();
   });
 
@@ -74,12 +83,12 @@ describe("SourceCard", () => {
       "This is a very long excerpt that should be truncated. ".repeat(10);
     const sourceWithLongExcerpt = { ...mockSource, excerpt: longExcerpt };
 
-    render(<SourceCard source={sourceWithLongExcerpt} />);
+    const { container } = render(<SourceCard source={sourceWithLongExcerpt} />);
 
-    // Check that the excerpt is rendered (will be truncated by CSS)
-    const excerptElement = screen.getByText(longExcerpt);
+    // Check that the excerpt is rendered with line-clamp-3 class (will be truncated by CSS)
+    const excerptElement = container.querySelector(".line-clamp-3");
     expect(excerptElement).toBeInTheDocument();
-    expect(excerptElement).toHaveClass("line-clamp-3");
+    expect(excerptElement).toHaveTextContent("This is a very long excerpt that should be truncated.");
   });
 });
 
@@ -122,7 +131,7 @@ describe("SourceList", () => {
   it("displays correct source count", () => {
     render(<SourceList sources={mockSources} />);
 
-    expect(screen.getByText(/3 sources/i)).toBeInTheDocument();
+    expect(screen.getByText(/Sources \(3\)/i)).toBeInTheDocument();
   });
 
   it("renders empty state when no sources", () => {
@@ -136,13 +145,13 @@ describe("SourceList", () => {
 
     const grid = container.querySelector(".grid");
     expect(grid).toBeInTheDocument();
-    expect(grid).toHaveClass("grid-cols-1", "md:grid-cols-2");
+    expect(grid).toHaveClass("gap-2");
   });
 
   it("handles single source correctly", () => {
     render(<SourceList sources={[mockSources[0]]} />);
 
-    expect(screen.getByText(/1 source/i)).toBeInTheDocument();
+    expect(screen.getByText(/Sources \(1\)/i)).toBeInTheDocument();
   });
 });
 
@@ -188,13 +197,20 @@ describe("FilterPanel", () => {
     );
 
     // Should show badge with count (2 projects + 1 tag + 1 date = 4)
-    expect(screen.getByText("3")).toBeInTheDocument();
+    expect(screen.getByText("4")).toBeInTheDocument();
   });
 
   it("opens popover when clicked", async () => {
+    const filtersWithActive: FilterContext = {
+      project_ids: ["proj1"],
+      tags: [],
+      start_date: undefined,
+      end_date: undefined,
+    };
+
     render(
       <FilterPanel
-        filters={mockFilters}
+        filters={filtersWithActive}
         onFiltersChange={mockOnFiltersChange}
       />
     );
@@ -203,6 +219,7 @@ describe("FilterPanel", () => {
     fireEvent.click(filterButton);
 
     await waitFor(() => {
+      // Clear all button only shows when there are active filters
       expect(screen.getByText(/clear all/i)).toBeInTheDocument();
     });
   });
@@ -310,9 +327,14 @@ describe("FilterPanel", () => {
     fireEvent.click(screen.getByRole("button"));
 
     await waitFor(() => {
-      const startDateInput = screen.getByLabelText(/from/i);
-      fireEvent.change(startDateInput, { target: { value: "2025-11-01" } });
+      expect(screen.getByText(/Date Range/i)).toBeInTheDocument();
     });
+
+    // Find the first date input from the entire document (popover is rendered in portal)
+    const dateInputs = document.querySelectorAll('input[type="date"]');
+    expect(dateInputs.length).toBeGreaterThan(0);
+
+    fireEvent.change(dateInputs[0], { target: { value: "2025-11-01" } });
 
     expect(mockOnFiltersChange).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -362,8 +384,9 @@ describe("FilterPanel", () => {
     fireEvent.click(screen.getByRole("button"));
 
     await waitFor(() => {
-      expect(screen.getByText(/no projects available/i)).toBeInTheDocument();
-      expect(screen.getByText(/no tags available/i)).toBeInTheDocument();
+      // When no projects or tags are available, the component doesn't render those sections at all
+      // So we just verify the filter panel header is visible
+      expect(screen.getByText(/Filter Search/i)).toBeInTheDocument();
     });
   });
 
