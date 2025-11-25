@@ -1,6 +1,12 @@
+"""User service for authentication and user management.
+
+Handles user registration, authentication, approval, and access control.
+"""
+
 import logging
 from typing import Optional
 
+from bson import ObjectId
 from fastapi import HTTPException, status
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
@@ -12,16 +18,53 @@ from ..services.security import create_access_token, create_refresh_token, verif
 logger = logging.getLogger(__name__)
 
 
+def user_to_response(user: User) -> UserResponse:
+    """Convert User model to UserResponse schema.
+
+    Args:
+        user: User model instance.
+
+    Returns:
+        UserResponse schema with user data.
+    """
+    return UserResponse(
+        id=user.id,
+        username=user.username,
+        email=user.email,
+        full_name=user.full_name,
+        role=user.role,
+        manager_id=user.manager_id,
+        is_approved=user.is_approved,
+        can_edit=user.can_edit,
+        created_at=user.created_at,
+        updated_at=user.updated_at,
+    )
+
+
 async def register_new_user(
         database: AsyncIOMotorDatabase, user_data: UserCreate
 ) -> UserResponse:
+    """Register a new user.
+
+    Args:
+        database: MongoDB database instance.
+        user_data: User registration data.
+
+    Returns:
+        UserResponse with created user data.
+
+    Raises:
+        HTTPException: If email or username already exists.
+    """
     logger.info(f"Attempting to register new user: {user_data.username}")
+
     if await crud_users.get_user_by_email(database, email=user_data.email):
         logger.warning(f"Registration failed: User with email {user_data.email} already exists.")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="User with provided email already exists.",
         )
+
     if await crud_users.get_user_by_username(database, username=user_data.username):
         logger.warning(f"Registration failed: User with username {user_data.username} already exists.")
         raise HTTPException(
@@ -32,22 +75,24 @@ async def register_new_user(
     created_user = await crud_users.create_user(database, user_data)
     logger.info(f"User {created_user.username} registered successfully with ID: {created_user.id}")
 
-    return UserResponse(
-        id=created_user.id,
-        username=created_user.username,
-        email=created_user.email,
-        full_name=created_user.full_name,
-        role=created_user.role,
-        manager_id=created_user.manager_id,
-        is_approved=created_user.is_approved,
-        can_edit=created_user.can_edit,
-        created_at=created_user.created_at,
-        updated_at=created_user.updated_at,
-    )
+    return user_to_response(created_user)
 
 
 async def authenticate_user(database: AsyncIOMotorDatabase, form_data: UserLogin) -> Token:
+    """Authenticate a user and generate tokens.
+
+    Args:
+        database: MongoDB database instance.
+        form_data: Login credentials.
+
+    Returns:
+        Token with access and optional refresh token.
+
+    Raises:
+        HTTPException: If credentials are invalid.
+    """
     logger.info(f"Attempting to authenticate user: {form_data.username_or_email}")
+
     user = await crud_users.get_user_by_username_or_email(
         database, username_or_email=form_data.username_or_email
     )
@@ -77,48 +122,71 @@ async def authenticate_user(database: AsyncIOMotorDatabase, form_data: UserLogin
     )
 
 
-async def approve_user(database: AsyncIOMotorDatabase, user_id: str, approver_id: str) -> UserResponse | None:
+async def approve_user(
+        database: AsyncIOMotorDatabase, user_id: str, approver_id: str
+) -> UserResponse | None:
+    """Approve a user for system access.
+
+    Args:
+        database: MongoDB database instance.
+        user_id: ID of user to approve.
+        approver_id: ID of approving admin/manager.
+
+    Returns:
+        UserResponse if approved, None otherwise.
+    """
     logger.info(f"Attempting to approve user ID {user_id} by approver ID {approver_id}")
+
     user = await crud_users.get_user_by_id(database, user_id)
     if not user:
         logger.warning(f"User ID {user_id} not found for approval.")
         return None
+
     approver = await crud_users.get_user_by_id(database, approver_id)
     if not approver:
         logger.warning(f"Approver ID {approver_id} not found.")
         return None
 
-    if approver.role == "admin" or (approver.role == "project_manager" and user.manager_id == approver.id):
-        updated_user = await crud_users.update_user(
-            database,
-            user_id,
-            {"is_approved": True, "can_edit": True}
-        )
-        if updated_user:
-            logger.info(f"User ID {user_id} approved successfully by approver ID {approver_id}")
-            return UserResponse(
-                id=updated_user.id,
-                username=updated_user.username,
-                email=updated_user.email,
-                full_name=updated_user.full_name,
-                role=updated_user.role,
-                manager_id=updated_user.manager_id,
-                is_approved=updated_user.is_approved,
-                can_edit=updated_user.can_edit,
-                created_at=updated_user.created_at,
-                updated_at=updated_user.updated_at,
-            )
-        else:
-            logger.error(f"Failed to update user ID {user_id} during approval.")
-    else:
-        logger.warning(f"Approver ID {approver_id} does not have permission to approve user ID {user_id}")
+    # Check permissions: admin can approve anyone, PM can approve their own developers
+    can_approve = (
+        approver.role == UserRole.ADMIN or
+        (approver.role == UserRole.PROJECT_MANAGER and user.manager_id == approver.id)
+    )
 
-    return None
+    if not can_approve:
+        logger.warning(f"Approver ID {approver_id} does not have permission to approve user ID {user_id}")
+        return None
+
+    updated_user = await crud_users.update_user(
+        database,
+        user_id,
+        {"is_approved": True, "can_edit": True}
+    )
+
+    if not updated_user:
+        logger.error(f"Failed to update user ID {user_id} during approval.")
+        return None
+
+    logger.info(f"User ID {user_id} approved successfully by approver ID {approver_id}")
+    return user_to_response(updated_user)
 
 
 async def get_users_by_manager(
         database: AsyncIOMotorDatabase, manager_id: str, requester: User
 ) -> list[UserResponse]:
+    """Get all users under a manager.
+
+    Args:
+        database: MongoDB database instance.
+        manager_id: ID of the manager.
+        requester: User making the request.
+
+    Returns:
+        List of UserResponse for managed users.
+
+    Raises:
+        HTTPException: If requester lacks permission.
+    """
     logger.info(f"Fetching users managed by {manager_id} (requested by {requester.username})")
 
     if requester.role not in [UserRole.PROJECT_MANAGER, UserRole.ADMIN]:
@@ -133,31 +201,27 @@ async def get_users_by_manager(
     users = await crud_users.get_users_by_manager(database, manager_id)
     logger.info(f"Found {len(users)} users managed by {manager_id}")
 
-    return [
-        UserResponse(
-            id=u.id,
-            username=u.username,
-            email=u.email,
-            full_name=u.full_name,
-            role=u.role,
-            manager_id=u.manager_id,
-            is_approved=u.is_approved,
-            can_edit=u.can_edit,
-            created_at=u.created_at,
-            updated_at=u.updated_at,
-        )
-        for u in users
-    ]
+    return [user_to_response(u) for u in users]
 
 
-from bson import ObjectId
-from fastapi import HTTPException, status
+async def revoke_user(
+        database: AsyncIOMotorDatabase, user_id: str, requester: User
+) -> UserResponse | None:
+    """Revoke a user's access.
 
+    Args:
+        database: MongoDB database instance.
+        user_id: ID of user to revoke.
+        requester: User making the request.
 
-async def revoke_user(database: AsyncIOMotorDatabase, user_id: str, requester: User):
+    Returns:
+        UserResponse if revoked, None if not found.
+
+    Raises:
+        HTTPException: If requester lacks permission.
+    """
     logger.info(f"Revoking user {user_id} by {requester.username}")
 
-    # tylko admin lub manager tego dev-a
     if requester.role not in [UserRole.ADMIN, UserRole.PROJECT_MANAGER]:
         logger.warning(f"User {requester.username} ({requester.role}) cannot revoke anyone.")
         raise HTTPException(
@@ -165,42 +229,58 @@ async def revoke_user(database: AsyncIOMotorDatabase, user_id: str, requester: U
             detail="You are not allowed to revoke users.",
         )
 
-    # znajdź usera do zablokowania
-    user_doc = await database["users"].find_one({"_id": ObjectId(user_id)})
-    if not user_doc:
+    user = await crud_users.get_user_by_id(database, user_id)
+    if not user:
         logger.warning(f"User to revoke not found: {user_id}")
         return None
 
-    # sprawdź czy manager jest jego managerem
-    if requester.role == UserRole.PROJECT_MANAGER and str(user_doc.get("manager_id")) != str(requester.id):
+    # PM can only revoke their own developers
+    if requester.role == UserRole.PROJECT_MANAGER and user.manager_id != requester.id:
         logger.warning(f"Manager {requester.username} tried to revoke user {user_id} not under their management.")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You can only revoke developers under your management.",
         )
 
-    # aktualizacja statusu
-    update_result = await database["users"].update_one(
-        {"_id": ObjectId(user_id)},
-        {"$set": {"is_approved": False, "can_edit": False}}
+    updated_user = await crud_users.update_user(
+        database,
+        user_id,
+        {"is_approved": False, "can_edit": False}
     )
 
-    if update_result.modified_count == 0:
+    if not updated_user:
         logger.warning(f"Failed to revoke user {user_id} — no modification.")
         return None
 
-    updated_user = await database["users"].find_one({"_id": ObjectId(user_id)})
-    return UserResponse(**User(**updated_user).model_dump())
+    logger.info(f"User {user_id} revoked successfully")
+    return user_to_response(updated_user)
 
 
-async def toggle_edit_access(database: AsyncIOMotorDatabase, user_id: str, requester: User) -> Optional[UserResponse]:
+async def toggle_edit_access(
+        database: AsyncIOMotorDatabase, user_id: str, requester: User
+) -> Optional[UserResponse]:
+    """Toggle a user's edit access.
+
+    Args:
+        database: MongoDB database instance.
+        user_id: ID of user to modify.
+        requester: User making the request.
+
+    Returns:
+        UserResponse if updated, None if not found or no permission.
+    """
     user = await crud_users.get_user_by_id(database, user_id)
     if not user:
         logger.warning(f"User {user_id} not found for toggle-edit.")
         return None
 
-    if requester.role != UserRole.ADMIN and not (
-            requester.role == UserRole.PROJECT_MANAGER and user.manager_id == requester.id):
+    # Check permissions
+    can_toggle = (
+        requester.role == UserRole.ADMIN or
+        (requester.role == UserRole.PROJECT_MANAGER and user.manager_id == requester.id)
+    )
+
+    if not can_toggle:
         logger.warning(f"User {requester.username} has no permission to toggle edit for {user.username}")
         return None
 
@@ -215,59 +295,32 @@ async def toggle_edit_access(database: AsyncIOMotorDatabase, user_id: str, reque
         return None
 
     logger.info(f"Toggled can_edit for user {user.username} to {updated_user.can_edit}")
-    return UserResponse(
-        id=updated_user.id,
-        username=updated_user.username,
-        email=updated_user.email,
-        full_name=updated_user.full_name,
-        role=updated_user.role,
-        manager_id=updated_user.manager_id,
-        is_approved=updated_user.is_approved,
-        can_edit=updated_user.can_edit,
-        created_at=updated_user.created_at,
-        updated_at=updated_user.updated_at,
-    )
+    return user_to_response(updated_user)
 
 
 async def get_users_by_role(database: AsyncIOMotorDatabase, role: str) -> list[UserResponse]:
-    users_cursor = database["users"].find({"role": role})
-    users_list = await users_cursor.to_list(length=None)
+    """Get all users with a specific role.
 
-    return [
-        UserResponse(
-            id=u["_id"],
-            username=u["username"],
-            email=u["email"],
-            full_name=u.get("full_name"),
-            role=u["role"],
-            manager_id=u.get("manager_id"),
-            is_approved=u.get("is_approved", False),
-            can_edit=u.get("can_edit", False),
-            created_at=u.get("created_at"),
-            updated_at=u.get("updated_at"),
-        )
-        for u in users_list
-    ]
+    Args:
+        database: MongoDB database instance.
+        role: Role to filter by.
+
+    Returns:
+        List of UserResponse for matching users.
+    """
+    users = await crud_users.get_users_by_role(database, role)
+    return [user_to_response(u) for u in users]
 
 
 async def get_users_by_roles(database: AsyncIOMotorDatabase, roles: list[str]) -> list[UserResponse]:
-    """Get users with any of the specified roles."""
-    users_cursor = database["users"].find({"role": {"$in": roles}})
-    users_list = await users_cursor.to_list(length=None)
+    """Get all users with any of the specified roles.
 
-    return [
-        UserResponse(
-            id=u["_id"],
-            username=u["username"],
-            email=u["email"],
-            full_name=u.get("full_name"),
-            role=u["role"],
-            manager_id=u.get("manager_id"),
-            is_approved=u.get("is_approved", False),
-            can_edit=u.get("can_edit", False),
-            created_at=u.get("created_at"),
-            updated_at=u.get("updated_at"),
-        )
-        for u in users_list
-    ]
+    Args:
+        database: MongoDB database instance.
+        roles: List of roles to filter by.
 
+    Returns:
+        List of UserResponse for matching users.
+    """
+    users = await crud_users.get_users_by_roles(database, roles)
+    return [user_to_response(u) for u in users]

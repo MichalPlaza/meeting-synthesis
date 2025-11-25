@@ -6,6 +6,9 @@ This module provides async Elasticsearch client initialization and management.
 import os
 import ssl
 import logging
+from contextlib import asynccontextmanager
+from typing import AsyncGenerator
+
 from elasticsearch import AsyncElasticsearch
 
 logger = logging.getLogger(__name__)
@@ -69,3 +72,24 @@ async def close_elasticsearch_client(client: AsyncElasticsearch) -> None:
     """
     logger.info("Closing Elasticsearch client")
     await client.close()
+
+
+@asynccontextmanager
+async def elasticsearch_client() -> AsyncGenerator[AsyncElasticsearch, None]:
+    """Async context manager for Elasticsearch client.
+
+    Automatically handles client lifecycle - creates client on entry,
+    ensures proper cleanup on exit (even if exception occurs).
+
+    Usage:
+        async with elasticsearch_client() as client:
+            result = await client.search(...)
+
+    Yields:
+        AsyncElasticsearch: Configured client instance.
+    """
+    client = get_elasticsearch_client()
+    try:
+        yield client
+    finally:
+        await close_elasticsearch_client(client)

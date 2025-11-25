@@ -14,7 +14,17 @@ class MeetingHistory(BaseModel):
 
 
 def serialize_value(v):
+    """Serialize a value for storage.
+
+    Attempts to convert Pydantic models to dicts, otherwise returns as-is.
+
+    Args:
+        v: Value to serialize.
+
+    Returns:
+        Serialized value (dict for Pydantic models, original value otherwise).
+    """
     try:
         return v.model_dump()
-    except:
+    except (AttributeError, TypeError):
         return v
