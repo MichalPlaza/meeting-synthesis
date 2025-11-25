@@ -39,7 +39,7 @@ export function SourceCard({ source, onNavigateToMeeting }: SourceCardProps) {
   const relevancePercent = Math.round(source.relevance_score * 100);
 
   return (
-    <Card className="hover:shadow-md transition-shadow">
+    <Card>
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex items-center gap-2 flex-1 min-w-0">

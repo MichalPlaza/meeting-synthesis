@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useEffect, useRef } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import { useAuth } from "./AuthContext";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { LiveRegion } from "./components/LiveRegion";
 import log from "./services/logging";
 
 const NOTIFICATION_SERVICE_URL = import.meta.env.VITE_WEBSOCKET_URL || "ws://localhost:8001";
@@ -30,6 +31,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({
   const { isAuthenticated, user } = useAuth();
   const socketRef = useRef<WebSocket | null>(null);
   const navigate = useNavigate();
+  const [liveMessage, setLiveMessage] = useState("");
 
   useEffect(() => {
     if (isAuthenticated && user?._id) {
@@ -43,6 +45,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({
 
       socket.onopen = () => {
         log.info("WebSocket connected to:", wsUrl);
+        setLiveMessage("Real-time notifications connected");
       };
 
       socket.onmessage = (event) => {
@@ -56,6 +59,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({
               isSuccess ? "finished processing" : "failed"
             }!`;
 
+            // Visual notification (toast)
             toast[isSuccess ? "success" : "error"](toastMessage, {
               description: "Click to view the details.",
               duration: 10000,
@@ -70,6 +74,12 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({
                 },
               },
             });
+
+            // Screen reader announcement
+            setLiveMessage(
+              `${toastMessage} Click view button to see details.`
+            );
+
             log.info(
               "Meeting processed notification displayed for meeting ID:",
               message.meeting_id,
@@ -99,6 +109,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({
 
       socket.onclose = () => {
         log.info("WebSocket disconnected.");
+        setLiveMessage("Real-time notifications disconnected");
       };
 
       socket.onerror = (error) => {
@@ -124,6 +135,9 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [isAuthenticated, user, navigate]);
 
   return (
-    <WebSocketContext.Provider value={{}}>{children}</WebSocketContext.Provider>
+    <WebSocketContext.Provider value={{}}>
+      {children}
+      <LiveRegion message={liveMessage} politeness="polite" />
+    </WebSocketContext.Provider>
   );
 };

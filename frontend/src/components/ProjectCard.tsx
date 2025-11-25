@@ -21,7 +21,7 @@ function ProjectCard({ project }: ProjectCardProps) {
 
   return (
     <li className="list-none">
-      <Card className="flex flex-col h-full bg-card rounded-[var(--radius-container)] shadow-md hover:shadow-xl transition-shadow duration-300">
+      <Card className="flex flex-col h-full [box-shadow:var(--shadow-md)] hover:[box-shadow:var(--shadow-xl)] transition-shadow duration-300">
         <CardHeader className="pb-4">
           <h2 className="text-lg font-semibold truncate">{project.name}</h2>
           <CardDescription className="text-sm text-muted-foreground pt-1">

@@ -59,6 +59,10 @@
   --color-content-action-item-foreground: var(--content-action-item-foreground);
   --color-content-decision: var(--content-decision);
   --color-content-decision-foreground: var(--content-decision-foreground);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-xl: var(--shadow-xl);
 }
 
 /*
@@ -133,6 +137,12 @@
   --content-action-item-foreground: var(--tag-orange-foreground);
   --content-decision: var(--tag-red);
   --content-decision-foreground: var(--tag-red-foreground);
+
+  /* Shadow System - Consistent elevation */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1);
 
   /* --- SYSTEM ZAOKRĄGLEŃ --- */
   --radius-container: 0.75rem;

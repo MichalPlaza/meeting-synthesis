@@ -38,7 +38,7 @@ function MeetingListItem({ meeting, project }: MeetingListItemProps) {
 
   return (
     <li className="list-none">
-      <div className="flex items-start gap-4 p-4 bg-card rounded-[var(--radius-container)] shadow-sm transition-all hover:shadow-md hover:bg-muted/50">
+      <div className="flex items-start gap-4 p-4 bg-card rounded-[var(--radius-container)] [box-shadow:var(--shadow-sm)] transition-all hover:[box-shadow:var(--shadow-md)] hover:bg-muted/50">
         <div className="flex-grow">
           <div className="flex flex-wrap items-center gap-2">
             <Link to={`/meetings/${meeting._id}`} className="group">
