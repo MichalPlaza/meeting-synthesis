@@ -51,8 +51,28 @@ export function EditProjectDialog({
   onProjectUpdated,
 }: EditProjectDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [allUsers] = useState<UserResponse[]>([]);
+  const [allUsers, setAllUsers] = useState<UserResponse[]>([]);
   const { user, token } = useAuth();
+
+  // Fetch all users for member selection
+  useEffect(() => {
+    if (!isOpen || !token) return;
+
+    async function fetchUsers() {
+      try {
+        const response = await fetch(`${BACKEND_API_BASE_URL}/users`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!response.ok) throw new Error('Failed to fetch users');
+        const data = await response.json();
+        setAllUsers(data);
+      } catch (error) {
+        console.error('Error fetching users:', error);
+        toast.error('Failed to load users list.');
+      }
+    }
+    fetchUsers();
+  }, [isOpen, token]);
 
   const form = useForm<EditProjectValues>({
     resolver: zodResolver(editProjectSchema),
