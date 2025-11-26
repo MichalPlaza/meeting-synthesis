@@ -24,8 +24,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import type { Meeting } from "@/types/meeting";
-
-const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
+import { api } from "@/lib/api/client";
 
 const editMeetingSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters."),
@@ -84,23 +83,13 @@ export function EditMeetingDialog({
     setIsSubmitting(true);
 
     try {
-      const res = await fetch(`${BACKEND_API_BASE_URL}/meetings/${meeting._id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          title: data.title,
-          tags: data.tags?.split(",").map(t => t.trim()).filter(Boolean),
-          ai_analysis: { summary: data.summary },
-          transcription: { full_text: data.transcription },
-        }),
-      });
+      const updatedMeeting = await api.patch<Meeting>(`/meetings/${meeting._id}`, {
+        title: data.title,
+        tags: data.tags?.split(",").map(t => t.trim()).filter(Boolean),
+        ai_analysis: { summary: data.summary },
+        transcription: { full_text: data.transcription },
+      }, token);
 
-      if (!res.ok) throw new Error("Failed to update meeting.");
-
-      const updatedMeeting: Meeting = await res.json();
       toast.success("Meeting updated successfully!");
       onMeetingUpdated(updatedMeeting);
       handleClose();
