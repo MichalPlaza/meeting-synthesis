@@ -29,8 +29,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-
-const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
+import { api } from "@/lib/api/client";
+import { toast } from "sonner";
 
 interface Comment {
   author_id: string;
@@ -56,11 +56,7 @@ export function MeetingCommentsSection({ meetingId }: { meetingId: string }) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${BACKEND_API_BASE_URL}/comments/${meetingId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error("Failed to fetch comments");
-      const data = await res.json();
+      const data = await api.get<Comment[]>(`/comments/${meetingId}`, token || undefined);
       setComments(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch comments");
@@ -73,19 +69,14 @@ export function MeetingCommentsSection({ meetingId }: { meetingId: string }) {
     if (!newComment.trim()) return;
     setSubmitting(true);
     try {
-      const res = await fetch(`${BACKEND_API_BASE_URL}/comments/${meetingId}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ content: newComment }),
-      });
-      if (!res.ok) throw new Error("Failed to post comment");
+      await api.post(`/comments/${meetingId}`, { content: newComment }, token || undefined);
       setNewComment("");
+      toast.success("Comment posted successfully");
       await fetchComments();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to post comment");
+      const errorMsg = err instanceof Error ? err.message : "Failed to post comment";
+      setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setSubmitting(false);
     }
@@ -93,13 +84,13 @@ export function MeetingCommentsSection({ meetingId }: { meetingId: string }) {
 
   const handleDelete = async (commentId: string) => {
     try {
-      await fetch(`${BACKEND_API_BASE_URL}/comments/${commentId}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await api.delete(`/comments/${commentId}`, token || undefined);
       setComments((prev) => prev.filter((c) => c._id !== commentId));
+      toast.success("Comment deleted successfully");
     } catch {
-      setError("Failed to delete comment");
+      const errorMsg = "Failed to delete comment";
+      setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setDeleteTarget(null);
     }
@@ -111,29 +102,25 @@ export function MeetingCommentsSection({ meetingId }: { meetingId: string }) {
   };
 
   const saveEdit = async () => {
-  if (!editing) return;
-  try {
-    const res = await fetch(`${BACKEND_API_BASE_URL}/comments/${editing._id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ content: editedContent }),
-    });
-    if (!res.ok) throw new Error("Failed to update comment");
+    if (!editing) return;
+    try {
+      const updatedComment = await api.put<Comment>(
+        `/comments/${editing._id}`,
+        { content: editedContent },
+        token || undefined
+      );
 
-    const updatedComment = await res.json();
-
-    setEditing(null);
-
-    setComments((prev) =>
-      prev.map((c) => (c._id === updatedComment._id ? updatedComment : c))
-    );
-  } catch (err) {
-    setError(err instanceof Error ? err.message : "Failed to update comment");
-  }
-};
+      setEditing(null);
+      setComments((prev) =>
+        prev.map((c) => (c._id === updatedComment._id ? updatedComment : c))
+      );
+      toast.success("Comment updated successfully");
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : "Failed to update comment";
+      setError(errorMsg);
+      toast.error(errorMsg);
+    }
+  };
 
 
   useEffect(() => {
