@@ -8,8 +8,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import log from "@/services/logging";
 import type { UserResponse } from "@/types/user";
-
-const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
+import { api } from "@/lib/api/client";
 
 interface AuthContextValue {
   isAuthenticated: boolean;
@@ -38,7 +37,7 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<UserResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(true); // Stan do śledzenia początkowego ładowania
+  const [isLoading, setIsLoading] = useState(true); // Track initial loading state
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -53,49 +52,26 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       try {
         log.debug("Sending refresh token request...");
-        const response = await fetch(
-          `${BACKEND_API_BASE_URL}/auth/refresh-token`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ refresh_token: refreshToken }),
-          }
+        const tokenData = await api.post<{ access_token: string }>(
+          "/auth/refresh-token",
+          { refresh_token: refreshToken }
         );
-
-        if (!response.ok) {
-          log.warn("Refresh token failed. Status:", response.status);
-          throw new Error("Refresh token failed");
-        }
-
-        const tokenData = await response.json();
         const newAccessToken = tokenData.access_token;
         log.debug("Successfully obtained new access token.");
 
-        const userResponse = await fetch(`${BACKEND_API_BASE_URL}/users/me`, {
-          headers: { Authorization: `Bearer ${newAccessToken}` },
-        });
-
-        if (!userResponse.ok) {
-          log.warn(
-            "Failed to fetch user after refresh. Status:",
-            userResponse.status
-          );
-          throw new Error("Failed to fetch user after refresh");
-        }
-
-        const userData = await userResponse.json();
+        const userData = await api.get<UserResponse>("/users/me", newAccessToken);
         log.info("Session refreshed successfully for user:", userData.username);
         login(newAccessToken, userData, refreshToken);
       } catch (error) {
         log.error("Session refresh failed:", error);
-        logout(); // Wyczyść stare, nieprawidłowe tokeny
+        logout(); // Clear old, invalid tokens
       } finally {
         setIsLoading(false);
       }
     };
 
     tryToLogin();
-  }, []); // Uruchom tylko raz przy starcie aplikacji
+  }, []); // Run only once on app startup
 
   const login = (
     newAccessToken: string,
@@ -134,10 +110,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     user,
     login,
     logout,
-    isLoading, // Udostępnij stan ładowania
+    isLoading, // Expose loading state
   };
 
-  // Podczas gdy aplikacja próbuje odświeżyć sesję, można pokazać ekran ładowania
+  // Show loading screen while attempting to refresh session
   if (isLoading) {
     log.debug("AuthContext: Loading session...");
     return (
