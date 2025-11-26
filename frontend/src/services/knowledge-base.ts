@@ -98,6 +98,16 @@ export async function sendMessage(
 }
 
 /**
+ * Streaming Chat Result Types
+ */
+export interface StreamResult {
+  type: 'content' | 'sources' | 'conversation_id' | 'done';
+  content?: string;
+  sources?: MessageSource[];
+  conversationId?: string;
+}
+
+/**
  * Streaming Chat
  * Note: Streaming requires special handling - implement when needed
  */
@@ -105,7 +115,7 @@ export async function sendMessage(
 export async function* sendMessageStream(
   token: string,
   request: ChatRequest
-): AsyncGenerator<string, void, unknown> {
+): AsyncGenerator<StreamResult, void, unknown> {
   try {
     // Use the same /chat endpoint with stream: true
     // Note: Streaming requires native fetch, not our API client
@@ -153,13 +163,16 @@ export async function* sendMessageStream(
             const parsed = JSON.parse(jsonData);
 
             if (parsed.type === "content" && parsed.content) {
-              yield parsed.content;
+              yield { type: 'content', content: parsed.content };
             } else if (parsed.type === "conversation_id") {
-              // Could store this if needed
               log.debug("Received conversation_id:", parsed.id);
+              yield { type: 'conversation_id', conversationId: parsed.id };
             } else if (parsed.type === "sources") {
-              // Could store sources if needed
               log.debug("Received sources");
+              yield { type: 'sources', sources: parsed.sources };
+            } else if (parsed.type === "done") {
+              yield { type: 'done' };
+              return;
             } else if (parsed.type === "error") {
               throw new Error(parsed.message);
             }

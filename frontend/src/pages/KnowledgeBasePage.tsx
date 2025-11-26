@@ -2,27 +2,70 @@ import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Loader2, Sparkles, Copy, Check } from "lucide-react";
+import { Send, Loader2, Sparkles, Copy, Check, PlusCircle } from "lucide-react";
 import { toast } from "sonner";
 import log from "@/services/logging";
-import { sendMessageStream } from "@/services/knowledge-base";
+import {
+  sendMessageStream,
+  createConversation,
+  getMessages,
+} from "@/services/knowledge-base";
 import type { ChatMessage } from "@/types/knowledge-base";
 import { cn } from "@/lib/utils";
 import { SourceList } from "@/components/features/knowledge-base/SourceList";
+import ReactMarkdown from 'react-markdown';
 
 export function KnowledgeBasePage() {
   log.info("KnowledgeBasePage rendered");
 
   const { token, user } = useAuth();
+  const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingHistory, setLoadingHistory] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Load messages when conversation ID changes
+  useEffect(() => {
+    if (!conversationId || !token) return;
+
+    const loadMessages = async () => {
+      setLoadingHistory(true);
+      try {
+        log.debug(`Loading messages for conversation ${conversationId}`);
+        const loadedMessages = await getMessages(token, conversationId);
+        setMessages(loadedMessages);
+        log.info(`Loaded ${loadedMessages.length} messages`);
+      } catch (error) {
+        log.error("Failed to load messages", error);
+        toast.error("Failed to load conversation history");
+      } finally {
+        setLoadingHistory(false);
+      }
+    };
+
+    loadMessages();
+  }, [conversationId, token]);
+
+  // Helper to generate conversation title from first message
+  const generateTitle = (firstMessage: string): string => {
+    const maxLength = 50;
+    if (firstMessage.length <= maxLength) return firstMessage;
+    return firstMessage.substring(0, maxLength) + '...';
+  };
+
+  const handleNewConversation = () => {
+    setConversationId(null);
+    setMessages([]);
+    setInput("");
+    log.info("Started new conversation");
+  };
 
   async function handleSendMessage() {
     if (!input.trim() || !token) return;
@@ -33,10 +76,21 @@ export function KnowledgeBasePage() {
     try {
       setLoading(true);
 
+      // Create conversation if this is the first message
+      let currentConversationId = conversationId;
+      if (!currentConversationId) {
+        log.debug("Creating new conversation");
+        const title = generateTitle(messageText);
+        const newConversation = await createConversation(token, title);
+        currentConversationId = newConversation.id;
+        setConversationId(currentConversationId);
+        log.info(`Created conversation: ${currentConversationId}`);
+      }
+
       // Add user message optimistically
       const userMessage: ChatMessage = {
         id: `temp-user-${Date.now()}`,
-        conversation_id: "temp",
+        conversation_id: currentConversationId,
         role: "user",
         content: messageText,
         timestamp: new Date().toISOString(),
@@ -47,7 +101,7 @@ export function KnowledgeBasePage() {
       const assistantMessageId = `temp-assistant-${Date.now()}`;
       const assistantMessage: ChatMessage = {
         id: assistantMessageId,
-        conversation_id: "temp",
+        conversation_id: currentConversationId,
         role: "assistant",
         content: "",
         timestamp: new Date().toISOString(),
@@ -56,18 +110,37 @@ export function KnowledgeBasePage() {
 
       // Stream response
       let fullResponse = "";
-      for await (const chunk of sendMessageStream(token, {
+      for await (const result of sendMessageStream(token, {
         message: messageText,
+        conversation_id: currentConversationId,
       })) {
-        fullResponse += chunk;
-        // Update assistant message with streaming content
-        setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === assistantMessageId
-              ? { ...msg, content: fullResponse }
-              : msg
-          )
-        );
+        if (result.type === 'content' && result.content) {
+          fullResponse += result.content;
+          // Update assistant message with streaming content
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === assistantMessageId
+                ? { ...msg, content: fullResponse }
+                : msg
+            )
+          );
+        } else if (result.type === 'sources' && result.sources) {
+          // Update assistant message with sources
+          log.debug(`Received ${result.sources.length} sources`);
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === assistantMessageId
+                ? { ...msg, sources: result.sources }
+                : msg
+            )
+          );
+        } else if (result.type === 'conversation_id' && result.conversationId) {
+          // Update conversation ID if provided by backend
+          log.debug(`Backend provided conversation ID: ${result.conversationId}`);
+          setConversationId(result.conversationId);
+        } else if (result.type === 'done') {
+          log.debug("Streaming completed");
+        }
       }
 
       log.info("Streaming message completed");
@@ -93,6 +166,20 @@ export function KnowledgeBasePage() {
 
   return (
     <div className="flex flex-col h-full max-h-full overflow-hidden bg-background">
+      {/* Header with New Conversation button */}
+      <div className="flex items-center gap-4 px-4 py-3 border-b">
+        <h1 className="text-2xl font-semibold">Knowledge Base</h1>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleNewConversation}
+          className="ml-auto"
+        >
+          <PlusCircle className="h-4 w-4 mr-2" />
+          New Chat
+        </Button>
+      </div>
+
       {/* Messages Area - Scrollable, takes remaining space */}
       <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
         {messages.length === 0 ? (
@@ -223,9 +310,31 @@ function MessageBubble({ message }: { message: ChatMessage }) {
       >
         {/* Message text */}
         <div className="prose prose-sm dark:prose-invert max-w-none">
-          <p className="whitespace-pre-wrap leading-relaxed m-0">
-            {message.content}
-          </p>
+          {message.content ? (
+            <ReactMarkdown
+              components={{
+                // Custom components for better styling
+                code: ({ node, inline, className, children, ...props }: any) => {
+                  return inline ? (
+                    <code className="bg-muted px-1 py-0.5 rounded text-sm" {...props}>
+                      {children}
+                    </code>
+                  ) : (
+                    <code className="block bg-muted p-2 rounded my-2 text-sm overflow-x-auto" {...props}>
+                      {children}
+                    </code>
+                  );
+                },
+                p: ({ children, ...props }: any) => (
+                  <p className="whitespace-pre-wrap leading-relaxed m-0" {...props}>
+                    {children}
+                  </p>
+                ),
+              }}
+            >
+              {message.content}
+            </ReactMarkdown>
+          ) : null}
           {isStreaming && message.content && (
             <span className="inline-block w-0.5 h-5 ml-1 bg-current animate-pulse" />
           )}
