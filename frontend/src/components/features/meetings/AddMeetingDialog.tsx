@@ -35,8 +35,7 @@ import {
 } from "@/components/ui/form";
 import { cn } from "@/lib/utils";
 import log from "@/services/logging";
-
-const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
+import { getApiBaseUrl } from "@/lib/api/client";
 
 // Schemat walidacji pozostaje bez zmian
 const addMeetingSchema = z.object({
@@ -112,7 +111,7 @@ export function AddMeetingDialog({
 
     try {
       const response = await axios.post(
-        `${BACKEND_API_BASE_URL}/meetings/upload`,
+        `${getApiBaseUrl()}/meetings/upload`,
         formData,
         {
           headers: {
