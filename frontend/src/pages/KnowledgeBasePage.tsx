@@ -4,7 +4,7 @@ import { useApi } from "@/hooks/useApi";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Send, Loader2, Sparkles, Copy, Check, PlusCircle, Menu } from "lucide-react";
+import { Send, Loader2, Sparkles, Copy, Check, PlusCircle, Menu, RotateCw, Edit2, Download } from "lucide-react";
 import { toast } from "sonner";
 import log from "@/services/logging";
 import {
@@ -21,6 +21,14 @@ import { SourceList } from "@/components/features/knowledge-base/SourceList";
 import { ConversationList } from "@/components/features/knowledge-base/ConversationList";
 import { FilterPanel } from "@/components/features/knowledge-base/FilterPanel";
 import { CodeBlock } from "@/components/features/knowledge-base/CodeBlock";
+import { SuggestedPrompts, getContextualSuggestions } from "@/components/features/knowledge-base/SuggestedPrompts";
+import { exportConversation, type ExportFormat } from "@/utils/conversationExport";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import ReactMarkdown from 'react-markdown';
 
 export function KnowledgeBasePage() {
@@ -35,6 +43,7 @@ export function KnowledgeBasePage() {
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [loadingConversations, setLoadingConversations] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
   const [filters, setFilters] = useState<FilterContext>({
     project_ids: [],
     tags: [],
@@ -42,6 +51,7 @@ export function KnowledgeBasePage() {
     end_date: undefined,
   });
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // Fetch member projects for filter dropdown
   const { data: projects = [] } = useApi<Project[]>(
@@ -101,6 +111,42 @@ export function KnowledgeBasePage() {
     loadMessages();
   }, [conversationId, token]);
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      const modifier = isMac ? e.metaKey : e.ctrlKey;
+
+      // Cmd/Ctrl + K: Focus input
+      if (modifier && e.key === 'k') {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
+
+      // Cmd/Ctrl + N: New conversation
+      if (modifier && e.key === 'n') {
+        e.preventDefault();
+        handleNewConversation();
+      }
+
+      // Cmd/Ctrl + E: Export conversation (if available)
+      if (modifier && e.key === 'e' && conversationId && messages.length > 0) {
+        e.preventDefault();
+        handleExportConversation('markdown');
+        toast.info("Exported as Markdown. Use Export dropdown for other formats.");
+      }
+
+      // Esc: Clear input
+      if (e.key === 'Escape' && !loading) {
+        setInput("");
+        inputRef.current?.blur();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [conversationId, messages.length, loading]);
+
   // Helper to generate conversation title from first message
   const generateTitle = (firstMessage: string): string => {
     const maxLength = 50;
@@ -139,6 +185,105 @@ export function KnowledgeBasePage() {
     } catch (error) {
       log.error("Failed to delete conversation", error);
       toast.error("Failed to delete conversation");
+    }
+  };
+
+  const handleExportConversation = (format: ExportFormat) => {
+    if (!conversationId || messages.length === 0) {
+      toast.error("No conversation to export");
+      return;
+    }
+
+    const currentConversation = conversations.find((c) => c.id === conversationId);
+    if (!currentConversation) {
+      toast.error("Conversation not found");
+      return;
+    }
+
+    try {
+      exportConversation(currentConversation, messages, format);
+      toast.success(`Conversation exported as ${format.toUpperCase()}`);
+      log.info(`Exported conversation ${conversationId} as ${format}`);
+    } catch (error) {
+      log.error("Failed to export conversation", error);
+      toast.error("Failed to export conversation");
+    }
+  };
+
+  const handleRegenerateMessage = async (assistantMessageId: string) => {
+    if (!token || !conversationId) return;
+
+    try {
+      setRegeneratingId(assistantMessageId);
+
+      // Find the index of the assistant message
+      const assistantIndex = messages.findIndex((m) => m.id === assistantMessageId);
+      if (assistantIndex === -1) return;
+
+      // Find the previous user message
+      let userMessage: ChatMessage | null = null;
+      for (let i = assistantIndex - 1; i >= 0; i--) {
+        if (messages[i].role === "user") {
+          userMessage = messages[i];
+          break;
+        }
+      }
+
+      if (!userMessage) {
+        toast.error("Cannot find user message to regenerate");
+        return;
+      }
+
+      // Remove the assistant message and all messages after it
+      setMessages((prev) => prev.slice(0, assistantIndex));
+
+      // Create new assistant message placeholder
+      const newAssistantMessageId = `temp-assistant-${Date.now()}`;
+      const newAssistantMessage: ChatMessage = {
+        id: newAssistantMessageId,
+        conversation_id: conversationId,
+        role: "assistant",
+        content: "",
+        timestamp: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, newAssistantMessage]);
+
+      // Stream response with filters
+      let fullResponse = "";
+      for await (const result of sendMessageStream(token, {
+        message: userMessage.content,
+        conversation_id: conversationId,
+        filters: filters.project_ids?.length || filters.tags?.length || filters.start_date || filters.end_date
+          ? filters
+          : undefined,
+      })) {
+        if (result.type === 'content' && result.content) {
+          fullResponse += result.content;
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === newAssistantMessageId
+                ? { ...msg, content: fullResponse }
+                : msg
+            )
+          );
+        } else if (result.type === 'sources' && result.sources) {
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === newAssistantMessageId
+                ? { ...msg, sources: result.sources }
+                : msg
+            )
+          );
+        }
+      }
+
+      log.info("Message regenerated successfully");
+      toast.success("Response regenerated");
+    } catch (error) {
+      log.error("Failed to regenerate message", error);
+      toast.error("Failed to regenerate response");
+    } finally {
+      setRegeneratingId(null);
     }
   };
 
@@ -294,6 +439,30 @@ export function KnowledgeBasePage() {
               availableProjects={projects.map((p) => ({ id: p._id, name: p.name }))}
               availableTags={[]}
             />
+
+            {/* Export conversation dropdown */}
+            {conversationId && messages.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Download className="h-4 w-4 mr-2" />
+                    Export
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => handleExportConversation("markdown")}>
+                    Export as Markdown
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleExportConversation("json")}>
+                    Export as JSON
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleExportConversation("text")}>
+                    Export as Text
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+
             <Button
               variant="outline"
               size="sm"
@@ -325,32 +494,48 @@ export function KnowledgeBasePage() {
                 </p>
               </div>
 
-              {/* Suggestion Chips */}
-              <div className="flex flex-wrap gap-2 justify-center">
-                {[
-                  "What were the main decisions?",
-                  "Show me action items",
-                  "Summarize recent meetings",
-                  "What topics were discussed?",
-                ].map((suggestion, idx) => (
-                  <Button
-                    key={idx}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setInput(suggestion)}
-                    className="text-sm"
-                  >
-                    {suggestion}
-                  </Button>
-                ))}
-              </div>
+              {/* Contextual Suggestions */}
+              <SuggestedPrompts
+                suggestions={getContextualSuggestions({
+                  hasMessages: false,
+                  filters,
+                })}
+                onSelect={setInput}
+                title="Try asking:"
+                className="flex flex-col items-center"
+              />
             </div>
           </div>
         ) : (
           <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
             {messages.map((message) => (
-              <MessageBubble key={message.id} message={message} />
+              <MessageBubble
+                key={message.id}
+                message={message}
+                onRegenerate={
+                  message.role === "assistant"
+                    ? () => handleRegenerateMessage(message.id)
+                    : undefined
+                }
+                isRegenerating={regeneratingId === message.id}
+              />
             ))}
+
+            {/* Follow-up suggestions after last assistant message */}
+            {messages.length > 0 &&
+             messages[messages.length - 1]?.role === "assistant" &&
+             !loading && (
+              <SuggestedPrompts
+                suggestions={getContextualSuggestions({
+                  hasMessages: true,
+                  lastMessage: messages[messages.length - 1]?.content,
+                  filters,
+                })}
+                onSelect={setInput}
+                title="Follow up with:"
+              />
+            )}
+
             <div ref={messagesEndRef} />
           </div>
         )}
@@ -367,6 +552,7 @@ export function KnowledgeBasePage() {
           >
             <div className="relative flex items-center">
               <Textarea
+                ref={inputRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => {
@@ -375,7 +561,7 @@ export function KnowledgeBasePage() {
                     handleSendMessage();
                   }
                 }}
-                placeholder="Message Knowledge Base"
+                placeholder="Message Knowledge Base (Cmd/Ctrl + K to focus)"
                 disabled={loading}
                 className="w-full min-h-[52px] max-h-[200px] pr-12 resize-none rounded-3xl bg-muted/50 border-0 focus-visible:ring-1 focus-visible:ring-ring"
                 autoFocus
@@ -402,7 +588,13 @@ export function KnowledgeBasePage() {
 }
 
 // Message Bubble Component
-function MessageBubble({ message }: { message: ChatMessage }) {
+interface MessageBubbleProps {
+  message: ChatMessage;
+  onRegenerate?: () => void;
+  isRegenerating?: boolean;
+}
+
+function MessageBubble({ message, onRegenerate, isRegenerating }: MessageBubbleProps) {
   const [copied, setCopied] = useState(false);
   const isUser = message.role === "user";
   const isStreaming =
@@ -489,7 +681,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
           </div>
         )}
 
-        {/* Copy button - appears on hover */}
+        {/* Action buttons - appear on hover */}
         {!isStreaming && message.content && (
           <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity -mb-1">
             <Button
@@ -515,6 +707,20 @@ function MessageBubble({ message }: { message: ChatMessage }) {
                 </>
               )}
             </Button>
+
+            {/* Regenerate button for assistant messages */}
+            {!isUser && onRegenerate && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onRegenerate}
+                disabled={isRegenerating}
+                className="h-6 px-2 text-xs"
+              >
+                <RotateCw className={cn("h-3 w-3 mr-1", isRegenerating && "animate-spin")} />
+                Regenerate
+              </Button>
+            )}
           </div>
         )}
       </div>
