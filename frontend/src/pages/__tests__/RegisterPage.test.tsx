@@ -91,7 +91,7 @@ describe("RegisterPage", () => {
 
       await waitFor(() => {
         expect(toast.error).toHaveBeenCalledWith(
-          "Failed to load managers. Try refreshing the page."
+          "Failed to load managers. Please try refreshing."
         );
       });
     });
