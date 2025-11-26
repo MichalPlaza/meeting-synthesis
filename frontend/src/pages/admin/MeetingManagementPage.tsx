@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getMeetingColumns } from "@/components/admin/meeting-columns";
@@ -9,57 +9,45 @@ import type { PopulatedMeeting } from "@/types/meeting";
 import type { Project } from "@/types/project";
 import { useAuth } from "@/contexts/AuthContext";
 import log from "@/services/logging";
-
-const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
+import { useApi } from "@/hooks/useApi";
+import { api } from "@/lib/api/client";
+import { toast } from "sonner";
 
 export default function MeetingManagementPage() {
-  const [meetings, setMeetings] = useState<PopulatedMeeting[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedMeeting, setSelectedMeeting] =
     useState<PopulatedMeeting | null>(null);
   const { token } = useAuth();
 
-  const fetchMeetings = useCallback(async () => {
-    if (!token) return;
-    setIsLoading(true);
-    try {
-      const response = await fetch(
-        `${BACKEND_API_BASE_URL}/meetings/populated`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      if (!response.ok) throw new Error("Failed to fetch meetings");
-      const data: PopulatedMeeting[] = await response.json();
-      setMeetings(data);
-      log.debug("Fetched meetings:", data.length);
-    } catch (error) {
-      log.error("Error fetching meetings:", error);
-    } finally {
-      setIsLoading(false);
+  const { data: meetings, isLoading: isLoadingMeetings, refetch: fetchMeetings } = useApi<PopulatedMeeting[]>(
+    `/meetings/populated`,
+    {
+      enabled: !!token,
+      token: token || undefined,
+      onSuccess: (data) => {
+        log.debug("Fetched meetings:", data.length);
+      },
+      onError: () => {
+        log.error("Error fetching meetings");
+      },
     }
-  }, [token]);
+  );
 
-  const fetchProjects = useCallback(async () => {
-    if (!token) return;
-    try {
-      const response = await fetch(`${BACKEND_API_BASE_URL}/project`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!response.ok) throw new Error("Failed to fetch projects");
-      const data: Project[] = await response.json();
-      setProjects(data);
-    } catch (error) {
-      log.error("Error fetching projects:", error);
+  const { data: projects } = useApi<Project[]>(
+    `/project`,
+    {
+      enabled: !!token,
+      token: token || undefined,
+      onSuccess: (data) => {
+        log.debug("Fetched projects:", data.length);
+      },
+      onError: () => {
+        log.error("Error fetching projects");
+      },
     }
-  }, [token]);
+  );
 
-  useEffect(() => {
-    fetchMeetings();
-    fetchProjects();
-  }, [fetchMeetings, fetchProjects]);
+  const isLoading = isLoadingMeetings;
 
   const handleViewDetails = (meeting: PopulatedMeeting) => {
     setSelectedMeeting(meeting);
@@ -68,13 +56,13 @@ export default function MeetingManagementPage() {
   const handleDeleteMeeting = async (meetingId: string) => {
     if (!token) return;
     try {
-      await fetch(`${BACKEND_API_BASE_URL}/meetings/${meetingId}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await api.delete(`/meetings/${meetingId}`, token);
+      log.info("Meeting deleted successfully");
+      toast.success("Meeting deleted successfully");
       fetchMeetings();
     } catch (error) {
       log.error("Error deleting meeting:", error);
+      toast.error("Failed to delete meeting");
     }
   };
 
@@ -94,7 +82,7 @@ export default function MeetingManagementPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Meetings</h1>
           <p className="text-muted-foreground">
-            Manage all meetings in the system. Total: {meetings.length}{" "}
+            Manage all meetings in the system. Total: {meetings?.length || 0}{" "}
             meetings.
           </p>
         </div>
@@ -106,7 +94,7 @@ export default function MeetingManagementPage() {
 
       <DataTable
         columns={columns}
-        data={meetings}
+        data={meetings || []}
         filterColumnId="title"
         filterPlaceholder="Filter by title..."
         centeredColumns={["processing_status", "duration_seconds"]}
@@ -123,7 +111,7 @@ export default function MeetingManagementPage() {
       <AddMeetingDialog
         isOpen={isAddDialogOpen}
         onOpenChange={setIsAddDialogOpen}
-        projects={projects}
+        projects={projects || []}
         onMeetingAdded={() => {
           fetchMeetings();
           setIsAddDialogOpen(false);
