@@ -436,7 +436,7 @@ export function KnowledgeBasePage() {
             <FilterPanel
               filters={filters}
               onFiltersChange={setFilters}
-              availableProjects={projects.map((p) => ({ id: p._id, name: p.name }))}
+              availableProjects={(projects || []).map((p) => ({ id: p._id, name: p.name }))}
               availableTags={[]}
             />
 
