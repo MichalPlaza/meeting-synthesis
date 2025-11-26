@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useApi } from "@/hooks/useApi";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -13,10 +14,13 @@ import {
   getConversations,
   deleteConversation,
 } from "@/services/knowledge-base";
-import type { ChatMessage, Conversation } from "@/types/knowledge-base";
+import type { ChatMessage, Conversation, FilterContext } from "@/types/knowledge-base";
+import type { Project } from "@/types/project";
 import { cn } from "@/lib/utils";
 import { SourceList } from "@/components/features/knowledge-base/SourceList";
 import { ConversationList } from "@/components/features/knowledge-base/ConversationList";
+import { FilterPanel } from "@/components/features/knowledge-base/FilterPanel";
+import { CodeBlock } from "@/components/features/knowledge-base/CodeBlock";
 import ReactMarkdown from 'react-markdown';
 
 export function KnowledgeBasePage() {
@@ -31,7 +35,22 @@ export function KnowledgeBasePage() {
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [loadingConversations, setLoadingConversations] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [filters, setFilters] = useState<FilterContext>({
+    project_ids: [],
+    tags: [],
+    start_date: undefined,
+    end_date: undefined,
+  });
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Fetch member projects for filter dropdown
+  const { data: projects = [] } = useApi<Project[]>(
+    `/project/member/${user?._id}`,
+    {
+      enabled: !!user?._id,
+      token: token || undefined,
+    }
+  );
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -167,11 +186,14 @@ export function KnowledgeBasePage() {
       };
       setMessages((prev) => [...prev, assistantMessage]);
 
-      // Stream response
+      // Stream response with filters
       let fullResponse = "";
       for await (const result of sendMessageStream(token, {
         message: messageText,
         conversation_id: currentConversationId,
+        filters: filters.project_ids?.length || filters.tags?.length || filters.start_date || filters.end_date
+          ? filters
+          : undefined,
       })) {
         if (result.type === 'content' && result.content) {
           fullResponse += result.content;
@@ -265,15 +287,22 @@ export function KnowledgeBasePage() {
             <span className="sr-only">Open sidebar</span>
           </Button>
           <h1 className="text-2xl font-semibold">Knowledge Base</h1>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleNewConversation}
-            className="ml-auto"
-          >
-            <PlusCircle className="h-4 w-4 mr-2" />
-            New Chat
-          </Button>
+          <div className="ml-auto flex items-center gap-2">
+            <FilterPanel
+              filters={filters}
+              onFiltersChange={setFilters}
+              availableProjects={projects.map((p) => ({ id: p._id, name: p.name }))}
+              availableTags={[]}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleNewConversation}
+            >
+              <PlusCircle className="h-4 w-4 mr-2" />
+              New Chat
+            </Button>
+          </div>
         </div>
 
         {/* Messages Area - Scrollable, takes remaining space */}
@@ -411,14 +440,15 @@ function MessageBubble({ message }: { message: ChatMessage }) {
               components={{
                 // Custom components for better styling
                 code: ({ node, inline, className, children, ...props }: any) => {
-                  return inline ? (
-                    <code className="bg-muted px-1 py-0.5 rounded text-sm" {...props}>
-                      {children}
-                    </code>
-                  ) : (
-                    <code className="block bg-muted p-2 rounded my-2 text-sm overflow-x-auto" {...props}>
-                      {children}
-                    </code>
+                  // Extract language from className (e.g., "language-typescript")
+                  const match = /language-(\w+)/.exec(className || "");
+                  const language = match ? match[1] : undefined;
+                  const codeString = String(children).replace(/\n$/, "");
+
+                  return (
+                    <CodeBlock inline={inline} language={language}>
+                      {codeString}
+                    </CodeBlock>
                   );
                 },
                 p: ({ children, ...props }: any) => (
