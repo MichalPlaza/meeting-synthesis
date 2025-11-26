@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { TimeSeriesChart } from "@/components/admin/TimeSeriesChart";
 import log from "@/services/logging";
+import { useApi } from "@/hooks/useApi";
 
 interface DashboardStats {
   total_users: number;
@@ -23,90 +24,59 @@ interface ChartDataPoint {
   count: number;
 }
 
-const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
-
 export default function AdminDashboardPage() {
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [registrationsChartData, setRegistrationsChartData] = useState<
-    ChartDataPoint[]
-  >([]);
-  const [meetingsChartData, setMeetingsChartData] = useState<ChartDataPoint[]>(
-    []
-  );
-
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [period, setPeriod] = useState<7 | 30>(30);
-
   const { token } = useAuth();
 
-  useEffect(() => {
-    const fetchAllDashboardData = async () => {
-      if (!token) {
-        setIsLoading(false);
-        setError("Authentication token is missing.");
-        return;
-      }
+  // Fetch dashboard stats
+  const { data: stats, isLoading: isLoadingStats, error: statsError } = useApi<DashboardStats>(
+    `/admin/dashboard/stats`,
+    {
+      enabled: !!token,
+      token: token || undefined,
+      onSuccess: () => {
+        log.info("Successfully fetched dashboard stats");
+      },
+      onError: () => {
+        log.error("Error fetching dashboard stats");
+      },
+    }
+  );
 
-      setIsLoading(true);
-      setError(null);
+  // Fetch registrations chart data
+  const { data: registrationsData, isLoading: isLoadingRegistrations, error: registrationsError } = useApi<{ data: ChartDataPoint[] }>(
+    `/admin/dashboard/registrations-chart?period_days=${period}`,
+    {
+      enabled: !!token,
+      token: token || undefined,
+      onSuccess: () => {
+        log.info(`Successfully fetched registrations chart for ${period} days`);
+      },
+      onError: () => {
+        log.error("Error fetching registrations chart");
+      },
+    }
+  );
 
-      try {
-        const [
-          statsResponse,
-          registrationsChartResponse,
-          meetingsChartResponse,
-        ] = await Promise.all([
-          fetch(`${BACKEND_API_BASE_URL}/admin/dashboard/stats`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          fetch(
-            `${BACKEND_API_BASE_URL}/admin/dashboard/registrations-chart?period_days=${period}`,
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            }
-          ),
-          fetch(
-            `${BACKEND_API_BASE_URL}/admin/dashboard/meetings-chart?period_days=${period}`,
-            { headers: { Authorization: `Bearer ${token}` } }
-          ),
-        ]);
+  // Fetch meetings chart data
+  const { data: meetingsData, isLoading: isLoadingMeetings, error: meetingsError } = useApi<{ data: ChartDataPoint[] }>(
+    `/admin/dashboard/meetings-chart?period_days=${period}`,
+    {
+      enabled: !!token,
+      token: token || undefined,
+      onSuccess: () => {
+        log.info(`Successfully fetched meetings chart for ${period} days`);
+      },
+      onError: () => {
+        log.error("Error fetching meetings chart");
+      },
+    }
+  );
 
-        if (!statsResponse.ok)
-          throw new Error(
-            `Statistics fetch failed: ${statsResponse.statusText}`
-          );
-        if (!registrationsChartResponse.ok)
-          throw new Error(
-            `Registrations chart fetch failed: ${registrationsChartResponse.statusText}`
-          );
-        if (!meetingsChartResponse.ok)
-          throw new Error(
-            `Meetings chart fetch failed: ${meetingsChartResponse.statusText}`
-          );
-
-        const statsData: DashboardStats = await statsResponse.json();
-        setStats(statsData);
-
-        const registrationsData: { data: ChartDataPoint[] } =
-          await registrationsChartResponse.json();
-        setRegistrationsChartData(registrationsData.data);
-
-        const meetingsData: { data: ChartDataPoint[] } =
-          await meetingsChartResponse.json();
-        setMeetingsChartData(meetingsData.data);
-      } catch (err) {
-        log.error("Error fetching dashboard data:", err);
-        setError(
-          err instanceof Error ? err.message : "An unknown error occurred."
-        );
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchAllDashboardData();
-  }, [token, period]);
+  const isLoading = isLoadingStats || isLoadingRegistrations || isLoadingMeetings;
+  const error = statsError || registrationsError || meetingsError;
+  const registrationsChartData = registrationsData?.data || [];
+  const meetingsChartData = meetingsData?.data || [];
 
   if (isLoading) {
     return (
@@ -118,7 +88,7 @@ export default function AdminDashboardPage() {
 
   if (error) {
     return (
-      <div className="text-destructive text-center p-4">Error: {error}</div>
+      <div className="text-destructive text-center p-4">Error: {error.message}</div>
     );
   }
 
