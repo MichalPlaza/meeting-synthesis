@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -27,8 +27,8 @@ import { toast } from "sonner";
 import { MultiSelect } from "@/components/ui/multi-select";
 import type { Project } from "@/types/project";
 import log from "@/services/logging";
-
-const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
+import { api } from "@/lib/api/client";
+import { useApi } from "@/hooks/useApi";
 
 const addProjectSchema = z.object({
   name: z.string().min(3, "Project name must be at least 3 characters long."),
@@ -50,40 +50,25 @@ export function AddProjectDialog({
   onProjectCreated,
 }: AddProjectDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [allUsers, setAllUsers] = useState<UserResponse[]>([]);
   const { user, token } = useAuth();
+
+  const { data: usersData, isLoading: isLoadingUsers } = useApi<UserResponse[]>(
+    "/users",
+    {
+      enabled: isOpen,
+      token: token || undefined,
+      onError: () => {
+        toast.error("Could not load user list.");
+      },
+    }
+  );
+
+  const allUsers = (usersData || []).filter((u) => u._id !== user?._id);
 
   const form = useForm<AddProjectValues>({
     resolver: zodResolver(addProjectSchema),
     defaultValues: { name: "", description: "", members_ids: [] },
   });
-
-  useEffect(() => {
-    if (!isOpen || !token) {
-      log.debug("AddProjectDialog: Not open or token missing, skipping user fetch.");
-      return;
-    }
-
-    const fetchUsers = async () => {
-      log.debug("AddProjectDialog: Fetching users for member selection.");
-      try {
-        const response = await fetch(`${BACKEND_API_BASE_URL}/users`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!response.ok) {
-          log.error("AddProjectDialog: Failed to fetch users. Status:", response.status);
-          throw new Error("Failed to fetch users.");
-        }
-        const usersData = await response.json();
-        setAllUsers(usersData.filter((u: UserResponse) => u._id !== user?._id));
-        log.info(`AddProjectDialog: Fetched ${usersData.length} users.`);
-      } catch (error) {
-        log.error("AddProjectDialog: Could not load user list:", error);
-        toast.error("Could not load user list.");
-      }
-    };
-    fetchUsers();
-  }, [isOpen, token, user?._id]);
 
   const handleClose = () => {
     log.debug("AddProjectDialog: Closing dialog and resetting form.");
@@ -115,22 +100,8 @@ export function AddProjectDialog({
     };
 
     try {
-      const response = await fetch(`${BACKEND_API_BASE_URL}/project`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(requestBody),
-      });
+      const newProject = await api.post<Project>("/project", requestBody, token);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        log.error("AddProjectDialog: Failed to create project. Status:", response.status, "Error:", errorData.detail || response.statusText);
-        throw new Error(errorData.detail || "Failed to create project.");
-      }
-
-      const newProject: Project = await response.json();
       log.info("AddProjectDialog: Project created successfully! ID:", newProject._id, "Name:", newProject.name);
       toast.success("Project created successfully!");
       onProjectCreated(newProject);
@@ -205,8 +176,8 @@ export function AddProjectDialog({
                       }))}
                       selected={field.value || []}
                       onSelectedChange={field.onChange}
-                      placeholder="Select members..."
-                      disabled={isSubmitting}
+                      placeholder={isLoadingUsers ? "Loading users..." : "Select members..."}
+                      disabled={isSubmitting || isLoadingUsers}
                     />
                   </FormControl>
                   <FormMessage />
