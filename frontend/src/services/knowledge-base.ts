@@ -3,6 +3,7 @@
  */
 
 import log from "./logging";
+import { api, getApiBaseUrl } from "@/lib/api/client";
 import type {
   Conversation,
   ChatMessage,
@@ -10,18 +11,7 @@ import type {
   ChatResponse,
 } from "@/types/knowledge-base";
 
-const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
-const KB_BASE = `${BACKEND_API_BASE_URL}/api/v1/knowledge-base`;
-
-/**
- * Helper to get auth headers
- */
-function getAuthHeaders(token: string): HeadersInit {
-  return {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${token}`,
-  };
-}
+const KB_BASE_PATH = "/api/v1/knowledge-base";
 
 /**
  * Conversation Management
@@ -29,15 +19,7 @@ function getAuthHeaders(token: string): HeadersInit {
 
 export async function getConversations(token: string): Promise<Conversation[]> {
   try {
-    const response = await fetch(`${KB_BASE}/conversations`, {
-      headers: getAuthHeaders(token),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch conversations: ${response.statusText}`);
-    }
-
-    return await response.json();
+    return await api.get<Conversation[]>(`${KB_BASE_PATH}/conversations`, token);
   } catch (error) {
     log.error("Failed to fetch conversations", error);
     throw error;
@@ -49,17 +31,7 @@ export async function createConversation(
   title?: string
 ): Promise<Conversation> {
   try {
-    const response = await fetch(`${KB_BASE}/conversations`, {
-      method: "POST",
-      headers: getAuthHeaders(token),
-      body: JSON.stringify({ title }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to create conversation: ${response.statusText}`);
-    }
-
-    return await response.json();
+    return await api.post<Conversation>(`${KB_BASE_PATH}/conversations`, { title }, token);
   } catch (error) {
     log.error("Failed to create conversation", error);
     throw error;
@@ -71,15 +43,7 @@ export async function getConversation(
   conversationId: string
 ): Promise<Conversation> {
   try {
-    const response = await fetch(`${KB_BASE}/conversations/${conversationId}`, {
-      headers: getAuthHeaders(token),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch conversation: ${response.statusText}`);
-    }
-
-    return await response.json();
+    return await api.get<Conversation>(`${KB_BASE_PATH}/conversations/${conversationId}`, token);
   } catch (error) {
     log.error(`Failed to fetch conversation ${conversationId}`, error);
     throw error;
@@ -91,14 +55,7 @@ export async function deleteConversation(
   conversationId: string
 ): Promise<void> {
   try {
-    const response = await fetch(`${KB_BASE}/conversations/${conversationId}`, {
-      method: "DELETE",
-      headers: getAuthHeaders(token),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to delete conversation: ${response.statusText}`);
-    }
+    await api.delete(`${KB_BASE_PATH}/conversations/${conversationId}`, token);
   } catch (error) {
     log.error(`Failed to delete conversation ${conversationId}`, error);
     throw error;
@@ -114,18 +71,10 @@ export async function getMessages(
   conversationId: string
 ): Promise<ChatMessage[]> {
   try {
-    const response = await fetch(
-      `${KB_BASE}/conversations/${conversationId}/messages`,
-      {
-        headers: getAuthHeaders(token),
-      }
+    return await api.get<ChatMessage[]>(
+      `${KB_BASE_PATH}/conversations/${conversationId}/messages`,
+      token
     );
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch messages: ${response.statusText}`);
-    }
-
-    return await response.json();
   } catch (error) {
     log.error(`Failed to fetch messages for ${conversationId}`, error);
     throw error;
@@ -141,17 +90,7 @@ export async function sendMessage(
   request: ChatRequest
 ): Promise<ChatResponse> {
   try {
-    const response = await fetch(`${KB_BASE}/chat`, {
-      method: "POST",
-      headers: getAuthHeaders(token),
-      body: JSON.stringify(request),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to send message: ${response.statusText}`);
-    }
-
-    return await response.json();
+    return await api.post<ChatResponse>(`${KB_BASE_PATH}/chat`, request, token);
   } catch (error) {
     log.error("Failed to send chat message", error);
     throw error;
@@ -169,10 +108,12 @@ export async function* sendMessageStream(
 ): AsyncGenerator<string, void, unknown> {
   try {
     // Use the same /chat endpoint with stream: true
-    const response = await fetch(`${KB_BASE}/chat`, {
+    // Note: Streaming requires native fetch, not our API client
+    const response = await fetch(`${getApiBaseUrl()}${KB_BASE_PATH}/chat`, {
       method: "POST",
       headers: {
-        ...getAuthHeaders(token),
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
         Accept: "text/event-stream",
       },
       body: JSON.stringify({ ...request, stream: true }),
@@ -246,16 +187,11 @@ export async function reindexMeeting(
   message: string;
 }> {
   try {
-    const response = await fetch(`${KB_BASE}/admin/reindex/${meetingId}`, {
-      method: "POST",
-      headers: getAuthHeaders(token),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to reindex meeting: ${response.statusText}`);
-    }
-
-    return await response.json();
+    return await api.post<{
+      success: boolean;
+      documents_indexed: number;
+      message: string;
+    }>(`${KB_BASE_PATH}/admin/reindex/${meetingId}`, {}, token);
   } catch (error) {
     log.error(`Failed to reindex meeting ${meetingId}`, error);
     throw error;
@@ -272,21 +208,16 @@ export async function bulkReindex(
   failed: number;
 }> {
   try {
-    const url = new URL(`${KB_BASE}/admin/reindex-all`);
-    if (projectId) {
-      url.searchParams.append("project_id", projectId);
-    }
+    const endpoint = projectId
+      ? `${KB_BASE_PATH}/admin/reindex-all?project_id=${projectId}`
+      : `${KB_BASE_PATH}/admin/reindex-all`;
 
-    const response = await fetch(url.toString(), {
-      method: "POST",
-      headers: getAuthHeaders(token),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to bulk reindex: ${response.statusText}`);
-    }
-
-    return await response.json();
+    return await api.post<{
+      success: boolean;
+      total_meetings: number;
+      successful: number;
+      failed: number;
+    }>(endpoint, {}, token);
   } catch (error) {
     log.error("Failed to bulk reindex", error);
     throw error;
@@ -300,15 +231,12 @@ export async function getIndexStats(token: string): Promise<{
   index_size_bytes?: number;
 }> {
   try {
-    const response = await fetch(`${KB_BASE}/admin/stats`, {
-      headers: getAuthHeaders(token),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch index stats: ${response.statusText}`);
-    }
-
-    return await response.json();
+    return await api.get<{
+      total_documents: number;
+      total_meetings: number;
+      by_content_type: Record<string, number>;
+      index_size_bytes?: number;
+    }>(`${KB_BASE_PATH}/admin/stats`, token);
   } catch (error) {
     log.error("Failed to fetch index stats", error);
     throw error;
