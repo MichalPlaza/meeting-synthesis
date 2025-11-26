@@ -583,7 +583,8 @@ export function KnowledgeBasePage() {
           </form>
         </div>
       </div>
-      {/* End of Main chat area */}
+    </div>
+    {/* End of Main chat area */}
     </div>
     {/* End of main container */}
   );
