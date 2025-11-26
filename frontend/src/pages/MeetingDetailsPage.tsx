@@ -46,6 +46,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import type { KeyTopic, ActionItem, DecisionMade } from "@/types/meeting";
+import { api, getApiBaseUrl } from "@/lib/api/client";
 
 // Client-side types with temporary IDs for React keys
 interface EditableKeyTopic extends KeyTopic {
@@ -61,8 +62,6 @@ interface EditableDecisionMade extends DecisionMade {
 }
 
 const generateTempId = () => crypto.randomUUID();
-
-const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
 
 const PLAYBACK_RATES = [1, 1.25, 1.5, 2, 0.5, 0.75];
 
@@ -82,7 +81,6 @@ const updateMeetingField = async (
     value: unknown
 ) => {
   try {
-
     const body: Record<string, unknown> = {};
     const parts = field.split(".");
     let current: Record<string, unknown> = body;
@@ -96,19 +94,12 @@ const updateMeetingField = async (
         current = nested;
       }
     }
-    const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
-    const res = await fetch(`${BACKEND_API_BASE_URL}/meetings/${meetingId}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(body),
-    });
 
-    if (!res.ok) throw new Error("Failed to update meeting.");
-
-    const updatedMeeting: Meeting = await res.json();
+    const updatedMeeting = await api.patch<Meeting>(
+      `/meetings/${meetingId}`,
+      body,
+      token || undefined
+    );
     return updatedMeeting;
   } catch (err) {
     log.error("Error updating meeting field:", err);
@@ -137,22 +128,13 @@ function useMeetingData(meetingId: string | undefined) {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(
-          `${BACKEND_API_BASE_URL}/meetings/${meetingId}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-            signal: abortController.signal
-          }
-        );
-        if (!response.ok) {
-          log.error(`Failed to fetch meeting ${meetingId}. Status: ${response.status}`);
-          throw new Error(`Failed to fetch meeting (Status: ${response.status})`);
+        const data = await api.get<Meeting>(`/meetings/${meetingId}`, token);
+        if (!abortController.signal.aborted) {
+          setMeeting(data);
+          log.info("Successfully fetched meeting data for ID:", meetingId);
         }
-        const data: Meeting = await response.json();
-        setMeeting(data);
-        log.info("Successfully fetched meeting data for ID:", meetingId);
       } catch (err) {
-        if (err instanceof Error && err.name === 'AbortError') {
+        if (abortController.signal.aborted) {
           log.debug("Meeting fetch aborted");
           return;
         }
@@ -180,14 +162,7 @@ function useMeetingData(meetingId: string | undefined) {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(
-        `${BACKEND_API_BASE_URL}/meetings/${meetingId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (!response.ok) {
-        throw new Error(`Failed to fetch meeting (Status: ${response.status})`);
-      }
-      const data: Meeting = await response.json();
+      const data = await api.get<Meeting>(`/meetings/${meetingId}`, token);
       setMeeting(data);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to connect to the server.";
@@ -239,11 +214,11 @@ function MeetingDetailsPage() {
     meeting?.processing_status.current_stage === "failed";
 
   const audioSrc = meeting?.audio_file.storage_path_or_url
-    ? `${BACKEND_API_BASE_URL}${meeting.audio_file.storage_path_or_url}`
+    ? `${getApiBaseUrl()}${meeting.audio_file.storage_path_or_url}`
     : "";
 
   const downloadUrl = meeting
-    ? `${BACKEND_API_BASE_URL}/meetings/${meeting._id}/download`
+    ? `${getApiBaseUrl()}/meetings/${meeting._id}/download`
     : "";
 
   useEffect(() => {
@@ -413,65 +388,49 @@ function MeetingDetailsPage() {
   };
 
   const fetchHistory = useCallback(async () => {
-  if (!token || !meetingId) return;
+    if (!token || !meetingId) return;
 
-  try {
-    const response = await fetch(
-      `${BACKEND_API_BASE_URL}/meeting_history/${meetingId}`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+    try {
+      const data = await api.get<MeetingHistory[]>(
+        `/meeting_history/${meetingId}`,
+        token
+      );
 
-    if (!response.ok) {
-      if (response.status === 404) {
+      const historyMap: Record<string, MeetingHistory> = {};
+      data.forEach((change) => {
+        historyMap[change.field] = change;
+      });
+
+      setLastEdits(historyMap);
+      log.info("Successfully fetched meeting history.");
+    } catch (err) {
+      // 404 means no history yet, which is fine
+      if (err instanceof Error && err.message.includes('404')) {
         setLastEdits({});
         return;
       }
-      log.warn(`Failed to fetch history. Status: ${response.status}`);
-      return;
+      const errorMessage = err instanceof Error ? err.message : "Unknown error";
+      log.error("Error fetching history:", errorMessage);
     }
-
-    const data: MeetingHistory[] = await response.json();
-
-    const historyMap: Record<string, MeetingHistory> = {};
-    data.forEach((change) => {
-      historyMap[change.field] = change;
-    });
-
-    setLastEdits(historyMap);
-
-    setLastEdits(historyMap);
-    log.info("Successfully fetched meeting history.");
-  } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : "Unknown error";
-    log.error("Error fetching history:", errorMessage);
-  }
-}, [meetingId, token]);
+  }, [meetingId, token]);
 
   useEffect(() => {
     fetchHistory();
   }, [fetchHistory]);
 
   const handleDeleteMeeting = async () => {
-  if (!meeting?._id) return;
+    if (!meeting?._id) return;
 
-  try {
-    const res = await fetch(`${BACKEND_API_BASE_URL}/meetings/${meeting._id}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    if (res.ok) {
+    try {
+      await api.delete(`/meetings/${meeting._id}`, token || undefined);
       toast.success("Meeting deleted successfully");
       navigate("/meetings");
-    } else {
-      toast.error("Failed to delete meeting");
+    } catch {
+      toast.error("Error deleting meeting");
+    } finally {
+      setShowDeleteDialog(false);
     }
-  } catch {
-    toast.error("Error deleting meeting");
-  } finally {
-    setShowDeleteDialog(false);
-  }
-};
+  };
 const handleSaveSummary = async () => {
   if (!meeting?._id) return;
 
