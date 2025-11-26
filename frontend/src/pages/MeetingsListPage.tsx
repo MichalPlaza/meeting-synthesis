@@ -12,8 +12,7 @@ import ErrorState from "@/components/common/ErrorState";
 import EmptyState from "@/components/common/EmptyState";
 import { AddMeetingDialog } from "@/components/features/meetings/AddMeetingDialog";
 import log from "../services/logging";
-
-const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
+import { api } from "@/lib/api/client";
 
 function MeetingsListPage() {
   log.info("MeetingsListPage rendered.");
@@ -45,41 +44,30 @@ function MeetingsListPage() {
     setError(null);
 
     try {
-      const projectsResponse = await fetch(
-        `${BACKEND_API_BASE_URL}/project/member/${user._id}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      if (!projectsResponse.ok) {
-        log.error(
-          "Failed to fetch member projects. Status:",
-          projectsResponse.status
+      // First fetch projects
+      let projectsData: Project[];
+      try {
+        projectsData = await api.get<Project[]>(
+          `/project/member/${user._id}`,
+          token
         );
+      } catch (e) {
         throw new Error("Failed to fetch member projects from the server.");
       }
-
-      const projectsData: Project[] = await projectsResponse.json();
       setProjects(projectsData);
 
+      // Then fetch meetings using project IDs
       const projectIds = projectsData.map((p) => p._id);
+      const meetingsEndpoint = projectIds.length > 0
+        ? `/meetings?${projectIds.map(id => `project_ids=${id}`).join('&')}`
+        : `/meetings`;
 
-      const meetingsUrl = new URL(`${BACKEND_API_BASE_URL}/meetings`);
-      projectIds.forEach((id) =>
-        meetingsUrl.searchParams.append("project_ids", id)
-      );
-
-      const meetingsResponse = await fetch(meetingsUrl.toString(), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (!meetingsResponse.ok) {
-        log.error("Failed to fetch meetings. Status:", meetingsResponse.status);
+      let meetingsData: Meeting[];
+      try {
+        meetingsData = await api.get<Meeting[]>(meetingsEndpoint, token);
+      } catch (e) {
         throw new Error("Failed to fetch meetings from the server.");
       }
-
-      const meetingsData: Meeting[] = await meetingsResponse.json();
       setMeetings(meetingsData);
 
       const uniqueTags = new Set(meetingsData.flatMap((m) => m.tags));
