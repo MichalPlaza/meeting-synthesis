@@ -1,12 +1,12 @@
-import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { CheckIcon, XIcon, UserIcon, RefreshCcw } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import ErrorState from "@/components/common/ErrorState";
 import EmptyState from "@/components/common/EmptyState";
 import log from "../services/logging";
-
-const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
+import { useApi } from "@/hooks/useApi";
+import { api } from "@/lib/api/client";
+import { toast } from "sonner";
 
 interface Developer {
   _id: string;
@@ -21,102 +21,64 @@ interface Developer {
 function ManageAccessPage() {
   log.info("ManageAccessPage rendered.");
   const { token, user } = useAuth();
-  const [developers, setDevelopers] = useState<Developer[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const fetchDevelopers = useCallback(async () => {
-    if (!token || !user?._id) {
-      log.warn("Cannot fetch developers: missing token or user ID.");
-      return;
+  const { data: developers, isLoading: loading, error, refetch: fetchDevelopers } = useApi<Developer[]>(
+    `/users/by-manager/${user?._id}`,
+    {
+      enabled: !!token && !!user?._id,
+      token: token || undefined,
+      onSuccess: (data) => {
+        log.info(`Fetched ${data.length} developers for manager ${user?._id}.`);
+      },
+      onError: () => {
+        log.error("Error fetching developers");
+      },
     }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      // ✅ poprawione na realny endpoint z backendu
-      const response = await fetch(
-        `${BACKEND_API_BASE_URL}/users/by-manager/${user._id}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch developers: ${response.status}`);
-      }
-
-      const data = await response.json();
-      setDevelopers(data);
-      log.info(`Fetched ${data.length} developers for manager ${user._id}.`);
-    } catch (e) {
-      const errorMessage = e instanceof Error ? e.message : "An unknown error occurred.";
-      setError(errorMessage);
-      log.error("Error fetching developers:", errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  }, [token, user?._id]);
-
-  useEffect(() => {
-    fetchDevelopers();
-  }, [fetchDevelopers]);
+  );
 
   const handleApprove = async (developerId: string) => {
     try {
-      // ✅ używamy endpointa z backendu do approve
-      const response = await fetch(
-        `${BACKEND_API_BASE_URL}/users/${developerId}/approve`,
-        {
-          method: "PATCH",
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      if (!response.ok) throw new Error("Failed to approve developer.");
+      await api.patch(`/users/${developerId}/approve`, {}, token || undefined);
       log.info(`Approved developer ${developerId}.`);
+      toast.success("Developer approved successfully");
       fetchDevelopers();
     } catch (e) {
       log.error("Error approving developer:", e instanceof Error ? e.message : "Unknown error");
+      toast.error("Failed to approve developer");
     }
   };
 
 
   const handleRevoke = async (developerId: string) => {
     try {
-      const response = await fetch(
-        `${BACKEND_API_BASE_URL}/users/${developerId}/revoke`,
-        {
-          method: "PATCH",
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      if (!response.ok) throw new Error("Failed to revoke access.");
+      await api.patch(`/users/${developerId}/revoke`, {}, token || undefined);
       log.info(`Revoked access for developer ${developerId}.`);
+      toast.success("Access revoked successfully");
       fetchDevelopers();
     } catch (e) {
       log.error("Error revoking developer:", e instanceof Error ? e.message : "Unknown error");
+      toast.error("Failed to revoke access");
     }
   };
 
   const handleToggleEdit = async (developerId: string, currentValue: boolean) => {
-  try {
-    const response = await fetch(
-      `${BACKEND_API_BASE_URL}/users/${developerId}/toggle-edit`,
-      {
-        method: "PATCH",
-        headers: { Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ can_edit: !currentValue }),
-      }
-    );
-    if (!response.ok) throw new Error("Failed to toggle edit access.");
-    log.info(`Toggled can_edit for developer ${developerId} to ${!currentValue}`);
-    fetchDevelopers();
-  } catch (e) {
-    log.error("Error toggling edit access:", e instanceof Error ? e.message : "Unknown error");
-  }
-};
+    try {
+      await api.patch(
+        `/users/${developerId}/toggle-edit`,
+        { can_edit: !currentValue },
+        token || undefined
+      );
+      log.info(`Toggled can_edit for developer ${developerId} to ${!currentValue}`);
+      toast.success(`Edit access ${!currentValue ? 'granted' : 'revoked'} successfully`);
+      fetchDevelopers();
+    } catch (e) {
+      log.error("Error toggling edit access:", e instanceof Error ? e.message : "Unknown error");
+      toast.error("Failed to toggle edit access");
+    }
+  };
 
   if (error) {
-    return <ErrorState message={error} onRetry={fetchDevelopers} />;
+    return <ErrorState message={error.message} onRetry={fetchDevelopers} />;
   }
 
   if (loading) {
@@ -136,7 +98,7 @@ function ManageAccessPage() {
         </Button>
       </div>
 
-      {developers.length === 0 ? (
+      {!developers || developers.length === 0 ? (
         <EmptyState
           icon={UserIcon}
           title="No developers assigned"
