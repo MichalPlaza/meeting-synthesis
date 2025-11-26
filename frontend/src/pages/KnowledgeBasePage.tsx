@@ -2,17 +2,21 @@ import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Loader2, Sparkles, Copy, Check, PlusCircle } from "lucide-react";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Send, Loader2, Sparkles, Copy, Check, PlusCircle, Menu } from "lucide-react";
 import { toast } from "sonner";
 import log from "@/services/logging";
 import {
   sendMessageStream,
   createConversation,
   getMessages,
+  getConversations,
+  deleteConversation,
 } from "@/services/knowledge-base";
-import type { ChatMessage } from "@/types/knowledge-base";
+import type { ChatMessage, Conversation } from "@/types/knowledge-base";
 import { cn } from "@/lib/utils";
 import { SourceList } from "@/components/features/knowledge-base/SourceList";
+import { ConversationList } from "@/components/features/knowledge-base/ConversationList";
 import ReactMarkdown from 'react-markdown';
 
 export function KnowledgeBasePage() {
@@ -20,16 +24,41 @@ export function KnowledgeBasePage() {
 
   const { token, user } = useAuth();
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [loadingConversations, setLoadingConversations] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Fetch conversations on mount
+  useEffect(() => {
+    if (!token) return;
+
+    const fetchConversationsList = async () => {
+      setLoadingConversations(true);
+      try {
+        log.debug("Fetching conversations list");
+        const convs = await getConversations(token);
+        setConversations(convs);
+        log.info(`Loaded ${convs.length} conversations`);
+      } catch (error) {
+        log.error("Failed to load conversations", error);
+        toast.error("Failed to load conversations");
+      } finally {
+        setLoadingConversations(false);
+      }
+    };
+
+    fetchConversationsList();
+  }, [token]);
 
   // Load messages when conversation ID changes
   useEffect(() => {
@@ -64,7 +93,34 @@ export function KnowledgeBasePage() {
     setConversationId(null);
     setMessages([]);
     setInput("");
+    setIsSidebarOpen(false);
     log.info("Started new conversation");
+  };
+
+  const handleSelectConversation = (id: string) => {
+    setConversationId(id);
+    setIsSidebarOpen(false);
+    log.info(`Selected conversation: ${id}`);
+  };
+
+  const handleDeleteConversation = async (id: string) => {
+    if (!token) return;
+
+    try {
+      await deleteConversation(token, id);
+      setConversations((prev) => prev.filter((c) => c.id !== id));
+
+      // If deleting current conversation, start new one
+      if (id === conversationId) {
+        handleNewConversation();
+      }
+
+      toast.success("Conversation deleted");
+      log.info(`Deleted conversation: ${id}`);
+    } catch (error) {
+      log.error("Failed to delete conversation", error);
+      toast.error("Failed to delete conversation");
+    }
   };
 
   async function handleSendMessage() {
@@ -84,6 +140,9 @@ export function KnowledgeBasePage() {
         const newConversation = await createConversation(token, title);
         currentConversationId = newConversation.id;
         setConversationId(currentConversationId);
+
+        // Add to conversations list
+        setConversations((prev) => [newConversation, ...prev]);
         log.info(`Created conversation: ${currentConversationId}`);
       }
 
@@ -165,23 +224,60 @@ export function KnowledgeBasePage() {
   }
 
   return (
-    <div className="flex flex-col h-full max-h-full overflow-hidden bg-background">
-      {/* Header with New Conversation button */}
-      <div className="flex items-center gap-4 px-4 py-3 border-b">
-        <h1 className="text-2xl font-semibold">Knowledge Base</h1>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleNewConversation}
-          className="ml-auto"
-        >
-          <PlusCircle className="h-4 w-4 mr-2" />
-          New Chat
-        </Button>
-      </div>
+    <div className="flex h-full max-h-full overflow-hidden bg-background">
+      {/* Mobile: Sheet overlay for sidebar */}
+      <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
+        <SheetContent side="left" className="w-80 p-0">
+          <ConversationList
+            conversations={conversations}
+            currentConversationId={conversationId}
+            isLoading={loadingConversations}
+            onSelectConversation={handleSelectConversation}
+            onNewConversation={handleNewConversation}
+            onDeleteConversation={handleDeleteConversation}
+          />
+        </SheetContent>
+      </Sheet>
 
-      {/* Messages Area - Scrollable, takes remaining space */}
-      <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
+      {/* Desktop: Fixed sidebar */}
+      <aside className="hidden md:flex w-80 border-r flex-col">
+        <ConversationList
+          conversations={conversations}
+          currentConversationId={conversationId}
+          isLoading={loadingConversations}
+          onSelectConversation={handleSelectConversation}
+          onNewConversation={handleNewConversation}
+          onDeleteConversation={handleDeleteConversation}
+        />
+      </aside>
+
+      {/* Main chat area */}
+      <div className="flex flex-col flex-1 min-w-0">
+        {/* Header with mobile menu and New Conversation button */}
+        <div className="flex items-center gap-4 px-4 py-3 border-b">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden"
+            onClick={() => setIsSidebarOpen(true)}
+          >
+            <Menu className="h-5 w-5" />
+            <span className="sr-only">Open sidebar</span>
+          </Button>
+          <h1 className="text-2xl font-semibold">Knowledge Base</h1>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleNewConversation}
+            className="ml-auto"
+          >
+            <PlusCircle className="h-4 w-4 mr-2" />
+            New Chat
+          </Button>
+        </div>
+
+        {/* Messages Area - Scrollable, takes remaining space */}
+        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
         {messages.length === 0 ? (
           <div className="flex items-center justify-center min-h-full px-4">
             <div className="max-w-2xl w-full text-center space-y-8 py-12">
