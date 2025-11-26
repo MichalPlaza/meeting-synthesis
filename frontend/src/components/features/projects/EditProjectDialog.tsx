@@ -26,8 +26,8 @@ import type { UserResponse } from "@/types/user";
 import { toast } from "sonner";
 import { MultiSelect } from "@/components/ui/multi-select";
 import type { Project } from "@/types/project";
-
-const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
+import { api } from "@/lib/api/client";
+import { useApi } from "@/hooks/useApi";
 
 const editProjectSchema = z.object({
   name: z.string().min(3, "Project name must be at least 3 characters long."),
@@ -51,28 +51,18 @@ export function EditProjectDialog({
   onProjectUpdated,
 }: EditProjectDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [allUsers, setAllUsers] = useState<UserResponse[]>([]);
   const { user, token } = useAuth();
 
-  // Fetch all users for member selection
-  useEffect(() => {
-    if (!isOpen || !token) return;
-
-    async function fetchUsers() {
-      try {
-        const response = await fetch(`${BACKEND_API_BASE_URL}/users`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!response.ok) throw new Error('Failed to fetch users');
-        const data = await response.json();
-        setAllUsers(data);
-      } catch (error) {
-        console.error('Error fetching users:', error);
-        toast.error('Failed to load users list.');
-      }
+  const { data: allUsers, isLoading: isLoadingUsers } = useApi<UserResponse[]>(
+    "/users",
+    {
+      enabled: isOpen,
+      token: token || undefined,
+      onError: () => {
+        toast.error("Failed to load users list.");
+      },
     }
-    fetchUsers();
-  }, [isOpen, token]);
+  );
 
   const form = useForm<EditProjectValues>({
     resolver: zodResolver(editProjectSchema),
@@ -106,22 +96,12 @@ export function EditProjectDialog({
     if (!memberIds.includes(user._id)) memberIds.unshift(user._id);
 
     try {
-      const response = await fetch(`${BACKEND_API_BASE_URL}/project/${project._id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          name: data.name,
-          description: data.description,
-          members_ids: memberIds,
-        }),
-      });
+      const updatedProject = await api.put<Project>(`/project/${project._id}`, {
+        name: data.name,
+        description: data.description,
+        members_ids: memberIds,
+      }, token);
 
-      if (!response.ok) throw new Error("Failed to update project.");
-
-      const updatedProject: Project = await response.json();
       toast.success("Project updated successfully!");
       onProjectUpdated(updatedProject);
       handleClose();
@@ -175,9 +155,11 @@ export function EditProjectDialog({
                   <FormLabel>Members</FormLabel>
                   <FormControl>
                     <MultiSelect
-                      options={allUsers.map((u) => ({ value: u._id, label: u.full_name || u.username }))}
+                      options={(allUsers || []).map((u) => ({ value: u._id, label: u.full_name || u.username }))}
                       selected={field.value || []}
                       onSelectedChange={field.onChange}
+                      placeholder={isLoadingUsers ? "Loading users..." : "Select members..."}
+                      disabled={isSubmitting || isLoadingUsers}
                     />
                   </FormControl>
                   <FormMessage />
