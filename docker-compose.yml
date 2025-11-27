@@ -24,6 +24,7 @@ services:
     environment:
       - PYTHON_ENV=${PYTHON_ENV}
       - MONGO_DETAILS=mongodb://mongo:27017/meeting_synthesis_db
+      # - MONGO_DETAILS=mongodb://host.docker.internal:27017/meeting_synthesis_db
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - OLLAMA_HOST=http://ollama:11434
@@ -65,12 +66,14 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    command: celery -A app.worker.celery_app worker --loglevel=info
+    command: celery -A app.worker.celery_app worker --loglevel=info --concurrency=1
     volumes:
       - ./backend/uploads:/app/uploads
       - ./backend/logs:/app/logs
     environment:
       - MONGO_DETAILS=mongodb://mongo:27017/meeting_synthesis_db
+      # - MONGO_DETAILS=mongodb://host.docker.internal:27017/meeting_synthesis_db
+      - HUGGINGFACE_TOKEN=${HUGGINGFACE_TOKEN}
     restart: unless-stopped
     networks:
       - app-network
@@ -83,6 +86,7 @@ services:
     environment:
       - PYTHON_ENV=${PYTHON_ENV}
       - MONGO_DETAILS=mongodb://mongo:27017/meeting_synthesis_db
+      # - MONGO_DETAILS=mongodb://host.docker.internal:27017/meeting_synthesis_db
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
     volumes:
