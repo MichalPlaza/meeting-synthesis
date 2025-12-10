@@ -32,6 +32,7 @@ command -v poetry >/dev/null 2>&1 || { echo -e "${RED}❌ Poetry not found${NC}"
 command -v node >/dev/null 2>&1 || { echo -e "${RED}❌ Node.js not found${NC}"; exit 1; }
 command -v pnpm >/dev/null 2>&1 || { echo -e "${RED}❌ pnpm not found${NC}"; exit 1; }
 command -v docker >/dev/null 2>&1 || { echo -e "${RED}❌ Docker not found${NC}"; exit 1; }
+command -v ollama >/dev/null 2>&1 || { echo -e "${RED}❌ Ollama not found. Install with: brew install ollama${NC}"; exit 1; }
 echo -e "${GREEN}✅ All prerequisites installed${NC}"
 echo ""
 
@@ -42,11 +43,30 @@ sleep 2
 echo -e "${GREEN}✅ Redis ready${NC}"
 echo ""
 
-# Start Docker services
-echo -e "${BLUE}🐳 Starting Docker services (MongoDB, Elasticsearch, Ollama)...${NC}"
-docker-compose up -d mongo elasticsearch ollama
+# Start Docker services (MongoDB, Elasticsearch only - Ollama runs natively for GPU support)
+echo -e "${BLUE}🐳 Starting Docker services (MongoDB, Elasticsearch)...${NC}"
+docker-compose up -d mongo elasticsearch
 sleep 5
 echo -e "${GREEN}✅ Docker services ready${NC}"
+echo ""
+
+# Start Ollama natively (for Metal/GPU acceleration on Mac)
+echo -e "${BLUE}🦙 Starting Ollama (native for GPU support)...${NC}"
+if ! pgrep -x "ollama" > /dev/null; then
+    ollama serve > logs/ollama.log 2>&1 &
+    sleep 3
+    echo -e "${GREEN}  ✓ Ollama started${NC}"
+else
+    echo -e "${YELLOW}  ⚠️  Ollama already running${NC}"
+fi
+
+# Ensure model is available
+OLLAMA_MODEL="${OLLAMA_MODEL:-gemma2:2b}"
+if ! ollama list | grep -q "$OLLAMA_MODEL"; then
+    echo -e "${YELLOW}  → Pulling $OLLAMA_MODEL model (this may take a few minutes)...${NC}"
+    ollama pull "$OLLAMA_MODEL"
+fi
+echo -e "${GREEN}✅ Ollama ready with $OLLAMA_MODEL${NC}"
 echo ""
 
 # Install backend dependencies
