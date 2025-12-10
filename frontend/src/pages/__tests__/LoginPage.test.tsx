@@ -3,7 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import LoginPage from "@/pages/LoginPage";
-import { AuthProvider } from "@/AuthContext";
+import { AuthProvider } from "@/contexts/AuthContext";
 import { server } from "@/test/mocks/server";
 import { http, HttpResponse } from "msw";
 import { mockDeveloper } from "@/test/mocks/fixtures";

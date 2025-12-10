@@ -1,58 +1,33 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getProjectColumns } from "@/components/admin/project-columns";
 import { DataTable } from "@/components/admin/data-table";
 import { AddProjectDialogAdmin } from "@/components/admin/AddProjectDialogAdmin";
 import type { ProjectResponse, ProjectUpdate } from "@/types/project";
-import { useAuth } from "@/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import log from "@/services/logging";
-
-const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
+import { useApi } from "@/hooks/useApi";
+import { api } from "@/lib/api/client";
+import { toast } from "sonner";
 
 export default function ProjectManagementPage() {
-  const [projects, setProjects] = useState<ProjectResponse[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const { token } = useAuth();
 
-  const fetchProjects = async () => {
-    if (!token) {
-      setIsLoading(false);
-      return;
+  const { data: projects, isLoading, error, refetch: fetchProjects } = useApi<ProjectResponse[]>(
+    `/project/populated`,
+    {
+      enabled: !!token,
+      token: token || undefined,
+      onSuccess: (data) => {
+        log.info(`Fetched ${data.length} projects`);
+      },
+      onError: (error) => {
+        log.error("Error fetching projects:", error.message);
+      },
     }
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const response = await fetch(
-        `${BACKEND_API_BASE_URL}/project/populated`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch projects. Status: ${response.status}`);
-      }
-
-      const data: ProjectResponse[] = await response.json();
-      setProjects(data);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "An unknown error occurred.";
-      setError(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchProjects();
-  }, [token]);
+  );
 
   const handleUpdateProject = async (
     projectId: string,
@@ -60,59 +35,26 @@ export default function ProjectManagementPage() {
   ) => {
     log.debug(`Updating project ${projectId} with data:`, data);
     try {
-      const response = await fetch(
-        `${BACKEND_API_BASE_URL}/project/${projectId}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(data),
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          `Failed to update project: ${errorData.detail || response.statusText}`
-        );
-      }
-
+      await api.put(`/project/${projectId}`, data, token || undefined);
       log.info("Project updated successfully on server.");
-
+      toast.success("Project updated successfully");
       await fetchProjects();
     } catch (error) {
       log.error("Error updating project:", error);
+      toast.error("Failed to update project");
     }
   };
 
   const handleDeleteProject = async (projectId: string) => {
     log.debug(`Deleting project ${projectId}`);
     try {
-      const response = await fetch(
-        `${BACKEND_API_BASE_URL}/project/${projectId}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          `Failed to delete project: ${errorData.detail || response.statusText}`
-        );
-      }
-
+      await api.delete(`/project/${projectId}`, token || undefined);
       log.info("Project deleted successfully on server.");
-      setProjects((prevProjects) =>
-        prevProjects.filter((project) => project._id !== projectId)
-      );
+      toast.success("Project deleted successfully");
+      await fetchProjects();
     } catch (error) {
       log.error("Error deleting project:", error);
+      toast.error("Failed to delete project");
     }
   };
 
@@ -132,7 +74,7 @@ export default function ProjectManagementPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Projects</h1>
           <p className="text-muted-foreground">
-            Manage all projects in the system. Total: {projects.length}{" "}
+            Manage all projects in the system. Total: {projects?.length || 0}{" "}
             projects.
           </p>
         </div>
@@ -144,7 +86,7 @@ export default function ProjectManagementPage() {
 
       <DataTable
         columns={columns}
-        data={projects}
+        data={projects || []}
         filterColumnId="name"
         filterPlaceholder="Filter by name..."
         centeredColumns={["members", "created_at", "updated_at"]}

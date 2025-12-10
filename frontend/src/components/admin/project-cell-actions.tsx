@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { MoreHorizontal, X, ChevronsUpDown, Check } from "lucide-react";
 import { type Row } from "@tanstack/react-table";
 import log from "@/services/logging";
+import { api } from "@/lib/api/client";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -44,8 +45,6 @@ import type {
 } from "@/types/project";
 import type { UserResponse } from "@/types/user";
 
-const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
-
 interface CellActionsProps {
   row: Row<ProjectResponse>;
   onUpdate: (projectId: string, data: ProjectUpdate) => Promise<void>;
@@ -76,10 +75,9 @@ export function CellActions({ row, onUpdate, onDelete }: CellActionsProps) {
     const fetchUsers = async () => {
       setIsSearching(true);
       try {
-        const response = await fetch(
-          `${BACKEND_API_BASE_URL}/users?search=${searchQuery}`
+        const data = await api.get<UserResponse[]>(
+          `/users?search=${searchQuery}`
         );
-        const data: UserResponse[] = await response.json();
 
         const currentMemberIds = new Set(members.map((m) => m._id));
         setSearchResults(

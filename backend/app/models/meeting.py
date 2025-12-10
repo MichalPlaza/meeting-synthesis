@@ -35,3 +35,4 @@ class Meeting(BaseModel):
     
     duration_seconds: int | None = None
     tags: list[str] = []
+    speaker_mappings: dict[str, str] = {}  # Maps SPEAKER_00 -> "John Doe"

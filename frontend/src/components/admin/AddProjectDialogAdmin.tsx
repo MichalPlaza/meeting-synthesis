@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -22,15 +22,15 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { SimpleSelect } from "@/components/ui/simple-select";
-import { useAuth } from "@/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import type { UserResponse } from "@/types/user";
 import { toast } from "sonner";
 import { MultiSelect } from "@/components/ui/multi-select";
 import type { Project } from "@/types/project";
 import log from "@/services/logging";
-import { SingleSelect } from "../ui/SingleSelect";
-
-const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
+import { api } from "@/lib/api/client";
+import { useApi } from "@/hooks/useApi";
+import { useManagers } from "@/hooks/useManagers";
 
 const addProjectAdminSchema = z.object({
   name: z.string().min(3, "Project name must be at least 3 characters long."),
@@ -53,9 +53,20 @@ export function AddProjectDialogAdmin({
   onProjectCreated,
 }: AddProjectDialogAdminProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [allUsers, setAllUsers] = useState<UserResponse[]>([]);
-  const [projectManagers, setProjectManagers] = useState<UserResponse[]>([]);
   const { token } = useAuth();
+
+  const { data: allUsers, isLoading: isLoadingUsers } = useApi<UserResponse[]>(
+    "/users",
+    {
+      enabled: isOpen,
+      token: token || undefined,
+      onError: () => {
+        toast.error("Could not load users list.");
+      },
+    }
+  );
+
+  const { managers: projectManagers, isLoading: isLoadingManagers } = useManagers(isOpen);
 
   const form = useForm<AddProjectAdminValues>({
     resolver: zodResolver(addProjectAdminSchema),
@@ -68,59 +79,6 @@ export function AddProjectDialogAdmin({
   });
 
   const selectedOwnerId = form.watch("owner_id");
-
-  useEffect(() => {
-    if (!isOpen || !token) {
-      log.debug(
-        "AddProjectDialogAdmin: Not open or token missing, skipping fetch."
-      );
-      return;
-    }
-
-    const fetchData = async () => {
-      log.debug("AddProjectDialogAdmin: Fetching users and managers.");
-      try {
-        // Fetch all users
-        const usersResponse = await fetch(`${BACKEND_API_BASE_URL}/users`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!usersResponse.ok) {
-          log.error(
-            "AddProjectDialogAdmin: Failed to fetch users. Status:",
-            usersResponse.status
-          );
-          throw new Error("Failed to fetch users.");
-        }
-        const usersData = await usersResponse.json();
-        setAllUsers(usersData);
-
-        // Fetch project managers
-        const managersResponse = await fetch(
-          `${BACKEND_API_BASE_URL}/users/managers`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        if (!managersResponse.ok) {
-          log.error(
-            "AddProjectDialogAdmin: Failed to fetch managers. Status:",
-            managersResponse.status
-          );
-          throw new Error("Failed to fetch project managers.");
-        }
-        const managersData = await managersResponse.json();
-        setProjectManagers(managersData);
-
-        log.info(
-          `AddProjectDialogAdmin: Fetched ${usersData.length} users and ${managersData.length} managers.`
-        );
-      } catch (error) {
-        log.error("AddProjectDialogAdmin: Could not load data:", error);
-        toast.error("Could not load users list.");
-      }
-    };
-    fetchData();
-  }, [isOpen, token]);
 
   const handleClose = () => {
     log.debug("AddProjectDialogAdmin: Closing dialog and resetting form.");
@@ -156,27 +114,8 @@ export function AddProjectDialogAdmin({
     };
 
     try {
-      const response = await fetch(`${BACKEND_API_BASE_URL}/project`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(requestBody),
-      });
+      const newProject = await api.post<Project>("/project", requestBody, token);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        log.error(
-          "AddProjectDialogAdmin: Failed to create project. Status:",
-          response.status,
-          "Error:",
-          errorData.detail || response.statusText
-        );
-        throw new Error(errorData.detail || "Failed to create project.");
-      }
-
-      const newProject: Project = await response.json();
       log.info(
         "AddProjectDialogAdmin: Project created successfully! ID:",
         newProject._id,
@@ -200,7 +139,7 @@ export function AddProjectDialogAdmin({
   };
 
   // Available members are all users except the selected owner (they'll be added automatically)
-  const availableMembers = allUsers.filter((u) => u._id !== selectedOwnerId);
+  const availableMembers = (allUsers || []).filter((u) => u._id !== selectedOwnerId);
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -256,17 +195,17 @@ export function AddProjectDialogAdmin({
                 <FormItem>
                   <FormLabel>Project Manager</FormLabel>
                   <FormControl>
-                    <SingleSelect
+                    <SimpleSelect
                       options={projectManagers.map((manager) => ({
                         value: manager._id,
                         label: `${manager.full_name || manager.username} (${
                           manager.email
                         })`,
                       }))}
-                      value={field.value}
+                      value={field.value || ""}
                       onValueChange={field.onChange}
-                      placeholder="Select project manager..."
-                      disabled={isSubmitting}
+                      placeholder={isLoadingManagers ? "Loading managers..." : "Select project manager..."}
+                      disabled={isSubmitting || isLoadingManagers}
                     />
                   </FormControl>
                   <FormMessage />
@@ -287,8 +226,8 @@ export function AddProjectDialogAdmin({
                       }))}
                       selected={field.value || []}
                       onSelectedChange={field.onChange}
-                      placeholder="Select team members..."
-                      disabled={isSubmitting}
+                      placeholder={isLoadingUsers ? "Loading users..." : "Select team members..."}
+                      disabled={isSubmitting || isLoadingUsers}
                     />
                   </FormControl>
                   <FormMessage />

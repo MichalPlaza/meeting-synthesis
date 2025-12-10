@@ -1,4 +1,4 @@
-import { useAuth } from "@/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -15,20 +15,28 @@ import { useForm } from "react-hook-form";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
 import z from "zod";
+import { api } from "@/lib/api/client";
+import { commonSchemas } from "@/lib/form-utils";
 import log from "../services/logging";
 
-const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
-
 const loginFormSchema = z.object({
-  username_or_email: z
-    .string()
-    .min(1, { message: "Email is required." })
-    .email({ message: "Invalid email." }),
+  username_or_email: commonSchemas.email,
   password: z.string().min(1, { message: "Password is required." }),
   remember_me: z.boolean().default(false).optional(),
 });
 
 type LoginFormValues = z.infer<typeof loginFormSchema>;
+
+interface LoginResponse {
+  access_token: string;
+  refresh_token: string;
+}
+
+interface UserResponse {
+  username: string;
+  full_name?: string;
+  [key: string]: any;
+}
 
 function LoginPage() {
   const { login } = useAuth();
@@ -47,66 +55,29 @@ function LoginPage() {
 
   async function onSubmit(values: LoginFormValues) {
     log.info("Login attempt for user:", values.username_or_email);
-    const loginApiUrl = `${BACKEND_API_BASE_URL}/auth/login`;
-    const userApiUrl = `${BACKEND_API_BASE_URL}/users/me`;
 
     try {
-      const response = await fetch(loginApiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
-      });
+      // Get authentication tokens
+      const tokenData = await api.post<LoginResponse>("/auth/login", values);
+      const { access_token, refresh_token } = tokenData;
+      log.debug("Successfully obtained tokens for user:", values.username_or_email);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        log.warn(
-          "Login failed for user:",
-          values.username_or_email,
-          "Error:",
-          errorData.detail || response.statusText
-        );
-        toast.error(
-          errorData.detail || "Login failed. Please check your credentials."
-        );
-        return;
-      }
+      // Fetch user info with the access token
+      const userData = await api.get<UserResponse>("/users/me", access_token);
 
-      const tokenData = await response.json();
-      const accessToken = tokenData.access_token;
-      const refreshToken = tokenData.refresh_token;
-      log.debug(
-        "Successfully obtained tokens for user:",
-        values.username_or_email
-      );
-
-      const userResponse = await fetch(userApiUrl, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-
-      if (!userResponse.ok) {
-        log.error(
-          "Login successful, but could not fetch user info for:",
-          values.username_or_email,
-          "Status:",
-          userResponse.status
-        );
-        toast.error("Login successful, but could not fetch user info.");
-        return;
-      }
-
-      const userData = await userResponse.json();
-      login(accessToken, userData, refreshToken);
+      // Login user and redirect
+      login(access_token, userData, refresh_token);
       navigate("/");
-      log.info(
-        "User logged in and redirected to dashboard:",
-        userData.username
-      );
-      toast.success(
-        `Welcome back, ${userData.full_name || userData.username}!`
-      );
+      log.info("User logged in and redirected to dashboard:", userData.username);
+      toast.success(`Welcome back, ${userData.full_name || userData.username}!`);
     } catch (error) {
-      log.error("Error sending login request:", error);
-      toast.error("An error occurred while connecting to the server.");
+      log.error("Error during login:", error);
+      // Show user-friendly message for network errors
+      const isNetworkError = error instanceof Error && error.message === "Failed to fetch";
+      const errorMessage = isNetworkError
+        ? "An error occurred while connecting to the server."
+        : error instanceof Error ? error.message : "An error occurred while connecting to the server.";
+      toast.error(errorMessage);
     }
   }
 
@@ -174,7 +145,7 @@ function LoginPage() {
                 type="submit"
                 className="w-full !mt-8"
                 size="lg"
-                disabled={isSubmitting}
+                loading={isSubmitting}
               >
                 {isSubmitting ? "Logging in..." : "Log in"}
               </Button>

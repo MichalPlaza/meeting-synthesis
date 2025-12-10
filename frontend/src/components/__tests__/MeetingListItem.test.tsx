@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterEach, afterAll } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import MeetingListItem from "@/components/MeetingListItem";
+import MeetingListItem from "@/components/features/meetings/MeetingListItem";
 import type { Meeting } from "@/types/meeting";
 import type { Project } from "@/types/project";
 import { server } from "@/test/mocks/server";

@@ -1,0 +1,143 @@
+import React, { createContext, useContext, useEffect, useRef, useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
+import { LiveRegion } from "@/components/common/LiveRegion";
+import log from "@/services/logging";
+
+const NOTIFICATION_SERVICE_URL = import.meta.env.VITE_WEBSOCKET_URL || "ws://localhost:8001";
+
+interface WebSocketContextType {
+  // Na razie kontekst nie musi niczego eksponować na zewnątrz,
+  // cała magia dzieje się w środku.
+}
+
+const WebSocketContext = createContext<WebSocketContextType | undefined>(
+  undefined
+);
+
+export const useWebSocket = () => {
+  const context = useContext(WebSocketContext);
+  if (context === undefined) {
+    log.error("useWebSocket must be used within a WebSocketProvider");
+    throw new Error("useWebSocket must be used within a WebSocketProvider");
+  }
+  return context;
+};
+
+export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const { isAuthenticated, user } = useAuth();
+  const socketRef = useRef<WebSocket | null>(null);
+  const navigate = useNavigate();
+  const [liveMessage, setLiveMessage] = useState("");
+
+  useEffect(() => {
+    if (isAuthenticated && user?._id) {
+      log.info(
+        "Attempting to establish WebSocket connection for user:",
+        user._id
+      );
+      const wsUrl = `${NOTIFICATION_SERVICE_URL}/ws/${user._id}`;
+      const socket = new WebSocket(wsUrl);
+      socketRef.current = socket;
+
+      socket.onopen = () => {
+        log.info("WebSocket connected to:", wsUrl);
+        setLiveMessage("Real-time notifications connected");
+      };
+
+      socket.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          log.debug("WebSocket message received:", message);
+
+          if (message.event_type === "meeting.processed") {
+            const isSuccess = message.status === "completed";
+            const toastMessage = `Meeting "${message.title}" has ${
+              isSuccess ? "finished processing" : "failed"
+            }!`;
+
+            // Visual notification (toast)
+            toast[isSuccess ? "success" : "error"](toastMessage, {
+              description: "Click to view the details.",
+              duration: 10000,
+              action: {
+                label: "View",
+                onClick: () => {
+                  log.debug(
+                    "Navigating to meeting details for ID:",
+                    message.meeting_id
+                  );
+                  navigate(`/meetings/${message.meeting_id}`);
+                },
+              },
+            });
+
+            // Screen reader announcement
+            setLiveMessage(
+              `${toastMessage} Click view button to see details.`
+            );
+
+            log.info(
+              "Meeting processed notification displayed for meeting ID:",
+              message.meeting_id,
+              "Status:",
+              message.status
+            );
+
+            // Emit custom event to refresh meeting list
+            const refreshEvent = new CustomEvent("meeting-processed", {
+              detail: { meetingId: message.meeting_id, status: message.status },
+            });
+            window.dispatchEvent(refreshEvent);
+            log.debug(
+              "Dispatched meeting-processed event for meeting ID:",
+              message.meeting_id
+            );
+          }
+        } catch (error) {
+          log.error(
+            "Error parsing WebSocket message:",
+            error,
+            "Raw data:",
+            event.data
+          );
+        }
+      };
+
+      socket.onclose = () => {
+        log.info("WebSocket disconnected.");
+        setLiveMessage("Real-time notifications disconnected");
+      };
+
+      socket.onerror = (error) => {
+        log.error("WebSocket error:", error);
+      };
+
+      // Sprzątanie po odmontowaniu komponentu
+      return () => {
+        if (socket.readyState === 1) {
+          // 1 == OPEN
+          log.info("Closing WebSocket connection.");
+          socket.close();
+        }
+      };
+    } else {
+      // Jeśli użytkownik się wyloguje, upewniamy się, że połączenie jest zamknięte
+      if (socketRef.current) {
+        log.info("User logged out, closing WebSocket connection.");
+        socketRef.current.close();
+        socketRef.current = null;
+      }
+    }
+  }, [isAuthenticated, user, navigate]);
+
+  return (
+    <WebSocketContext.Provider value={{}}>
+      {children}
+      <LiveRegion message={liveMessage} politeness="polite" />
+    </WebSocketContext.Provider>
+  );
+};

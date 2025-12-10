@@ -1,16 +1,18 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import MeetingListItem from "@/components/MeetingListItem";
+import MeetingListItem from "@/components/features/meetings/MeetingListItem";
 import type { Project } from "@/types/project";
 import type { Meeting } from "@/types/meeting";
-import { useAuth } from "@/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Mic, PlusIcon, FolderOpen } from "lucide-react";
-import EmptyState from "@/components/EmptyState";
-import ErrorState from "@/components/ErrorState";
+import EmptyState from "@/components/common/EmptyState";
+import ErrorState from "@/components/common/ErrorState";
 import log from "../services/logging";
-import {EditProjectDialog} from "@/components/EditProjectDialog.tsx";
-const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
+import {EditProjectDialog} from "@/components/features/projects/EditProjectDialog";
+import { useApi } from "@/hooks/useApi";
+import { api } from "@/lib/api/client";
+import { toast } from "sonner";
 
 function ProjectDetailsPage() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -18,73 +20,44 @@ function ProjectDetailsPage() {
   const navigate = useNavigate();
   const { user, token, logout } = useAuth();
 
-  const [project, setProject] = useState<Project | null>(null);
-  const [meetings, setMeetings] = useState<Meeting[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
-  const fetchProjectData = useCallback(async () => {
-    log.debug("Fetching project data for ID:", projectId);
-    if (!token || !projectId) {
-      log.warn("Authentication token or Project ID is missing for fetchProjectData.");
-      setError("Authentication token or Project ID is missing.");
-      setLoading(false);
-      return;
+  // Fetch project details
+  const { data: project, isLoading: isLoadingProject, error: projectError, refetch: refetchProject } = useApi<Project>(
+    `/project/${projectId}`,
+    {
+      enabled: !!projectId && !!token,
+      token: token || undefined,
+      onSuccess: () => {
+        log.info("Successfully fetched project details for ID:", projectId);
+      },
+      onError: () => {
+        log.error("Error fetching project details for ID:", projectId);
+      },
     }
+  );
 
-    setLoading(true);
-    setError(null);
-
-    const projectDetailsApiUrl = `${BACKEND_API_BASE_URL}/project/${projectId}`;
-    const meetingsApiUrl = `${BACKEND_API_BASE_URL}/meetings/project/${projectId}`;
-
-    try {
-      const [projectResponse, meetingsResponse] = await Promise.all([
-        fetch(projectDetailsApiUrl, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        fetch(meetingsApiUrl, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-      ]);
-
-      if (!projectResponse.ok) {
-        if (projectResponse.status === 401) {
-          log.warn("Project details fetch failed with 401. Logging out.");
-          logout();
-          navigate("/login");
-        }
-        log.error(`Failed to fetch project details for ID: ${projectId}. Status: ${projectResponse.status}`);
-        throw new Error("Failed to fetch project details.");
-      }
-      const projectData: Project = await projectResponse.json();
-      setProject(projectData);
-      log.info("Successfully fetched project details for ID:", projectId);
-
-      if (meetingsResponse.ok) {
-        const meetingsData: Meeting[] = await meetingsResponse.json();
-        setMeetings(meetingsData);
-        log.info(`Fetched ${meetingsData.length} meetings for project ID: ${projectId}.`);
-      } else {
-        log.warn(`Could not fetch meetings for project ${projectId}. Status: ${meetingsResponse.status}`);
-        setMeetings([]);
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Could not connect to the server. Please try again.";
-      log.error("Error fetching project data:", errorMessage);
-      setError(errorMessage);
-      setProject(null);
-      setMeetings([]);
-    } finally {
-      setLoading(false);
-      log.debug("Project data fetching completed. Loading set to false.");
+  // Fetch meetings for this project
+  const { data: meetings, isLoading: isLoadingMeetings, error: meetingsError, refetch: refetchMeetings } = useApi<Meeting[]>(
+    `/meetings/project/${projectId}`,
+    {
+      enabled: !!projectId && !!token,
+      token: token || undefined,
+      onSuccess: (data) => {
+        log.info(`Fetched ${data.length} meetings for project ID: ${projectId}.`);
+      },
+      onError: () => {
+        log.warn(`Could not fetch meetings for project ${projectId}`);
+      },
     }
-  }, [projectId, token, logout, navigate]);
+  );
 
-  useEffect(() => {
-    fetchProjectData();
-  }, [fetchProjectData]);
+  const loading = isLoadingProject || isLoadingMeetings;
+  const error = projectError || meetingsError;
+  const fetchProjectData = () => {
+    refetchProject();
+    refetchMeetings();
+  };
 
   if (loading) {
     log.debug("ProjectDetailsPage: Loading project details...");
@@ -98,7 +71,7 @@ function ProjectDetailsPage() {
   if (error) {
     log.error("ProjectDetailsPage: Error state displayed.", error);
     return (
-      <ErrorState message={error} onRetry={fetchProjectData}>
+      <ErrorState message={error.message} onRetry={fetchProjectData}>
         <Button variant="outline" asChild>
           <Link to="/projects">← Projects</Link>
         </Button>
@@ -122,8 +95,8 @@ function ProjectDetailsPage() {
       <EditProjectDialog
         isOpen={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
-        project={project!} // tu przekazujemy cały obiekt projektu
-        onProjectUpdated={(updatedProject) => setProject(updatedProject)}
+        project={project!}
+        onProjectUpdated={refetchProject}
       />
 
       <div className="mb-12">
@@ -150,17 +123,16 @@ function ProjectDetailsPage() {
             <div className="mt-4 sm:mt-0 flex gap-2">
               <Button
                 variant="destructive"
-                onClick={() => {
+                onClick={async () => {
                   if (confirm("Are you sure you want to delete this project?")) {
-                    fetch(`${BACKEND_API_BASE_URL}/project/${project._id}`, {
-                      method: "DELETE",
-                      headers: { Authorization: `Bearer ${token}` },
-                    })
-                      .then((res) => {
-                        if (res.ok) navigate("/projects");
-                        else alert("Failed to delete project");
-                      })
-                      .catch(() => alert("Error deleting project"));
+                    try {
+                      await api.delete(`/project/${project._id}`, token || undefined);
+                      toast.success("Project deleted successfully");
+                      navigate("/projects");
+                    } catch (error) {
+                      toast.error("Failed to delete project");
+                      log.error("Error deleting project:", error);
+                    }
                   }
                 }}
               >
@@ -191,7 +163,7 @@ function ProjectDetailsPage() {
           )}
         </div>
 
-        {meetings.length === 0 ? (
+        {!meetings || meetings.length === 0 ? (
           <EmptyState
             icon={Mic}
             title="No meetings found for this project"

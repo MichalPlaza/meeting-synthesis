@@ -2,8 +2,15 @@
 
 import asyncio
 import logging
+import os
 import sys
 from pathlib import Path
+
+# Force localhost for services when running from host machine
+# Must set BEFORE any imports that read these at module level
+os.environ["ELASTICSEARCH_URL"] = "http://localhost:9200"
+os.environ["MONGO_DETAILS"] = "mongodb://localhost:27017"
+os.environ["OLLAMA_HOST"] = "http://localhost:11434"
 
 # Add backend to path
 backend_dir = Path(__file__).parent.parent

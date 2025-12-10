@@ -72,12 +72,20 @@ class AIAnalysisService:
 
         ai_analysis_payload = ai_analysis_obj.model_dump() if hasattr(ai_analysis_obj, "model_dump") else ai_analysis_obj
 
+        # Extract AI-generated tags and merge with existing manual tags
+        ai_generated_tags = ai_analysis_obj.tags if ai_analysis_obj.tags else []
+        existing_tags = meeting.tags if meeting.tags else []
+
+        # Merge and deduplicate tags (preserve existing + add AI-generated)
+        merged_tags = list(dict.fromkeys(existing_tags + ai_generated_tags))
+        LOGGER.info(f"Generated {len(ai_generated_tags)} AI tags for meeting {meeting_id}: {ai_generated_tags}")
+
         await crud_meetings.update_meeting(
             database,
             meeting_id,
-            MeetingUpdate(ai_analysis=ai_analysis_payload)
+            MeetingUpdate(ai_analysis=ai_analysis_payload, tags=merged_tags)
         )
-        LOGGER.info(f"AI analysis results saved for meeting ID: {meeting_id}")
+        LOGGER.info(f"AI analysis results and tags saved for meeting ID: {meeting_id}")
 
         return ai_analysis_obj
 

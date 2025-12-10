@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } 
 import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import RegisterPage from "@/pages/RegisterPage";
-import { AuthProvider } from "@/AuthContext";
+import { AuthProvider } from "@/contexts/AuthContext";
 import { server } from "@/test/mocks/server";
 import { http, HttpResponse } from "msw";
 import { mockManagers } from "@/test/mocks/fixtures";
@@ -91,7 +91,7 @@ describe("RegisterPage", () => {
 
       await waitFor(() => {
         expect(toast.error).toHaveBeenCalledWith(
-          "Failed to load managers. Try refreshing the page."
+          "Failed to load managers. Please try refreshing."
         );
       });
     });

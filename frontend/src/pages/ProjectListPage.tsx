@@ -1,24 +1,20 @@
-import { useState, useEffect, useCallback } from "react";
-import ProjectCard from "@/components/ProjectCard";
+import { useState } from "react";
+import ProjectCard from "@/components/features/projects/ProjectCard";
 import type { Project } from "@/types/project";
-import { useAuth } from "@/AuthContext";
-import ProjectCardSkeleton from "@/components/ProjectCardSkeleton";
-import EmptyState from "@/components/EmptyState";
-import ErrorState from "@/components/ErrorState";
+import { useAuth } from "@/contexts/AuthContext";
+import ProjectCardSkeleton from "@/components/features/projects/ProjectCardSkeleton";
+import EmptyState from "@/components/common/EmptyState";
+import ErrorState from "@/components/common/ErrorState";
 import { Button } from "@/components/ui/button";
 import { FolderOpen, PlusIcon } from "lucide-react";
-import { ProjectsToolbar } from "@/components/ProjectsToolbar";
+import { ProjectsToolbar } from "@/components/features/projects/ProjectsToolbar";
 import { useDebounce } from "@/hooks/useDebounce";
-import { AddProjectDialog } from "@/components/AddProjectDialog";
+import { AddProjectDialog } from "@/components/features/projects/AddProjectDialog";
 import log from "../services/logging";
-
-const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
+import { useApi } from "@/hooks/useApi";
 
 function ProjectListPage() {
   log.info("ProjectListPage rendered.");
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -26,42 +22,19 @@ function ProjectListPage() {
   useDebounce(searchTerm, 300);
   const { token, user } = useAuth();
 
-  const fetchProjects = useCallback(async () => {
-    log.debug("Fetching projects where user is a member...");
-    if (!token || !user?._id) {
-      log.warn("Cannot fetch projects: missing token or user ID.");
-      return;
+  const { data: projects, isLoading: loading, error, refetch: fetchProjects } = useApi<Project[]>(
+    `/project/member/${user?._id}`,
+    {
+      enabled: !!user?._id,
+      token: token || undefined,
+      onSuccess: (data) => {
+        log.info(`Fetched ${data.length} projects where user is a member.`);
+      },
+      onError: () => {
+        log.error("Error fetching member projects");
+      },
     }
-    setLoading(true);
-    setError(null);
-
-    const projectsApiUrl = `${BACKEND_API_BASE_URL}/project/member/${user._id}`;
-
-    try {
-      const response = await fetch(projectsApiUrl, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        log.error("Failed to fetch member projects. Status:", response.status, "Error:", errorData.detail || response.statusText);
-        throw new Error(errorData.detail || "Failed to fetch member projects.");
-      }
-      const data = await response.json();
-      setProjects(data);
-      log.info(`Fetched ${data.length} projects where user is a member.`);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Could not connect to the server.";
-      log.error("Error fetching member projects:", errorMessage);
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
-      log.debug("Member projects fetching completed.");
-    }
-  }, [token, user?._id]);
-
-  useEffect(() => {
-    fetchProjects();
-  }, [fetchProjects]);
+  );
 
   return (
     <>
@@ -90,14 +63,14 @@ function ProjectListPage() {
         />
 
         {error ? (
-          <ErrorState message={error} onRetry={fetchProjects} />
+          <ErrorState message={error.message} onRetry={fetchProjects} />
         ) : loading ? (
           <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {Array.from({ length: 6 }).map((_, index) => (
               <ProjectCardSkeleton key={index} />
             ))}
           </ul>
-        ) : projects.length === 0 ? (
+        ) : !projects || projects.length === 0 ? (
           <EmptyState
             icon={FolderOpen}
             title="No projects found"

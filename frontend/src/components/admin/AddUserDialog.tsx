@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -31,24 +31,16 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/AuthContext";
-
-const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
+import { useAuth } from "@/contexts/AuthContext";
+import { api } from "@/lib/api/client";
+import { useManagers } from "@/hooks/useManagers";
+import { commonSchemas } from "@/lib/form-utils";
 
 const addUserSchema = z.object({
-  username: z
-    .string()
-    .min(3, "Username must be at least 3 characters")
-    .max(50, "Username must be less than 50 characters"),
-  email: z.string().email("Invalid email address"),
-  password: z
-    .string()
-    .min(6, "Password must be at least 6 characters")
-    .max(100, "Password must be less than 100 characters"),
-  full_name: z
-    .string()
-    .min(1, "Full name is required")
-    .max(100, "Full name must be less than 100 characters"),
+  username: commonSchemas.username,
+  email: commonSchemas.email,
+  password: commonSchemas.password,
+  full_name: commonSchemas.name,
   role: z.enum(["developer", "scrum_master", "project_manager", "admin"], {
     required_error: "Please select a role",
   }),
@@ -70,9 +62,7 @@ export function AddUserDialog({
 }: AddUserDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { token } = useAuth();
-  const [managers, setManagers] = useState<{ id: string; full_name: string }[]>(
-    []
-  );
+  const { managers, isLoading: isLoadingManagers } = useManagers(isOpen);
 
   const form = useForm<AddUserValues>({
     resolver: zodResolver(addUserSchema),
@@ -87,30 +77,6 @@ export function AddUserDialog({
   });
 
   const selectedRole = form.watch("role");
-
-  useEffect(() => {
-    async function fetchManagers() {
-      if (!isOpen) return;
-      try {
-        log.info("Fetching managers list for Add User dialog");
-        const res = await fetch(`${BACKEND_API_BASE_URL}/users/managers`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) throw new Error("Failed to fetch managers");
-        const data = await res.json();
-        setManagers(
-          data.map((u: { _id: string; full_name: string }) => ({ id: u._id, full_name: u.full_name }))
-        );
-        log.info(`Fetched ${data.length} managers`);
-      } catch (err) {
-        log.error("Error fetching managers:", err);
-        toast.error(
-          "Failed to load managers. Please try closing and reopening the dialog."
-        );
-      }
-    }
-    fetchManagers();
-  }, [isOpen, token]);
 
   const handleClose = () => {
     form.reset();
@@ -133,19 +99,7 @@ export function AddUserDialog({
             : null,
       };
 
-      const response = await fetch(`${BACKEND_API_BASE_URL}/auth/register`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "Failed to create user");
-      }
+      await api.post("/auth/register", payload, token);
 
       toast.success("User created successfully!");
       handleClose();
@@ -246,36 +200,6 @@ export function AddUserDialog({
               )}
             />
 
-            {/* <FormField
-              control={form.control}
-              name="role"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Role</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                    disabled={isSubmitting}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a role" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="developer">Developer</SelectItem>
-                      <SelectItem value="scrum_master">Scrum Master</SelectItem>
-                      <SelectItem value="project_manager">
-                        Project Manager
-                      </SelectItem>
-                      <SelectItem value="admin">Admin</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            /> */}
-
             <FormField
               control={form.control}
               name="role"
@@ -317,10 +241,11 @@ export function AddUserDialog({
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
+                      disabled={isLoadingManagers || isSubmitting}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select a manager" />
+                          <SelectValue placeholder={isLoadingManagers ? "Loading managers..." : "Select a manager"} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>

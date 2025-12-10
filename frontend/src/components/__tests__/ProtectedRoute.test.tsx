@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeAll, afterEach, afterAll, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
-import ProtectedRoute from "@/components/ProtectedRoute";
-import { AuthProvider } from "@/AuthContext";
+import ProtectedRoute from "@/components/features/auth/ProtectedRoute";
+import { AuthProvider } from "@/contexts/AuthContext";
 import { server } from "@/test/mocks/server";
 import { http, HttpResponse } from "msw";
 import { mockDeveloper } from "@/test/mocks/fixtures";

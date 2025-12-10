@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import {useParams, Link, useNavigate} from "react-router-dom";
-import { useAuth } from "@/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import type { Meeting } from "@/types/meeting";
 import type { MeetingHistory } from  "@/types/meeting-history"
 import { format } from "date-fns";
@@ -9,7 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Separator } from "@/components/ui/separator";
-import { MeetingCommentsSection} from "@/components/MeetingCommentsSection";
+import { Badge } from "@/components/ui/badge";
+import { MeetingCommentsSection} from "@/components/features/meetings/MeetingCommentsSection";
 import {
   PlayIcon,
   PauseIcon,
@@ -30,10 +31,11 @@ import {
   RotateCcw,
   AlertTriangle,
 } from "lucide-react";
-import ErrorState from "@/components/ErrorState";
-import EmptyState from "@/components/EmptyState";
+import ErrorState from "@/components/common/ErrorState";
+import EmptyState from "@/components/common/EmptyState";
 import log from "../services/logging";
-import {EditMeetingDialog} from "@/components/EditMeetingDialog.tsx";
+import {EditMeetingDialog} from "@/components/features/meetings/EditMeetingDialog";
+import {TranscriptWithSpeakers} from "@/components/features/meetings/TranscriptWithSpeakers";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -46,6 +48,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import type { KeyTopic, ActionItem, DecisionMade } from "@/types/meeting";
+import { api, getApiBaseUrl } from "@/lib/api/client";
+import { getTagColor } from "@/lib/utils";
 
 // Client-side types with temporary IDs for React keys
 interface EditableKeyTopic extends KeyTopic {
@@ -61,8 +65,6 @@ interface EditableDecisionMade extends DecisionMade {
 }
 
 const generateTempId = () => crypto.randomUUID();
-
-const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
 
 const PLAYBACK_RATES = [1, 1.25, 1.5, 2, 0.5, 0.75];
 
@@ -82,7 +84,6 @@ const updateMeetingField = async (
     value: unknown
 ) => {
   try {
-
     const body: Record<string, unknown> = {};
     const parts = field.split(".");
     let current: Record<string, unknown> = body;
@@ -96,19 +97,12 @@ const updateMeetingField = async (
         current = nested;
       }
     }
-    const BACKEND_API_BASE_URL = import.meta.env.VITE_BACKEND_API_BASE_URL;
-    const res = await fetch(`${BACKEND_API_BASE_URL}/meetings/${meetingId}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(body),
-    });
 
-    if (!res.ok) throw new Error("Failed to update meeting.");
-
-    const updatedMeeting: Meeting = await res.json();
+    const updatedMeeting = await api.patch<Meeting>(
+      `/meetings/${meetingId}`,
+      body,
+      token || undefined
+    );
     return updatedMeeting;
   } catch (err) {
     log.error("Error updating meeting field:", err);
@@ -137,22 +131,13 @@ function useMeetingData(meetingId: string | undefined) {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(
-          `${BACKEND_API_BASE_URL}/meetings/${meetingId}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-            signal: abortController.signal
-          }
-        );
-        if (!response.ok) {
-          log.error(`Failed to fetch meeting ${meetingId}. Status: ${response.status}`);
-          throw new Error(`Failed to fetch meeting (Status: ${response.status})`);
+        const data = await api.get<Meeting>(`/meetings/${meetingId}`, token);
+        if (!abortController.signal.aborted) {
+          setMeeting(data);
+          log.info("Successfully fetched meeting data for ID:", meetingId);
         }
-        const data: Meeting = await response.json();
-        setMeeting(data);
-        log.info("Successfully fetched meeting data for ID:", meetingId);
       } catch (err) {
-        if (err instanceof Error && err.name === 'AbortError') {
+        if (abortController.signal.aborted) {
           log.debug("Meeting fetch aborted");
           return;
         }
@@ -180,14 +165,7 @@ function useMeetingData(meetingId: string | undefined) {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(
-        `${BACKEND_API_BASE_URL}/meetings/${meetingId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (!response.ok) {
-        throw new Error(`Failed to fetch meeting (Status: ${response.status})`);
-      }
-      const data: Meeting = await response.json();
+      const data = await api.get<Meeting>(`/meetings/${meetingId}`, token);
       setMeeting(data);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to connect to the server.";
@@ -239,11 +217,11 @@ function MeetingDetailsPage() {
     meeting?.processing_status.current_stage === "failed";
 
   const audioSrc = meeting?.audio_file.storage_path_or_url
-    ? `${BACKEND_API_BASE_URL}${meeting.audio_file.storage_path_or_url}`
+    ? `${getApiBaseUrl()}${meeting.audio_file.storage_path_or_url}`
     : "";
 
   const downloadUrl = meeting
-    ? `${BACKEND_API_BASE_URL}/meetings/${meeting._id}/download`
+    ? `${getApiBaseUrl()}/meetings/${meeting._id}/download`
     : "";
 
   useEffect(() => {
@@ -413,65 +391,68 @@ function MeetingDetailsPage() {
   };
 
   const fetchHistory = useCallback(async () => {
-  if (!token || !meetingId) return;
+    if (!token || !meetingId) return;
 
-  try {
-    const response = await fetch(
-      `${BACKEND_API_BASE_URL}/meeting_history/${meetingId}`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+    try {
+      const data = await api.get<MeetingHistory[]>(
+        `/meeting_history/${meetingId}`,
+        token
+      );
 
-    if (!response.ok) {
-      if (response.status === 404) {
+      const historyMap: Record<string, MeetingHistory> = {};
+      data.forEach((change) => {
+        historyMap[change.field] = change;
+      });
+
+      setLastEdits(historyMap);
+      log.info("Successfully fetched meeting history.");
+    } catch (err) {
+      // 404 means no history yet, which is fine
+      if (err instanceof Error && err.message.includes('404')) {
         setLastEdits({});
         return;
       }
-      log.warn(`Failed to fetch history. Status: ${response.status}`);
-      return;
+      const errorMessage = err instanceof Error ? err.message : "Unknown error";
+      log.error("Error fetching history:", errorMessage);
     }
-
-    const data: MeetingHistory[] = await response.json();
-
-    const historyMap: Record<string, MeetingHistory> = {};
-    data.forEach((change) => {
-      historyMap[change.field] = change;
-    });
-
-    setLastEdits(historyMap);
-
-    setLastEdits(historyMap);
-    log.info("Successfully fetched meeting history.");
-  } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : "Unknown error";
-    log.error("Error fetching history:", errorMessage);
-  }
-}, [meetingId, token]);
+  }, [meetingId, token]);
 
   useEffect(() => {
     fetchHistory();
   }, [fetchHistory]);
 
+  // Listen for meeting-processed WebSocket events (e.g., after re-analysis completes)
+  useEffect(() => {
+    const handleMeetingProcessed = (event: Event) => {
+      const customEvent = event as CustomEvent<{ meetingId: string; status: string }>;
+      if (customEvent.detail?.meetingId === meetingId) {
+        log.info("Meeting re-analysis completed, refreshing data...");
+        refetch();
+        fetchHistory();
+        if (customEvent.detail?.status === "completed") {
+          toast.success("Analysis updated!", {
+            description: "Summary, topics, and tags have been refreshed.",
+          });
+        }
+      }
+    };
+    window.addEventListener("meeting-processed", handleMeetingProcessed);
+    return () => window.removeEventListener("meeting-processed", handleMeetingProcessed);
+  }, [meetingId, refetch, fetchHistory]);
+
   const handleDeleteMeeting = async () => {
-  if (!meeting?._id) return;
+    if (!meeting?._id) return;
 
-  try {
-    const res = await fetch(`${BACKEND_API_BASE_URL}/meetings/${meeting._id}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    if (res.ok) {
+    try {
+      await api.delete(`/meetings/${meeting._id}`, token || undefined);
       toast.success("Meeting deleted successfully");
       navigate("/meetings");
-    } else {
-      toast.error("Failed to delete meeting");
+    } catch {
+      toast.error("Error deleting meeting");
+    } finally {
+      setShowDeleteDialog(false);
     }
-  } catch {
-    toast.error("Error deleting meeting");
-  } finally {
-    setShowDeleteDialog(false);
-  }
-};
+  };
 const handleSaveSummary = async () => {
   if (!meeting?._id) return;
 
@@ -582,6 +563,33 @@ const handleSaveTranscription = async () => {
   if (updated) {
     refetch();
     setIsEditingTranscription(false);
+    toast.info("Saved. Re-analyzing meeting...", {
+      description: "Summary, topics, and tags will be updated automatically.",
+      duration: 5000,
+    });
+  }
+};
+
+const handleSpeakerMappingChange = async (newMappings: Record<string, string>) => {
+  if (!meeting?._id) return;
+
+  const updated = await updateMeetingField(
+    meeting._id,
+    token,
+    "speaker_mappings",
+    newMappings
+  );
+
+  if (updated) {
+    refetch();
+    toast.success("Speaker name updated");
+  }
+};
+
+const handleSeekToTime = (time: number) => {
+  if (audioRef.current) {
+    audioRef.current.currentTime = time;
+    audioRef.current.play();
   }
 };
 
@@ -663,6 +671,15 @@ const LastEditedLabel = ({ change }: { change?: { username: string; changed_at: 
           <div>
             <h1 className="text-3xl font-bold tracking-tight">{meeting.title}</h1>
             <p className="subtle">Processed on {processedDate}</p>
+            {meeting.tags && meeting.tags.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2 mt-2">
+                {meeting.tags.map((tag) => (
+                  <Badge key={tag} variant={getTagColor(tag)}>
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            )}
           </div>
           <div className="flex gap-2 mt-2 sm:mt-0">
             <Button variant="destructive" onClick={() => setShowDeleteDialog(true)}>
@@ -1256,8 +1273,15 @@ const LastEditedLabel = ({ change }: { change?: { username: string; changed_at: 
                         onChange={(e) => setEditedTranscription(e.target.value)}
                     />
                 ) : (
-                    /* READONLY MODE */
-                    meeting.transcription?.full_text ? (
+                    /* READONLY MODE - Show TranscriptWithSpeakers if segments available */
+                    meeting.transcription?.segments && meeting.transcription.segments.length > 0 ? (
+                        <TranscriptWithSpeakers
+                          segments={meeting.transcription.segments}
+                          speakerMappings={meeting.speaker_mappings || {}}
+                          onSpeakerMappingChange={handleSpeakerMappingChange}
+                          onSeekToTime={handleSeekToTime}
+                        />
+                    ) : meeting.transcription?.full_text ? (
                         <div className="whitespace-pre-wrap text-foreground/90 leading-relaxed">
                           {meeting.transcription.full_text}
                         </div>
