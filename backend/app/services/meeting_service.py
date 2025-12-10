@@ -206,13 +206,22 @@ async def partial_update_meeting(db, meeting_id, update_data: MeetingPartialUpda
     for k, v in update_data.model_dump(exclude_unset=True).items():
         if isinstance(v, dict):
             for nested_k, nested_v in v.items():
-                update_dict[f"{k}.{nested_k}"] = nested_v
-                # Detect transcription.full_text change
-                if k == "transcription" and nested_k == "full_text":
-                    old_text = old_doc.get("transcription", {}).get("full_text", "")
-                    if nested_v != old_text:
-                        transcription_changed = True
-                        logger.info(f"[Meeting ID: {meeting_id}] Transcription changed, will trigger re-analysis.")
+                # Handle segments array specially
+                if k == "transcription" and nested_k == "segments" and nested_v is not None:
+                    update_dict["transcription.segments"] = nested_v
+                    # Rebuild full_text from segments
+                    rebuilt_text = " ".join(seg.get("text", "") for seg in nested_v)
+                    update_dict["transcription.full_text"] = rebuilt_text
+                    transcription_changed = True
+                    logger.info(f"[Meeting ID: {meeting_id}] Segments updated, rebuilt full_text.")
+                else:
+                    update_dict[f"{k}.{nested_k}"] = nested_v
+                    # Detect transcription.full_text change
+                    if k == "transcription" and nested_k == "full_text":
+                        old_text = old_doc.get("transcription", {}).get("full_text", "")
+                        if nested_v != old_text:
+                            transcription_changed = True
+                            logger.info(f"[Meeting ID: {meeting_id}] Transcription changed, will trigger re-analysis.")
         else:
             update_dict[k] = v
 
