@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import { MeetingCommentsSection} from "@/components/features/meetings/MeetingCommentsSection";
 import {
   PlayIcon,
@@ -34,6 +35,7 @@ import ErrorState from "@/components/common/ErrorState";
 import EmptyState from "@/components/common/EmptyState";
 import log from "../services/logging";
 import {EditMeetingDialog} from "@/components/features/meetings/EditMeetingDialog";
+import {TranscriptWithSpeakers} from "@/components/features/meetings/TranscriptWithSpeakers";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -47,6 +49,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import type { KeyTopic, ActionItem, DecisionMade } from "@/types/meeting";
 import { api, getApiBaseUrl } from "@/lib/api/client";
+import { getTagColor } from "@/lib/utils";
 
 // Client-side types with temporary IDs for React keys
 interface EditableKeyTopic extends KeyTopic {
@@ -418,6 +421,25 @@ function MeetingDetailsPage() {
     fetchHistory();
   }, [fetchHistory]);
 
+  // Listen for meeting-processed WebSocket events (e.g., after re-analysis completes)
+  useEffect(() => {
+    const handleMeetingProcessed = (event: Event) => {
+      const customEvent = event as CustomEvent<{ meetingId: string; status: string }>;
+      if (customEvent.detail?.meetingId === meetingId) {
+        log.info("Meeting re-analysis completed, refreshing data...");
+        refetch();
+        fetchHistory();
+        if (customEvent.detail?.status === "completed") {
+          toast.success("Analysis updated!", {
+            description: "Summary, topics, and tags have been refreshed.",
+          });
+        }
+      }
+    };
+    window.addEventListener("meeting-processed", handleMeetingProcessed);
+    return () => window.removeEventListener("meeting-processed", handleMeetingProcessed);
+  }, [meetingId, refetch, fetchHistory]);
+
   const handleDeleteMeeting = async () => {
     if (!meeting?._id) return;
 
@@ -541,6 +563,33 @@ const handleSaveTranscription = async () => {
   if (updated) {
     refetch();
     setIsEditingTranscription(false);
+    toast.info("Saved. Re-analyzing meeting...", {
+      description: "Summary, topics, and tags will be updated automatically.",
+      duration: 5000,
+    });
+  }
+};
+
+const handleSpeakerMappingChange = async (newMappings: Record<string, string>) => {
+  if (!meeting?._id) return;
+
+  const updated = await updateMeetingField(
+    meeting._id,
+    token,
+    "speaker_mappings",
+    newMappings
+  );
+
+  if (updated) {
+    refetch();
+    toast.success("Speaker name updated");
+  }
+};
+
+const handleSeekToTime = (time: number) => {
+  if (audioRef.current) {
+    audioRef.current.currentTime = time;
+    audioRef.current.play();
   }
 };
 
@@ -622,6 +671,15 @@ const LastEditedLabel = ({ change }: { change?: { username: string; changed_at: 
           <div>
             <h1 className="text-3xl font-bold tracking-tight">{meeting.title}</h1>
             <p className="subtle">Processed on {processedDate}</p>
+            {meeting.tags && meeting.tags.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2 mt-2">
+                {meeting.tags.map((tag) => (
+                  <Badge key={tag} variant={getTagColor(tag)}>
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            )}
           </div>
           <div className="flex gap-2 mt-2 sm:mt-0">
             <Button variant="destructive" onClick={() => setShowDeleteDialog(true)}>
@@ -1215,8 +1273,15 @@ const LastEditedLabel = ({ change }: { change?: { username: string; changed_at: 
                         onChange={(e) => setEditedTranscription(e.target.value)}
                     />
                 ) : (
-                    /* READONLY MODE */
-                    meeting.transcription?.full_text ? (
+                    /* READONLY MODE - Show TranscriptWithSpeakers if segments available */
+                    meeting.transcription?.segments && meeting.transcription.segments.length > 0 ? (
+                        <TranscriptWithSpeakers
+                          segments={meeting.transcription.segments}
+                          speakerMappings={meeting.speaker_mappings || {}}
+                          onSpeakerMappingChange={handleSpeakerMappingChange}
+                          onSeekToTime={handleSeekToTime}
+                        />
+                    ) : meeting.transcription?.full_text ? (
                         <div className="whitespace-pre-wrap text-foreground/90 leading-relaxed">
                           {meeting.transcription.full_text}
                         </div>

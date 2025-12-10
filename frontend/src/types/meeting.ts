@@ -15,8 +15,16 @@ interface ProcessingStatus {
   error_message: string | null;
 }
 
+export interface Segment {
+  start_time: number;
+  end_time: number;
+  text: string;
+  speaker_label: string | null;
+}
+
 interface Transcription {
   full_text: string | null;
+  segments: Segment[] | null;
 }
 
 export interface ActionItem {
@@ -63,6 +71,7 @@ export interface Meeting {
   ai_analysis: AiAnalysis | null;
   duration_seconds: number | null;
   tags: string[];
+  speaker_mappings: Record<string, string>;
   estimated_processing_time_seconds?: number | null;
 }
 

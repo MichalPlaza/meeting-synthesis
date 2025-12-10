@@ -154,13 +154,12 @@ export async function* sendMessageStream(
       for (const line of lines) {
         if (line.startsWith("data: ")) {
           const data = line.slice(6).trim();
-          if (data.includes("'type': 'done'")) {
-            return;
+          if (!data || data === "[DONE]") {
+            continue;
           }
           try {
-            // Backend sends data with single quotes, need to convert to double quotes
-            const jsonData = data.replace(/'/g, '"');
-            const parsed = JSON.parse(jsonData);
+            // Backend now sends proper JSON with double quotes
+            const parsed = JSON.parse(data);
 
             if (parsed.type === "content" && parsed.content) {
               yield { type: 'content', content: parsed.content };

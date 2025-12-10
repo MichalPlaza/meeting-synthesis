@@ -89,9 +89,10 @@ export function KnowledgeBasePage() {
     fetchConversationsList();
   }, [token]);
 
-  // Load messages when conversation ID changes
+  // Load messages when conversation ID changes (but not during streaming)
   useEffect(() => {
-    if (!conversationId || !token) return;
+    // Skip loading if we're currently streaming - the messages are being built optimistically
+    if (!conversationId || !token || loading) return;
 
     const loadMessages = async () => {
       setLoadingHistory(true);
@@ -109,7 +110,7 @@ export function KnowledgeBasePage() {
     };
 
     loadMessages();
-  }, [conversationId, token]);
+  }, [conversationId, token, loading]);
 
   // Keyboard shortcuts
   useEffect(() => {
