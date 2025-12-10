@@ -162,7 +162,7 @@ async def _publish_completion_event(
         meeting = await crud_meetings.get_meeting_by_id(database, meeting_id)
         if meeting:
             event = {
-                "event_type": "meeting_processed",
+                "event_type": "meeting.processed",
                 "meeting_id": str(meeting.id),
                 "project_id": str(meeting.project_id),
                 "uploader_id": str(meeting.uploader_id),

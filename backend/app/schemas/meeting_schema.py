@@ -106,8 +106,17 @@ class MeetingCreateForm:
         )
 
 
+class SegmentUpdate(BaseModel):
+    """Schema for updating individual transcript segments."""
+    start_time: float
+    end_time: float
+    text: str
+    speaker_label: Optional[str] = None
+
+
 class TranscriptionUpdate(BaseModel):
     full_text: Optional[str] = None
+    segments: Optional[List["SegmentUpdate"]] = None
 
 
 class AiAnalysisUpdate(BaseModel):
@@ -124,6 +133,12 @@ class MeetingPartialUpdate(BaseModel):
     transcription: Optional[TranscriptionUpdate] = None
     ai_analysis: Optional[AiAnalysisUpdate] = None
     speaker_mappings: Optional[dict[str, str]] = None  # Maps SPEAKER_00 -> "John Doe"
+
+class MergeSpeakersRequest(BaseModel):
+    """Request to merge two speakers into one."""
+    source_speaker: str  # Speaker to merge FROM (will be removed)
+    target_speaker: str  # Speaker to merge INTO (will remain)
+
 
 class PopulatedInfo(BaseModel):
     id: Optional[PyObjectId] = Field(None, alias="_id")

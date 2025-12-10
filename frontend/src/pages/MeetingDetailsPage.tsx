@@ -206,6 +206,7 @@ function MeetingDetailsPage() {
   const [editedDecisions, setEditedDecisions] = useState<EditableDecisionMade[]>([]);
   const [isEditingTranscription, setIsEditingTranscription] = useState(false);
   const [editedTranscription, setEditedTranscription] = useState("");
+  const [editedSegments, setEditedSegments] = useState<Meeting["transcription"]["segments"]>([]);
   const [lastEdits, setLastEdits] = useState<Record<string, MeetingHistory>>({});
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
@@ -227,6 +228,9 @@ function MeetingDetailsPage() {
   useEffect(() => {
     if (meeting?.transcription?.full_text) {
       setEditedTranscription(meeting.transcription.full_text);
+    }
+    if (meeting?.transcription?.segments) {
+      setEditedSegments(meeting.transcription.segments);
     }
   }, [meeting]);
 
@@ -553,20 +557,63 @@ const handleSaveDecisions = async () => {
 const handleSaveTranscription = async () => {
   if (!meeting?._id) return;
 
-  const updated = await updateMeetingField(
-    meeting._id,
-    token,
-    "transcription.full_text",
-    editedTranscription
-  );
+  // If we have segments, save segments (backend will rebuild full_text)
+  if (editedSegments && editedSegments.length > 0) {
+    try {
+      await api.patch<Meeting>(
+        `/meetings/${meeting._id}`,
+        { transcription: { segments: editedSegments } },
+        token || undefined
+      );
+      refetch();
+      setIsEditingTranscription(false);
+      toast.info("Saved. Re-analyzing meeting...", {
+        description: "Summary, topics, and tags will be updated automatically.",
+        duration: 5000,
+      });
+    } catch (err) {
+      log.error("Error saving segments:", err);
+      toast.error("Failed to save transcript");
+    }
+  } else {
+    // Fallback to saving full_text
+    const updated = await updateMeetingField(
+      meeting._id,
+      token,
+      "transcription.full_text",
+      editedTranscription
+    );
 
-  if (updated) {
+    if (updated) {
+      refetch();
+      setIsEditingTranscription(false);
+      toast.info("Saved. Re-analyzing meeting...", {
+        description: "Summary, topics, and tags will be updated automatically.",
+        duration: 5000,
+      });
+    }
+  }
+};
+
+const handleSegmentsChange = (newSegments: Meeting["transcription"]["segments"]) => {
+  setEditedSegments(newSegments);
+};
+
+const handleMergeSpeakers = async (source: string, target: string) => {
+  if (!meeting?._id) return;
+
+  try {
+    await api.post<Meeting>(
+      `/meetings/${meeting._id}/merge-speakers`,
+      { source_speaker: source, target_speaker: target },
+      token || undefined
+    );
     refetch();
-    setIsEditingTranscription(false);
-    toast.info("Saved. Re-analyzing meeting...", {
-      description: "Summary, topics, and tags will be updated automatically.",
-      duration: 5000,
-    });
+    toast.success(`Merged ${source} into ${target}`);
+  } catch (err) {
+    log.error("Error merging speakers:", err);
+    toast.error("Failed to merge speakers");
+    throw err;
   }
 };
 
@@ -1257,6 +1304,7 @@ const LastEditedLabel = ({ change }: { change?: { username: string; changed_at: 
                             onClick={() => {
                               setIsEditingTranscription(false);
                               setEditedTranscription(meeting.transcription?.full_text || "");
+                              setEditedSegments(meeting.transcription?.segments || []);
                             }}
                         >
                           Cancel
@@ -1265,34 +1313,36 @@ const LastEditedLabel = ({ change }: { change?: { username: string; changed_at: 
                   )}
                 </div>
 
-                {/* EDIT MODE */}
-                {isEditingTranscription ? (
-                    <textarea
-                        className="w-full p-2 border rounded h-126 resize-y"
-                        value={editedTranscription}
-                        onChange={(e) => setEditedTranscription(e.target.value)}
+                {/* Transcript content - TranscriptWithSpeakers handles both view and edit modes */}
+                {meeting.transcription?.segments && meeting.transcription.segments.length > 0 ? (
+                    <TranscriptWithSpeakers
+                      segments={isEditingTranscription ? editedSegments : meeting.transcription.segments}
+                      speakerMappings={meeting.speaker_mappings || {}}
+                      onSpeakerMappingChange={handleSpeakerMappingChange}
+                      onSeekToTime={handleSeekToTime}
+                      onMergeSpeakers={handleMergeSpeakers}
+                      isEditing={isEditingTranscription}
+                      onSegmentsChange={handleSegmentsChange}
                     />
-                ) : (
-                    /* READONLY MODE - Show TranscriptWithSpeakers if segments available */
-                    meeting.transcription?.segments && meeting.transcription.segments.length > 0 ? (
-                        <TranscriptWithSpeakers
-                          segments={meeting.transcription.segments}
-                          speakerMappings={meeting.speaker_mappings || {}}
-                          onSpeakerMappingChange={handleSpeakerMappingChange}
-                          onSeekToTime={handleSeekToTime}
+                ) : meeting.transcription?.full_text ? (
+                    isEditingTranscription ? (
+                        <textarea
+                            className="w-full p-2 border rounded h-126 resize-y bg-background text-foreground"
+                            value={editedTranscription}
+                            onChange={(e) => setEditedTranscription(e.target.value)}
                         />
-                    ) : meeting.transcription?.full_text ? (
+                    ) : (
                         <div className="whitespace-pre-wrap text-foreground/90 leading-relaxed">
                           {meeting.transcription.full_text}
                         </div>
-                    ) : (
-                        <EmptyState
-                            icon={FileText}
-                            title="No Transcript Available"
-                            description="Transcription is not yet complete or failed for this meeting."
-                            className="py-8"
-                        />
                     )
+                ) : (
+                    <EmptyState
+                        icon={FileText}
+                        title="No Transcript Available"
+                        description="Transcription is not yet complete or failed for this meeting."
+                        className="py-8"
+                    />
                 )}
               </div>
             </TabsContent>

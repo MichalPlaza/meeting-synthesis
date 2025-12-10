@@ -14,7 +14,7 @@ from ...db.mongodb_utils import get_database
 from ...models.enums.processing_mode import ProcessingMode
 from ...models.user import User
 from ...schemas.meeting_schema import MeetingCreate, MeetingResponse, MeetingUpdate, MeetingCreateForm, \
-    MeetingPartialUpdate, MeetingResponsePopulated
+    MeetingPartialUpdate, MeetingResponsePopulated, MergeSpeakersRequest
 from ...services import meeting_service
 from ...crud import crud_meetings, crud_projects
 from ...worker.tasks import reanalyze_meeting
@@ -275,6 +275,90 @@ async def partial_update_meeting(
     if not updated:
         raise HTTPException(status_code=404, detail="Meeting not found")
     return updated
+
+
+@router.post("/{meeting_id}/merge-speakers", response_model=MeetingResponse)
+async def merge_speakers(
+        meeting_id: str,
+        merge_request: MergeSpeakersRequest,
+        database: AsyncIOMotorDatabase = Depends(get_database),
+        current_user: User = Depends(get_current_user),
+):
+    """
+    Merge two speakers into one by updating all segment speaker labels.
+
+    This updates all segments where speaker_label == source_speaker to target_speaker.
+    Also cleans up speaker_mappings if the source speaker had a custom name.
+    """
+    logger.info(f"User {current_user.username} merging speakers in meeting {meeting_id}: "
+                f"{merge_request.source_speaker} -> {merge_request.target_speaker}")
+
+    # Fetch meeting
+    meeting = await crud_meetings.get_meeting_by_id(database, meeting_id)
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+
+    # Check if meeting has segments
+    if not meeting.transcription or not meeting.transcription.segments:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Meeting has no transcript segments"
+        )
+
+    # Validate speakers exist
+    existing_speakers = set(
+        seg.speaker_label for seg in meeting.transcription.segments
+        if seg.speaker_label
+    )
+    if merge_request.source_speaker not in existing_speakers:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Source speaker '{merge_request.source_speaker}' not found in segments"
+        )
+    if merge_request.target_speaker not in existing_speakers:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Target speaker '{merge_request.target_speaker}' not found in segments"
+        )
+
+    # Update segments - change source_speaker to target_speaker
+    updated_segments = []
+    merge_count = 0
+    for seg in meeting.transcription.segments:
+        if seg.speaker_label == merge_request.source_speaker:
+            updated_segments.append({
+                "start_time": seg.start_time,
+                "end_time": seg.end_time,
+                "text": seg.text,
+                "speaker_label": merge_request.target_speaker
+            })
+            merge_count += 1
+        else:
+            updated_segments.append(seg.model_dump())
+
+    # Update speaker_mappings: transfer source mapping to target if exists
+    updated_mappings = dict(meeting.speaker_mappings or {})
+    if merge_request.source_speaker in updated_mappings:
+        # If source had a custom name, apply it to target (unless target already has one)
+        if merge_request.target_speaker not in updated_mappings:
+            updated_mappings[merge_request.target_speaker] = updated_mappings[merge_request.source_speaker]
+        del updated_mappings[merge_request.source_speaker]
+
+    # Save to database
+    from bson import ObjectId
+    await database["meetings"].update_one(
+        {"_id": ObjectId(meeting_id)},
+        {"$set": {
+            "transcription.segments": updated_segments,
+            "speaker_mappings": updated_mappings
+        }}
+    )
+
+    logger.info(f"Merged {merge_count} segments from {merge_request.source_speaker} to {merge_request.target_speaker}")
+
+    # Fetch and return updated meeting
+    updated_meeting = await crud_meetings.get_meeting_by_id(database, meeting_id)
+    return updated_meeting
 
 
 @router.post("/{meeting_id}/reanalyze", response_model=MeetingResponse)
