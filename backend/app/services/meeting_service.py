@@ -19,7 +19,7 @@ from ..models.audio_file import AudioFile
 from ..models.meeting import Meeting
 from ..schemas.meeting_schema import MeetingCreate, MeetingUpdate, MeetingCreateForm, MeetingResponse, \
     MeetingPartialUpdate
-from ..worker.tasks import process_meeting_audio
+from ..worker.tasks import process_meeting_audio, reanalyze_meeting
 
 logger = logging.getLogger(__name__)
 
@@ -201,10 +201,18 @@ async def partial_update_meeting(db, meeting_id, update_data: MeetingPartialUpda
         return None
 
     update_dict = {}
+    transcription_changed = False
+
     for k, v in update_data.model_dump(exclude_unset=True).items():
         if isinstance(v, dict):
             for nested_k, nested_v in v.items():
                 update_dict[f"{k}.{nested_k}"] = nested_v
+                # Detect transcription.full_text change
+                if k == "transcription" and nested_k == "full_text":
+                    old_text = old_doc.get("transcription", {}).get("full_text", "")
+                    if nested_v != old_text:
+                        transcription_changed = True
+                        logger.info(f"[Meeting ID: {meeting_id}] Transcription changed, will trigger re-analysis.")
         else:
             update_dict[k] = v
 
@@ -217,6 +225,12 @@ async def partial_update_meeting(db, meeting_id, update_data: MeetingPartialUpda
     )
 
     result = await update_meeting_fields(db, meeting_id, update_dict)
+
+    # Auto-trigger re-analysis if transcription was changed
+    if transcription_changed and result:
+        logger.info(f"[Meeting ID: {meeting_id}] Triggering automatic re-analysis after transcription edit.")
+        reanalyze_meeting.delay(meeting_id)
+
     return result
 
 

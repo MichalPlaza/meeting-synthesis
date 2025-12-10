@@ -17,6 +17,7 @@ from ...schemas.meeting_schema import MeetingCreate, MeetingResponse, MeetingUpd
     MeetingPartialUpdate, MeetingResponsePopulated
 from ...services import meeting_service
 from ...crud import crud_meetings, crud_projects
+from ...worker.tasks import reanalyze_meeting
 
 router = APIRouter(
     tags=["meetings"],
@@ -274,6 +275,55 @@ async def partial_update_meeting(
     if not updated:
         raise HTTPException(status_code=404, detail="Meeting not found")
     return updated
+
+
+@router.post("/{meeting_id}/reanalyze", response_model=MeetingResponse)
+async def reanalyze_meeting_endpoint(
+        meeting_id: str,
+        database: AsyncIOMotorDatabase = Depends(get_database),
+        current_user: User = Depends(get_current_user),
+):
+    """
+    Re-run AI analysis on existing transcription.
+
+    This endpoint triggers a background task to:
+    1. Re-analyze the existing transcription text with AI
+    2. Update summary, key topics, action items, decisions, and tags
+    3. Re-index the meeting to Elasticsearch
+
+    Requires existing transcription text.
+    """
+    logger.info(f"User {current_user.username} requesting re-analysis for meeting ID: {meeting_id}")
+
+    # Fetch meeting
+    meeting = await crud_meetings.get_meeting_by_id(database, meeting_id)
+    if not meeting:
+        logger.warning(f"Meeting with ID {meeting_id} not found")
+        raise HTTPException(status_code=404, detail="Meeting not found")
+
+    # Authorization check - user must have access to the meeting's project
+    if not await user_can_access_meeting(database, current_user, meeting):
+        logger.warning(f"User {current_user.username} denied access to meeting {meeting_id}")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have access to this meeting"
+        )
+
+    # Check if transcription exists
+    if not meeting.transcription or not meeting.transcription.full_text:
+        logger.warning(f"No transcription found for meeting ID: {meeting_id}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No transcription found. Cannot re-analyze without transcription."
+        )
+
+    # Trigger re-analysis task
+    reanalyze_meeting.delay(meeting_id)
+    logger.info(f"Re-analysis task queued for meeting ID: {meeting_id}")
+
+    # Return current meeting state (status will be updated by background task)
+    return meeting
+
 
 # Admin router without router-level dependencies
 admin_router = APIRouter(tags=["meetings-admin"])

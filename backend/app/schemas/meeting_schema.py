@@ -61,6 +61,7 @@ class MeetingResponse(MeetingBase):
     last_updated_at: datetime
     duration_seconds: int | None = None
     tags: list[str] = []
+    speaker_mappings: dict[str, str] = {}
     estimated_processing_time_seconds: int | None = None
 
 
@@ -122,6 +123,7 @@ class MeetingPartialUpdate(BaseModel):
     tags: Optional[List[str]] = None
     transcription: Optional[TranscriptionUpdate] = None
     ai_analysis: Optional[AiAnalysisUpdate] = None
+    speaker_mappings: Optional[dict[str, str]] = None  # Maps SPEAKER_00 -> "John Doe"
 
 class PopulatedInfo(BaseModel):
     id: Optional[PyObjectId] = Field(None, alias="_id")

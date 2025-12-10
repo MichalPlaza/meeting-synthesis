@@ -26,7 +26,8 @@ The JSON object must strictly adhere to the following structure. Pay close atten
   ],
   "mentioned_dates": [
     {{"text_mention": "Any mention of a specific date, deadline, or event (e.g., 'Q3 results', 'release on Monday')."}}
-  ]
+  ],
+  "tags": ["tag1", "tag2", "tag3"]
 }}
 
 Important rules for generating the JSON:
@@ -34,6 +35,12 @@ Important rules for generating the JSON:
 2.  For "mentioned_dates", only fill the `text_mention` field. The `parsed_date` field should not be in your output.
 3.  If a category (like "decisions_made") has no items, you MUST provide an empty list `[]`.
 4.  Ensure all specified keys are present in the final JSON object.
+5.  For "tags", generate 3-10 single-word or short-phrase tags that categorize the meeting content. Tags should capture:
+    - Technical domains (e.g., "frontend", "backend", "database", "devops")
+    - Project phases (e.g., "planning", "review", "retrospective", "deployment")
+    - Business areas (e.g., "budget", "hiring", "client-meeting", "sales")
+    - Specific technologies mentioned (e.g., "react", "kubernetes", "aws")
+    Use lowercase and hyphens for multi-word tags. Do not include the "#" symbol.
 
 Now, generate the JSON response based on the transcription provided.
 """

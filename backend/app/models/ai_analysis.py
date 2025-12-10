@@ -13,3 +13,4 @@ class AIAnalysis(BaseModel):
     action_items: list[ActionItem] | None = []
     decisions_made: list[DecisionMade] | None = []
     mentioned_dates: list[MentionedDate] | None = []
+    tags: list[str] | None = []  # Auto-generated tags from AI analysis
