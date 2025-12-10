@@ -9,14 +9,14 @@ Usage:
 
 import asyncio
 import sys
+import os
 import logging
 from pathlib import Path
 
-# Load environment variables BEFORE importing app modules
-from dotenv import load_dotenv
-
-env_path = Path(__file__).parent.parent / ".env"
-load_dotenv(env_path)
+# Force localhost for services when running from host machine
+# Must set BEFORE any imports that read these at module level
+os.environ["ELASTICSEARCH_URL"] = "http://localhost:9200"
+os.environ["MONGO_DETAILS"] = "mongodb://localhost:27017"
 
 # Add backend to path so we can import app modules
 backend_path = Path(__file__).parent.parent

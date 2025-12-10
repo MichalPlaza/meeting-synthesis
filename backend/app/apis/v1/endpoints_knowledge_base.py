@@ -279,13 +279,15 @@ async def _stream_chat_response(
     Yields:
         Server-Sent Events formatted response chunks.
     """
+    import json
+
     try:
         # Get query from either 'query' or 'message' field
         query = request.get_query()
         if not query:
-            yield f"data: {{'type': 'error', 'message': 'Either query or message field is required'}}\n\n"
+            yield f"data: {json.dumps({'type': 'error', 'message': 'Either query or message field is required'})}\n\n"
             return
-        
+
         # Get or create conversation
         conversation_id = request.conversation_id
         if not conversation_id:
@@ -297,10 +299,10 @@ async def _stream_chat_response(
                 title=title,
             )
             conversation_id = str(conversation.id)
-            
+
             # Send conversation ID first
-            yield f"data: {{'type': 'conversation_id', 'id': '{conversation_id}'}}\n\n"
-        
+            yield f"data: {json.dumps({'type': 'conversation_id', 'id': conversation_id})}\n\n"
+
         # Save user message
         await crud_knowledge_base.create_message(
             database=database,
@@ -310,11 +312,11 @@ async def _stream_chat_response(
             content=query,
             sources=[],
         )
-        
+
         # Stream response
         full_response = ""
         sources_list = []
-        
+
         async for chunk_data in generate_rag_response_stream(
             query=query,
             user_id=user_id,
@@ -337,22 +339,17 @@ async def _stream_chat_response(
                         for s in chunk_data["sources"]
                     ]
                     # Send sources to frontend
-                    import json
-                    sources_json = json.dumps(chunk_data["sources"])
-                    yield f"data: {{'type': 'sources', 'sources': {sources_json}}}\n\n"
+                    yield f"data: {json.dumps({'type': 'sources', 'sources': chunk_data['sources']})}\n\n"
                 elif "content" in chunk_data:
                     # Content chunk
                     content = chunk_data["content"]
                     full_response += content
-                    # Escape single quotes for JSON
-                    content_escaped = content.replace("'", "\\'").replace("\n", "\\n")
-                    yield f"data: {{'type': 'content', 'content': '{content_escaped}'}}\n\n"
+                    yield f"data: {json.dumps({'type': 'content', 'content': content})}\n\n"
             else:
                 # Plain string chunk
                 full_response += chunk_data
-                content_escaped = chunk_data.replace("'", "\\'").replace("\n", "\\n")
-                yield f"data: {{'type': 'content', 'content': '{content_escaped}'}}\n\n"
-        
+                yield f"data: {json.dumps({'type': 'content', 'content': chunk_data})}\n\n"
+
         # Save assistant message with sources
         await crud_knowledge_base.create_message(
             database=database,
@@ -362,12 +359,12 @@ async def _stream_chat_response(
             content=full_response,
             sources=sources_list,
         )
-        
-        yield "data: {'type': 'done'}\n\n"
-        
+
+        yield f"data: {json.dumps({'type': 'done'})}\n\n"
+
     except Exception as e:
         logger.error(f"Error streaming chat: {e}", exc_info=True)
-        yield f"data: {{'type': 'error', 'message': 'Stream failed'}}\n\n"
+        yield f"data: {json.dumps({'type': 'error', 'message': 'Stream failed'})}\n\n"
 
 
 @router.get("/conversations/{conversation_id}/messages", response_model=list[MessageResponse])

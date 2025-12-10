@@ -160,3 +160,251 @@ async def hybrid_search(
         raise
     finally:
         await client.close()
+
+
+class DashboardSearchResult:
+    """Search result with highlights for dashboard display."""
+
+    def __init__(self, hit: dict):
+        """Initialize from Elasticsearch hit."""
+        self._source = hit["_source"]
+        self._score = hit.get("_score", 0)
+        self._highlight = hit.get("highlight", {})
+
+    @property
+    def meeting_id(self) -> str:
+        return self._source["meeting_id"]
+
+    @property
+    def meeting_title(self) -> str:
+        return self._source["title"]
+
+    @property
+    def project_id(self) -> str:
+        return self._source.get("project_id", "")
+
+    @property
+    def tags(self) -> list[str]:
+        return self._source.get("tags", [])
+
+    @property
+    def meeting_datetime(self) -> str:
+        return self._source.get("meeting_datetime", "")
+
+    @property
+    def content_type(self) -> str:
+        return self._source.get("content_type", "")
+
+    @property
+    def score(self) -> float:
+        return self._score
+
+    @property
+    def highlights(self) -> list[str]:
+        """Get highlighted snippets."""
+        snippets = []
+        for field in ["content", "title"]:
+            if field in self._highlight:
+                snippets.extend(self._highlight[field])
+        return snippets[:3]  # Return top 3 snippets
+
+    def to_dict(self) -> dict:
+        """Convert to dictionary for JSON response."""
+        return {
+            "meeting_id": self.meeting_id,
+            "meeting_title": self.meeting_title,
+            "project_id": self.project_id,
+            "tags": self.tags,
+            "meeting_datetime": self.meeting_datetime,
+            "content_type": self.content_type,
+            "score": self.score,
+            "highlights": self.highlights,
+        }
+
+
+class SearchFacets:
+    """Facet counts for filtering."""
+
+    def __init__(self, aggregations: dict):
+        self._aggs = aggregations
+
+    @property
+    def projects(self) -> list[dict]:
+        """Get project facets with unique meeting counts."""
+        buckets = self._aggs.get("projects", {}).get("buckets", [])
+        return [
+            {
+                "id": b["key"],
+                "count": b.get("unique_meetings", {}).get("value", b["doc_count"])
+            }
+            for b in buckets
+        ]
+
+    @property
+    def tags(self) -> list[dict]:
+        """Get tag facets with unique meeting counts."""
+        buckets = self._aggs.get("tags", {}).get("buckets", [])
+        return [
+            {
+                "name": b["key"],
+                "count": b.get("unique_meetings", {}).get("value", b["doc_count"])
+            }
+            for b in buckets
+        ]
+
+    def to_dict(self) -> dict:
+        return {
+            "projects": self.projects,
+            "tags": self.tags,
+        }
+
+
+async def dashboard_search(
+    query: str,
+    user_id: str,
+    project_ids: list[str] | None = None,
+    tags: list[str] | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
+    page: int = 1,
+    page_size: int = 20,
+) -> tuple[list[DashboardSearchResult], int, SearchFacets]:
+    """Perform search with highlights and facets for dashboard.
+
+    Args:
+        query: Search query (can be empty for browse mode).
+        user_id: Filter to user's accessible documents.
+        project_ids: Filter by project IDs.
+        tags: Filter by tags.
+        date_from: Filter by start date (ISO format).
+        date_to: Filter by end date (ISO format).
+        page: Page number (1-indexed).
+        page_size: Results per page.
+
+    Returns:
+        Tuple of (results, total_count, facets).
+    """
+    client = get_elasticsearch_client()
+
+    try:
+        # Build filter clauses
+        filter_clauses = [{"term": {"user_id": user_id}}]
+
+        if project_ids:
+            filter_clauses.append({"terms": {"project_id": project_ids}})
+
+        if tags:
+            filter_clauses.append({"terms": {"tags": tags}})
+
+        if date_from or date_to:
+            date_range = {}
+            if date_from:
+                date_range["gte"] = date_from
+            if date_to:
+                date_range["lte"] = date_to
+            filter_clauses.append({"range": {"meeting_datetime": date_range}})
+
+        # Build query based on whether search term is provided
+        if query and query.strip():
+            # Generate embedding for semantic search
+            query_embedding = await generate_embedding(query)
+
+            search_query = {
+                "bool": {
+                    "filter": filter_clauses,
+                    "should": [
+                        {
+                            "script_score": {
+                                "query": {"match_all": {}},
+                                "script": {
+                                    "source": "cosineSimilarity(params.query_vector, 'embedding') + 1.0",
+                                    "params": {"query_vector": query_embedding},
+                                },
+                                "boost": 1.0,
+                            }
+                        },
+                        {
+                            "multi_match": {
+                                "query": query,
+                                "fields": ["title^3", "content^2", "tags^2"],
+                                "type": "best_fields",
+                                "boost": 1.0,
+                            }
+                        },
+                    ],
+                    "minimum_should_match": 1,
+                }
+            }
+        else:
+            # Browse mode - no search query, just filters
+            search_query = {
+                "bool": {
+                    "filter": filter_clauses,
+                }
+            }
+
+        # Calculate pagination
+        from_offset = (page - 1) * page_size
+
+        # Build full search body with highlighting and aggregations
+        search_body = {
+            "query": search_query,
+            "from": from_offset,
+            "size": page_size,
+            "sort": [
+                {"_score": {"order": "desc"}},
+                {"meeting_datetime": {"order": "desc"}},
+            ],
+            "highlight": {
+                "fields": {
+                    "content": {
+                        "fragment_size": 150,
+                        "number_of_fragments": 3,
+                        "pre_tags": ["<mark>"],
+                        "post_tags": ["</mark>"],
+                    },
+                    "title": {
+                        "fragment_size": 100,
+                        "number_of_fragments": 1,
+                        "pre_tags": ["<mark>"],
+                        "post_tags": ["</mark>"],
+                    },
+                },
+            },
+            "aggs": {
+                "projects": {
+                    "terms": {"field": "project_id", "size": 50},
+                    "aggs": {
+                        "unique_meetings": {
+                            "cardinality": {"field": "meeting_id"}
+                        }
+                    }
+                },
+                "tags": {
+                    "terms": {"field": "tags", "size": 100},
+                    "aggs": {
+                        "unique_meetings": {
+                            "cardinality": {"field": "meeting_id"}
+                        }
+                    }
+                },
+            },
+        }
+
+        # Execute search
+        logger.debug(f"Executing dashboard search: query='{query[:30] if query else '(empty)'}', page={page}")
+        response = await client.search(index=ELASTICSEARCH_INDEX, body=search_body)
+
+        # Parse results
+        results = [DashboardSearchResult(hit) for hit in response["hits"]["hits"]]
+        total_count = response["hits"]["total"]["value"]
+        facets = SearchFacets(response.get("aggregations", {}))
+
+        logger.info(f"Dashboard search returned {len(results)} of {total_count} results")
+        return results, total_count, facets
+
+    except Exception as e:
+        logger.error(f"Dashboard search failed: {e}", exc_info=True)
+        raise
+    finally:
+        await client.close()
