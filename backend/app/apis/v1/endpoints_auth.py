@@ -10,6 +10,7 @@ from ...schemas.user_schema import (
     PasswordResetRequest, PasswordResetConfirm, PasswordResetResponse
 )
 from ...services import user_service, security
+from ...services.email_service import send_password_reset_email, is_email_configured
 from ...crud import crud_users
 
 router = APIRouter()
@@ -103,12 +104,20 @@ async def request_password_reset(
     token = await user_service.create_password_reset_token(database, reset_request.email)
 
     # Always return success for security (don't reveal if email exists)
-    # In production, you would send an email with the reset link here
     if token:
         logger.info(f"Password reset token generated for: {reset_request.email}")
-        # TODO: Send email with reset link containing the token
-        # For now, we log the token (remove in production!)
-        logger.debug(f"Reset token (remove in production): {token}")
+
+        # Send password reset email
+        if is_email_configured():
+            email_sent = await send_password_reset_email(reset_request.email, token)
+            if email_sent:
+                logger.info(f"Password reset email sent to: {reset_request.email}")
+            else:
+                logger.error(f"Failed to send password reset email to: {reset_request.email}")
+        else:
+            # Development mode: log the token for testing
+            logger.warning("Email not configured. Token for testing:")
+            logger.warning(f"Reset token: {token}")
 
     return PasswordResetResponse(
         message="If the email exists, a password reset link has been sent.",

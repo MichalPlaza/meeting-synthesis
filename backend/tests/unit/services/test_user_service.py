@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
-from datetime import datetime, UTC
+from datetime import datetime, timedelta, UTC
 from bson import ObjectId
 
 from fastapi import HTTPException
@@ -224,3 +224,165 @@ class TestUserToResponse:
         # UserResponse should not have hashed_password attribute
         result_dict = result.model_dump()
         assert "hashed_password" not in result_dict
+
+
+@pytest.mark.asyncio
+class TestPasswordReset:
+    """Tests for password reset functionality."""
+
+    async def test_create_password_reset_token_success(self):
+        """Test successful password reset token creation."""
+        db_mock = AsyncMock()
+
+        user_mock = MagicMock()
+        user_mock.email = "test@example.com"
+
+        # Mock the collection operations
+        collection_mock = AsyncMock()
+        collection_mock.update_many = AsyncMock()
+        collection_mock.insert_one = AsyncMock()
+        db_mock.__getitem__ = MagicMock(return_value=collection_mock)
+
+        with patch("app.services.user_service.crud_users.get_user_by_email",
+                   new=AsyncMock(return_value=user_mock)):
+            result = await user_service.create_password_reset_token(db_mock, "test@example.com")
+
+        assert result is not None
+        assert isinstance(result, str)
+        assert len(result) > 20  # Token should be reasonably long
+
+    async def test_create_password_reset_token_nonexistent_email(self):
+        """Test that nonexistent email returns None."""
+        db_mock = AsyncMock()
+
+        with patch("app.services.user_service.crud_users.get_user_by_email",
+                   new=AsyncMock(return_value=None)):
+            result = await user_service.create_password_reset_token(db_mock, "nonexistent@example.com")
+
+        assert result is None
+
+    async def test_verify_password_reset_token_success(self):
+        """Test successful token verification."""
+        db_mock = AsyncMock()
+
+        token_record = {
+            "email": "test@example.com",
+            "token": "valid-token",
+            "used": False,
+            "expires_at": datetime.now(UTC) + timedelta(hours=1)
+        }
+
+        collection_mock = AsyncMock()
+        collection_mock.find_one = AsyncMock(return_value=token_record)
+        db_mock.__getitem__ = MagicMock(return_value=collection_mock)
+
+        result = await user_service.verify_password_reset_token(db_mock, "valid-token")
+
+        assert result == "test@example.com"
+
+    async def test_verify_password_reset_token_expired(self):
+        """Test that expired token returns None."""
+        db_mock = AsyncMock()
+
+        # find_one returns None for expired/invalid tokens
+        collection_mock = AsyncMock()
+        collection_mock.find_one = AsyncMock(return_value=None)
+        db_mock.__getitem__ = MagicMock(return_value=collection_mock)
+
+        result = await user_service.verify_password_reset_token(db_mock, "expired-token")
+
+        assert result is None
+
+    async def test_verify_password_reset_token_used(self):
+        """Test that already used token returns None."""
+        db_mock = AsyncMock()
+
+        collection_mock = AsyncMock()
+        collection_mock.find_one = AsyncMock(return_value=None)  # used=True filtered out
+        db_mock.__getitem__ = MagicMock(return_value=collection_mock)
+
+        result = await user_service.verify_password_reset_token(db_mock, "used-token")
+
+        assert result is None
+
+    async def test_reset_password_success(self):
+        """Test successful password reset."""
+        db_mock = AsyncMock()
+
+        token_record = {
+            "email": "test@example.com",
+            "token": "valid-token",
+            "used": False,
+            "expires_at": datetime.now(UTC) + timedelta(hours=1)
+        }
+
+        # Mock collection operations
+        tokens_collection = AsyncMock()
+        tokens_collection.find_one = AsyncMock(return_value=token_record)
+        tokens_collection.update_one = AsyncMock()
+
+        users_collection = AsyncMock()
+        users_collection.update_one = AsyncMock(return_value=MagicMock(modified_count=1))
+
+        def get_collection(name):
+            if name == "password_reset_tokens":
+                return tokens_collection
+            elif name == "users":
+                return users_collection
+            return AsyncMock()
+
+        db_mock.__getitem__ = MagicMock(side_effect=get_collection)
+
+        result = await user_service.reset_password(db_mock, "valid-token", "newpassword123")
+
+        assert result is True
+        tokens_collection.update_one.assert_awaited_once()
+        users_collection.update_one.assert_awaited_once()
+
+    async def test_reset_password_invalid_token(self):
+        """Test password reset with invalid token returns False."""
+        db_mock = AsyncMock()
+
+        collection_mock = AsyncMock()
+        collection_mock.find_one = AsyncMock(return_value=None)
+        db_mock.__getitem__ = MagicMock(return_value=collection_mock)
+
+        result = await user_service.reset_password(db_mock, "invalid-token", "newpassword123")
+
+        assert result is False
+
+    async def test_reset_password_invalidates_token(self):
+        """Test that password reset marks the token as used."""
+        db_mock = AsyncMock()
+
+        token_record = {
+            "email": "test@example.com",
+            "token": "valid-token",
+            "used": False,
+            "expires_at": datetime.now(UTC) + timedelta(hours=1)
+        }
+
+        tokens_collection = AsyncMock()
+        tokens_collection.find_one = AsyncMock(return_value=token_record)
+        tokens_collection.update_one = AsyncMock()
+
+        users_collection = AsyncMock()
+        users_collection.update_one = AsyncMock(return_value=MagicMock(modified_count=1))
+
+        def get_collection(name):
+            if name == "password_reset_tokens":
+                return tokens_collection
+            elif name == "users":
+                return users_collection
+            return AsyncMock()
+
+        db_mock.__getitem__ = MagicMock(side_effect=get_collection)
+
+        await user_service.reset_password(db_mock, "valid-token", "newpassword123")
+
+        # Verify token was marked as used
+        tokens_collection.update_one.assert_awaited_once()
+        call_args = tokens_collection.update_one.call_args
+        assert call_args[0][0] == {"token": "valid-token"}
+        assert "$set" in call_args[0][1]
+        assert call_args[0][1]["$set"]["used"] is True
