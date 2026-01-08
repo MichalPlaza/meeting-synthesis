@@ -99,3 +99,21 @@ class TokenData(BaseModel):
 
 class RefreshTokenRequest(BaseModel):
     refresh_token: str
+
+
+# ===== PASSWORD RESET SCHEMAS =====
+class PasswordResetRequest(BaseModel):
+    """Request to initiate password reset."""
+    email: EmailStr
+
+
+class PasswordResetConfirm(BaseModel):
+    """Request to confirm password reset with new password."""
+    token: str
+    new_password: str = Field(min_length=8)
+
+
+class PasswordResetResponse(BaseModel):
+    """Response for password reset operations."""
+    message: str
+    success: bool

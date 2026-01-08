@@ -124,20 +124,28 @@ function LoginPage() {
                 control={form.control}
                 name="remember_me"
                 render={({ field }) => (
-                  <FormItem className="flex flex-row items-center space-x-2 pt-2">
-                    <FormControl>
-                      <Checkbox
-                        id="remember-me-checkbox"
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <FormLabel
-                      htmlFor="remember-me-checkbox"
-                      className="text-sm font-normal text-muted-foreground hover:cursor-pointer"
+                  <FormItem className="flex flex-row items-center justify-between pt-2">
+                    <div className="flex items-center space-x-2">
+                      <FormControl>
+                        <Checkbox
+                          id="remember-me-checkbox"
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormLabel
+                        htmlFor="remember-me-checkbox"
+                        className="text-sm font-normal text-muted-foreground hover:cursor-pointer"
+                      >
+                        Remember me
+                      </FormLabel>
+                    </div>
+                    <Link
+                      to="/forgot-password"
+                      className="text-sm text-muted-foreground hover:text-foreground hover:underline"
                     >
-                      Remember me
-                    </FormLabel>
+                      Forgot password?
+                    </Link>
                   </FormItem>
                 )}
               />

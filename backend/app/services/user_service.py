@@ -1,9 +1,11 @@
 """User service for authentication and user management.
 
-Handles user registration, authentication, approval, and access control.
+Handles user registration, authentication, approval, access control, and password reset.
 """
 
 import logging
+import secrets
+from datetime import datetime, timedelta, UTC
 from typing import Optional
 
 from bson import ObjectId
@@ -11,9 +13,13 @@ from fastapi import HTTPException, status
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from ..crud import crud_users
-from ..models.user import UserRole, User
+from ..models.user import UserRole, User, PasswordResetToken
 from ..schemas.user_schema import Token, UserCreate, UserLogin, UserResponse
-from ..services.security import create_access_token, create_refresh_token, verify_password
+from ..services.security import create_access_token, create_refresh_token, verify_password, get_password_hash
+
+# Password reset token expiration time
+RESET_TOKEN_EXPIRE_HOURS = 1
+PASSWORD_RESET_COLLECTION = "password_reset_tokens"
 
 logger = logging.getLogger(__name__)
 
@@ -324,3 +330,126 @@ async def get_users_by_roles(database: AsyncIOMotorDatabase, roles: list[str]) -
     """
     users = await crud_users.get_users_by_roles(database, roles)
     return [user_to_response(u) for u in users]
+
+
+# ===== PASSWORD RESET FUNCTIONS =====
+
+async def create_password_reset_token(database: AsyncIOMotorDatabase, email: str) -> str | None:
+    """Generate a password reset token for a user.
+
+    Args:
+        database: MongoDB database instance.
+        email: User's email address.
+
+    Returns:
+        Reset token string if user exists, None otherwise.
+    """
+    logger.info(f"Creating password reset token for email: {email}")
+
+    # Check if user exists
+    user = await crud_users.get_user_by_email(database, email)
+    if not user:
+        logger.warning(f"Password reset requested for non-existent email: {email}")
+        return None
+
+    # Generate secure token
+    token = secrets.token_urlsafe(32)
+    expires_at = datetime.now(UTC) + timedelta(hours=RESET_TOKEN_EXPIRE_HOURS)
+
+    # Invalidate any existing tokens for this email
+    await database[PASSWORD_RESET_COLLECTION].update_many(
+        {"email": email, "used": False},
+        {"$set": {"used": True}}
+    )
+
+    # Create new token
+    reset_token = PasswordResetToken(
+        email=email,
+        token=token,
+        expires_at=expires_at,
+        used=False
+    )
+
+    await database[PASSWORD_RESET_COLLECTION].insert_one(
+        reset_token.model_dump(by_alias=True)
+    )
+
+    logger.info(f"Password reset token created for email: {email}")
+    return token
+
+
+async def verify_password_reset_token(database: AsyncIOMotorDatabase, token: str) -> str | None:
+    """Verify a password reset token and return the associated email.
+
+    Args:
+        database: MongoDB database instance.
+        token: Reset token to verify.
+
+    Returns:
+        Email address if token is valid, None otherwise.
+    """
+    logger.info("Verifying password reset token")
+
+    record = await database[PASSWORD_RESET_COLLECTION].find_one({
+        "token": token,
+        "used": False,
+        "expires_at": {"$gt": datetime.now(UTC)}
+    })
+
+    if not record:
+        logger.warning("Invalid or expired password reset token")
+        return None
+
+    logger.info(f"Password reset token verified for email: {record['email']}")
+    return record["email"]
+
+
+async def reset_password(
+    database: AsyncIOMotorDatabase,
+    token: str,
+    new_password: str
+) -> bool:
+    """Reset a user's password using a valid token.
+
+    Args:
+        database: MongoDB database instance.
+        token: Valid reset token.
+        new_password: New password to set.
+
+    Returns:
+        True if password was reset, False otherwise.
+    """
+    logger.info("Attempting to reset password with token")
+
+    # Verify token
+    email = await verify_password_reset_token(database, token)
+    if not email:
+        logger.warning("Password reset failed: invalid token")
+        return False
+
+    # Hash new password
+    hashed_password = get_password_hash(new_password)
+
+    # Update user's password
+    result = await database["users"].update_one(
+        {"email": email},
+        {
+            "$set": {
+                "hashed_password": hashed_password,
+                "updated_at": datetime.now(UTC)
+            }
+        }
+    )
+
+    if result.modified_count == 0:
+        logger.error(f"Failed to update password for email: {email}")
+        return False
+
+    # Mark token as used
+    await database[PASSWORD_RESET_COLLECTION].update_one(
+        {"token": token},
+        {"$set": {"used": True}}
+    )
+
+    logger.info(f"Password reset successfully for email: {email}")
+    return True

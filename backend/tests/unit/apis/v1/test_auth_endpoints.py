@@ -207,3 +207,144 @@ class TestAuthEndpoints:
                 await refresh_access_token(request, database=self.mock_db)
             assert exc.value.status_code == status.HTTP_401_UNAUTHORIZED
             assert "User not found" in str(exc.value.detail)
+
+    # ---------------- PASSWORD RESET REQUEST ----------------
+    async def test_request_password_reset_success(self):
+        """Test password reset request returns success even when email exists."""
+        from app.main import app
+
+        with patch("app.apis.v1.endpoints_auth.user_service.create_password_reset_token", new_callable=AsyncMock) as mock_create, \
+             patch("app.apis.v1.endpoints_auth.is_email_configured", return_value=False), \
+             patch("app.db.mongodb_utils.get_database", return_value=self.mock_db):
+            mock_create.return_value = "test-reset-token"
+
+            client = TestClient(app)
+            response = client.post(
+                "/auth/password-reset/request",
+                json={"email": "test@example.com"}
+            )
+
+            assert response.status_code == 200
+            data = response.json()
+            assert data["success"] is True
+            assert "email" in data["message"].lower() or "sent" in data["message"].lower()
+            mock_create.assert_awaited_once()
+
+    async def test_request_password_reset_nonexistent_email_still_returns_success(self):
+        """Test password reset request returns success even for nonexistent email (security)."""
+        from app.main import app
+
+        with patch("app.apis.v1.endpoints_auth.user_service.create_password_reset_token", new_callable=AsyncMock) as mock_create, \
+             patch("app.apis.v1.endpoints_auth.is_email_configured", return_value=False), \
+             patch("app.db.mongodb_utils.get_database", return_value=self.mock_db):
+            mock_create.return_value = None  # User doesn't exist
+
+            client = TestClient(app)
+            response = client.post(
+                "/auth/password-reset/request",
+                json={"email": "nonexistent@example.com"}
+            )
+
+            # Should still return success for security (don't reveal if email exists)
+            assert response.status_code == 200
+            data = response.json()
+            assert data["success"] is True
+            mock_create.assert_awaited_once()
+
+    async def test_request_password_reset_sends_email(self):
+        """Test password reset request sends email when configured."""
+        from app.main import app
+
+        with patch("app.apis.v1.endpoints_auth.user_service.create_password_reset_token", new_callable=AsyncMock) as mock_create, \
+             patch("app.apis.v1.endpoints_auth.is_email_configured", return_value=True), \
+             patch("app.apis.v1.endpoints_auth.send_password_reset_email", new_callable=AsyncMock) as mock_send, \
+             patch("app.db.mongodb_utils.get_database", return_value=self.mock_db):
+            mock_create.return_value = "test-reset-token"
+            mock_send.return_value = True
+
+            client = TestClient(app)
+            response = client.post(
+                "/auth/password-reset/request",
+                json={"email": "test@example.com"}
+            )
+
+            assert response.status_code == 200
+            mock_send.assert_awaited_once_with("test@example.com", "test-reset-token")
+
+    # ---------------- PASSWORD RESET CONFIRM ----------------
+    async def test_confirm_password_reset_success(self):
+        """Test successful password reset confirmation."""
+        from app.main import app
+
+        with patch("app.apis.v1.endpoints_auth.user_service.reset_password", new_callable=AsyncMock) as mock_reset, \
+             patch("app.db.mongodb_utils.get_database", return_value=self.mock_db):
+            mock_reset.return_value = True
+
+            client = TestClient(app)
+            response = client.post(
+                "/auth/password-reset/confirm",
+                json={
+                    "token": "valid-reset-token",
+                    "new_password": "newpassword123"
+                }
+            )
+
+            assert response.status_code == 200
+            data = response.json()
+            assert data["success"] is True
+            assert "reset" in data["message"].lower() or "success" in data["message"].lower()
+            mock_reset.assert_awaited_once()
+
+    async def test_confirm_password_reset_invalid_token(self):
+        """Test password reset confirmation fails with invalid token."""
+        from app.main import app
+
+        with patch("app.apis.v1.endpoints_auth.user_service.reset_password", new_callable=AsyncMock) as mock_reset, \
+             patch("app.db.mongodb_utils.get_database", return_value=self.mock_db):
+            mock_reset.return_value = False
+
+            client = TestClient(app)
+            response = client.post(
+                "/auth/password-reset/confirm",
+                json={
+                    "token": "invalid-token",
+                    "new_password": "newpassword123"
+                }
+            )
+
+            assert response.status_code == 400
+            assert "invalid" in response.json()["detail"].lower() or "expired" in response.json()["detail"].lower()
+
+    # ---------------- PASSWORD RESET VERIFY TOKEN ----------------
+    async def test_verify_reset_token_success(self):
+        """Test successful token verification."""
+        from app.main import app
+
+        with patch("app.apis.v1.endpoints_auth.user_service.verify_password_reset_token", new_callable=AsyncMock) as mock_verify, \
+             patch("app.db.mongodb_utils.get_database", return_value=self.mock_db):
+            mock_verify.return_value = "test@example.com"
+
+            client = TestClient(app)
+            response = client.get("/auth/password-reset/verify/valid-token")
+
+            assert response.status_code == 200
+            data = response.json()
+            assert data["success"] is True
+            mock_verify.assert_awaited_once()
+            # Verify the token argument was passed correctly
+            call_args = mock_verify.call_args
+            assert call_args[0][1] == "valid-token"  # Second positional arg is token
+
+    async def test_verify_reset_token_invalid(self):
+        """Test token verification fails for invalid token."""
+        from app.main import app
+
+        with patch("app.apis.v1.endpoints_auth.user_service.verify_password_reset_token", new_callable=AsyncMock) as mock_verify, \
+             patch("app.db.mongodb_utils.get_database", return_value=self.mock_db):
+            mock_verify.return_value = None
+
+            client = TestClient(app)
+            response = client.get("/auth/password-reset/verify/invalid-token")
+
+            assert response.status_code == 400
+            assert "invalid" in response.json()["detail"].lower() or "expired" in response.json()["detail"].lower()

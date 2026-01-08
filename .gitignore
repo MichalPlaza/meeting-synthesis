@@ -102,3 +102,12 @@ collect_source_code.sh
 
 .github/
 /backend/logs/
+
+# Personal/generated files
+5-20min/
+*_CODE_DUMP*.txt
+source_code_dump.txt
+*.archive
+thesis.tex
+toadd.tex
+references.bib

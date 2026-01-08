@@ -30,3 +30,19 @@ class User(BaseModel):
     can_edit: bool = False
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+
+
+class PasswordResetToken(BaseModel):
+    """Model for password reset tokens stored in MongoDB."""
+
+    model_config = ConfigDict(
+        populate_by_name=True,
+        arbitrary_types_allowed=True
+    )
+
+    id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
+    email: str
+    token: str
+    expires_at: datetime
+    used: bool = False
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
