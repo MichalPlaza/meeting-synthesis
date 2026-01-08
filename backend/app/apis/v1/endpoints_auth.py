@@ -5,7 +5,10 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 
 from ...db.mongodb_utils import get_database
-from ...schemas.user_schema import Token, UserCreate, UserLogin, UserResponse, RefreshTokenRequest
+from ...schemas.user_schema import (
+    Token, UserCreate, UserLogin, UserResponse, RefreshTokenRequest,
+    PasswordResetRequest, PasswordResetConfirm, PasswordResetResponse
+)
 from ...services import user_service, security
 from ...crud import crud_users
 
@@ -81,3 +84,91 @@ async def refresh_access_token(
     logger.info(f"Successfully refreshed access token for user: {user.username}")
 
     return Token(access_token=new_access_token, token_type="bearer")
+
+
+@router.post("/password-reset/request", response_model=PasswordResetResponse)
+@limiter.limit("3/minute")
+async def request_password_reset(
+    request: Request,
+    reset_request: PasswordResetRequest,
+    database: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """Request a password reset token.
+
+    Generates a reset token valid for 1 hour and returns success message.
+    For security, always returns success even if email doesn't exist.
+    """
+    logger.info(f"Password reset requested for email: {reset_request.email}")
+
+    token = await user_service.create_password_reset_token(database, reset_request.email)
+
+    # Always return success for security (don't reveal if email exists)
+    # In production, you would send an email with the reset link here
+    if token:
+        logger.info(f"Password reset token generated for: {reset_request.email}")
+        # TODO: Send email with reset link containing the token
+        # For now, we log the token (remove in production!)
+        logger.debug(f"Reset token (remove in production): {token}")
+
+    return PasswordResetResponse(
+        message="If the email exists, a password reset link has been sent.",
+        success=True
+    )
+
+
+@router.post("/password-reset/confirm", response_model=PasswordResetResponse)
+@limiter.limit("5/minute")
+async def confirm_password_reset(
+    request: Request,
+    reset_confirm: PasswordResetConfirm,
+    database: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """Reset password using a valid token.
+
+    Verifies the token and updates the user's password.
+    """
+    logger.info("Password reset confirmation attempt")
+
+    success = await user_service.reset_password(
+        database,
+        reset_confirm.token,
+        reset_confirm.new_password
+    )
+
+    if not success:
+        logger.warning("Password reset failed: invalid or expired token")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset token"
+        )
+
+    logger.info("Password reset successful")
+    return PasswordResetResponse(
+        message="Password has been reset successfully.",
+        success=True
+    )
+
+
+@router.get("/password-reset/verify/{token}", response_model=PasswordResetResponse)
+async def verify_reset_token(
+    token: str,
+    database: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """Verify if a reset token is valid.
+
+    Used by frontend to check token before showing reset form.
+    """
+    logger.info("Verifying password reset token")
+
+    email = await user_service.verify_password_reset_token(database, token)
+
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset token"
+        )
+
+    return PasswordResetResponse(
+        message="Token is valid",
+        success=True
+    )
