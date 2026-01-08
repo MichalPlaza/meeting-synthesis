@@ -9,7 +9,13 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from typing import List
 
 from ...auth_dependencies import get_current_user
-from ...core.permissions import require_approval, require_edit_permission
+from ...core.permissions import (
+    require_approval,
+    require_edit_permission,
+    get_user_accessible_project_ids,
+    user_can_access_meeting,
+    user_can_access_project,
+)
 from ...db.mongodb_utils import get_database
 from ...models.enums.processing_mode import ProcessingMode
 from ...models.user import User
@@ -67,36 +73,21 @@ def safe_file_path(base_dir: pathlib.Path, filename: str) -> pathlib.Path:
     return file_path
 
 
-async def user_can_access_meeting(
-    database: AsyncIOMotorDatabase,
-    user: User,
-    meeting
-) -> bool:
-    """
-    Check if user has access to a meeting based on project membership.
-
-    Admin users have access to all meetings.
-    Other users must be members of the meeting's project.
-    """
-    # Admins can access everything
-    if user.role == "admin":
-        return True
-
-    # Check if user is member of the meeting's project
-    project = await crud_projects.get_project_by_id(database, str(meeting.project_id))
-    if not project:
-        return False
-
-    # Check if user is in project members
-    user_id_str = str(user.id)
-    return user_id_str in [str(m) for m in project.members]
-
-
 @router.post("/", response_model=MeetingResponse, status_code=status.HTTP_201_CREATED)
 async def create_meeting(
-        meeting_in: MeetingCreate, database: AsyncIOMotorDatabase = Depends(get_database)
+        meeting_in: MeetingCreate,
+        database: AsyncIOMotorDatabase = Depends(get_database),
+        current_user: User = Depends(get_current_user),
 ):
-    logger.info(f"Creating new meeting: {meeting_in.title}")
+    logger.info(f"User {current_user.username} creating new meeting: {meeting_in.title}")
+
+    # Check project access
+    if not await user_can_access_project(database, current_user, str(meeting_in.project_id)):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have access to this project"
+        )
+
     meeting = await meeting_service.create_new_meeting(database, meeting_in)
     logger.info(f"Successfully created meeting with ID: {meeting.id}")
     return meeting
@@ -108,23 +99,34 @@ async def list_meetings(
         project_ids: List[str] = Query(None, description="List of project IDs to filter by"),
         tags: List[str] = Query(None, description="List of tags to filter by"),
         sort_by: str = Query("newest", description="Sort order"),
-        database: AsyncIOMotorDatabase = Depends(get_database)
+        database: AsyncIOMotorDatabase = Depends(get_database),
+        current_user: User = Depends(get_current_user),
 ):
-    logger.info(f"Listing meetings with query: {query}, project_ids: {project_ids}, tags: {tags}, sort_by: {sort_by}")
+    logger.info(f"User {current_user.username} listing meetings with query: {query}, project_ids: {project_ids}, tags: {tags}, sort_by: {sort_by}")
 
-    if project_ids is not None and len(project_ids) == 0:
+    # Get user's accessible projects
+    accessible_project_ids = await get_user_accessible_project_ids(database, current_user)
+
+    if not accessible_project_ids:
         logger.info("User has no projects assigned -> returning empty meeting list.")
         return []
 
-    if project_ids is None:
-        logger.info("No project_ids provided -> returning empty meeting list.")
-        return []
+    # If project_ids provided, filter to only accessible ones
+    if project_ids:
+        filtered_project_ids = [pid for pid in project_ids if pid in accessible_project_ids]
+        if not filtered_project_ids:
+            logger.info("None of requested projects are accessible to user")
+            return []
+        project_ids = filtered_project_ids
+    else:
+        # Use all accessible projects
+        project_ids = accessible_project_ids
 
     meetings = await meeting_service.get_meetings_with_filters(
         database=database, q=query, project_ids=project_ids, tags=tags, sort_by=sort_by
     )
 
-    logger.info(f"Found {len(meetings)} meetings")
+    logger.info(f"Found {len(meetings)} meetings for user {current_user.username}")
     return meetings
 
 
@@ -139,8 +141,17 @@ async def upload_meeting_with_file(
         processing_mode_selected: ProcessingMode = Form(ProcessingMode.LOCAL),
         language: str = Form("pl"),
         database: AsyncIOMotorDatabase = Depends(get_database),
+        current_user: User = Depends(get_current_user),
 ):
-    logger.info(f"Uploading meeting '{title}' with file: {file.filename}")
+    logger.info(f"User {current_user.username} uploading meeting '{title}' with file: {file.filename}")
+
+    # Check project access
+    if not await user_can_access_project(database, current_user, project_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have access to upload to this project"
+        )
+
     form_data = MeetingCreateForm(
         title=title,
         meeting_datetime=meeting_datetime,
@@ -158,22 +169,42 @@ async def upload_meeting_with_file(
 
 @router.get("/{meeting_id}", response_model=MeetingResponse)
 async def get_meeting(
-        meeting_id: str, database: AsyncIOMotorDatabase = Depends(get_database)
+        meeting_id: str,
+        database: AsyncIOMotorDatabase = Depends(get_database),
+        current_user: User = Depends(get_current_user),
 ):
-    logger.info(f"Fetching meeting with ID: {meeting_id}")
+    logger.info(f"User {current_user.username} fetching meeting with ID: {meeting_id}")
     meeting = await meeting_service.get_meeting(database, meeting_id)
     if not meeting:
         logger.warning(f"Meeting with ID {meeting_id} not found")
         raise HTTPException(status_code=404, detail="Meeting not found")
+
+    # Check project membership
+    if not await user_can_access_meeting(database, current_user, meeting):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have access to this meeting"
+        )
+
     logger.info(f"Successfully fetched meeting with ID: {meeting_id}")
     return meeting
 
 
 @router.get("/project/{project_id}", response_model=list[MeetingResponse])
 async def meetings_by_project(
-        project_id: str, database: AsyncIOMotorDatabase = Depends(get_database)
+        project_id: str,
+        database: AsyncIOMotorDatabase = Depends(get_database),
+        current_user: User = Depends(get_current_user),
 ):
-    logger.info(f"Fetching meetings for project with ID: {project_id}")
+    logger.info(f"User {current_user.username} fetching meetings for project with ID: {project_id}")
+
+    # Check project membership
+    if not await user_can_access_project(database, current_user, project_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have access to this project"
+        )
+
     meetings = await meeting_service.get_meetings_for_project(database, project_id)
     logger.info(f"Found {len(meetings)} meetings for project with ID: {project_id}")
     return meetings
@@ -184,8 +215,22 @@ async def update_meeting(
         meeting_id: str,
         update_data: MeetingUpdate,
         database: AsyncIOMotorDatabase = Depends(get_database),
+        current_user: User = Depends(get_current_user),
 ):
-    logger.info(f"Updating meeting with ID: {meeting_id}")
+    logger.info(f"User {current_user.username} updating meeting with ID: {meeting_id}")
+
+    # Fetch meeting first to check access
+    meeting = await crud_meetings.get_meeting_by_id(database, meeting_id)
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+
+    # Check project membership
+    if not await user_can_access_meeting(database, current_user, meeting):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have access to this meeting"
+        )
+
     updated = await meeting_service.update_existing_meeting(database, meeting_id, update_data)
     if not updated:
         logger.warning(f"Meeting with ID {meeting_id} not found or not updated")
@@ -196,9 +241,24 @@ async def update_meeting(
 
 @router.delete("/{meeting_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_meeting(
-        meeting_id: str, database: AsyncIOMotorDatabase = Depends(get_database)
+        meeting_id: str,
+        database: AsyncIOMotorDatabase = Depends(get_database),
+        current_user: User = Depends(get_current_user),
 ):
-    logger.info(f"Deleting meeting with ID: {meeting_id}")
+    logger.info(f"User {current_user.username} deleting meeting with ID: {meeting_id}")
+
+    # Fetch meeting first to check access
+    meeting = await crud_meetings.get_meeting_by_id(database, meeting_id)
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+
+    # Check project membership
+    if not await user_can_access_meeting(database, current_user, meeting):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have access to this meeting"
+        )
+
     deleted = await meeting_service.delete_existing_meeting(database, meeting_id)
     if not deleted:
         logger.warning(f"Meeting with ID {meeting_id} not found for deletion")
@@ -270,6 +330,19 @@ async def partial_update_meeting(
         database: AsyncIOMotorDatabase = Depends(get_database),
         user: User = Depends(get_current_user),
 ):
+    logger.info(f"User {user.username} partial updating meeting with ID: {meeting_id}")
+
+    # Fetch meeting first to check access
+    meeting = await crud_meetings.get_meeting_by_id(database, meeting_id)
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+
+    # Check project membership
+    if not await user_can_access_meeting(database, user, meeting):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have access to this meeting"
+        )
 
     updated = await meeting_service.partial_update_meeting(database, meeting_id, update_data, user)
     if not updated:
@@ -297,6 +370,13 @@ async def merge_speakers(
     meeting = await crud_meetings.get_meeting_by_id(database, meeting_id)
     if not meeting:
         raise HTTPException(status_code=404, detail="Meeting not found")
+
+    # Check project membership
+    if not await user_can_access_meeting(database, current_user, meeting):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have access to this meeting"
+        )
 
     # Check if meeting has segments
     if not meeting.transcription or not meeting.transcription.segments:

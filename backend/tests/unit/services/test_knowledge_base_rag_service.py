@@ -126,7 +126,7 @@ class TestRAGGeneration:
         # Execute
         response = await generate_rag_response(
             query="What was discussed?",
-            user_id="user_123"
+            project_ids=["proj_1"]
         )
 
         # Verify
@@ -147,10 +147,10 @@ class TestRAGGeneration:
         mock_ollama.return_value = mock_client
         
         filters = FilterContext(project_ids=["proj_1"], tags=["sprint"])
-        
+
         await generate_rag_response(
             query="What happened?",
-            user_id="user_123",
+            project_ids=["proj_1", "proj_2"],
             filters=filters
         )
         
@@ -172,7 +172,7 @@ class TestRAGGeneration:
         
         response = await generate_rag_response(
             query="Nonexistent topic",
-            user_id="user_123"
+            project_ids=["proj_1"]
         )
         
         assert response is not None
@@ -186,7 +186,7 @@ class TestRAGGeneration:
         with pytest.raises(Exception, match="Search failed"):
             await generate_rag_response(
                 query="Test query",
-                user_id="user_123"
+                project_ids=["proj_1"]
             )
 
 
@@ -230,7 +230,7 @@ class TestRAGStreaming:
         chunks = []
         async for chunk in generate_rag_response_stream(
             query="Test query",
-            user_id="user_123"
+            project_ids=["proj_1"]
         ):
             chunks.append(chunk)
         
@@ -269,7 +269,7 @@ class TestRAGStreaming:
 
         async for chunk_data in generate_rag_response_stream(
             query="Test query",
-            user_id="user_123",
+            project_ids=["proj_1"],
             include_sources=True
         ):
             if isinstance(chunk_data, dict):
