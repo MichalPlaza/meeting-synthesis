@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field, ConfigDict
 
 from app.db.mongodb_utils import get_database
 from app.auth_dependencies import get_current_user
+from app.core.permissions import get_user_accessible_project_ids
 from app.models.user import User
 from app.models.knowledge_base import (
     FilterContext,
@@ -189,17 +190,21 @@ async def chat(
     Returns:
         Answer with sources, or streaming response if requested.
     """
+    # Get user's accessible project IDs for filtering search results
+    project_ids = await get_user_accessible_project_ids(database, current_user)
+
     if request.stream:
         # Return streaming response
         return StreamingResponse(
             _stream_chat_response(
                 database=database,
                 user_id=str(current_user.id),
+                project_ids=project_ids,
                 request=request,
             ),
             media_type="text/event-stream",
         )
-    
+
     try:
         # Get query from either 'query' or 'message' field
         query = request.get_query()
@@ -208,11 +213,11 @@ async def chat(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="Either 'query' or 'message' field is required"
             )
-        
+
         # Generate RAG response with sources
         answer, sources = await generate_rag_response(
             query=query,
-            user_id=str(current_user.id),
+            project_ids=project_ids,
             filters=request.filters,
         )
         
@@ -267,15 +272,17 @@ async def chat(
 async def _stream_chat_response(
     database: AsyncIOMotorDatabase,
     user_id: str,
+    project_ids: list[str],
     request: ChatRequest,
 ):
     """Stream chat response chunks.
-    
+
     Args:
         database: MongoDB database.
         user_id: User making the request.
+        project_ids: List of project IDs the user has access to.
         request: Chat request.
-        
+
     Yields:
         Server-Sent Events formatted response chunks.
     """
@@ -319,7 +326,7 @@ async def _stream_chat_response(
 
         async for chunk_data in generate_rag_response_stream(
             query=query,
-            user_id=user_id,
+            project_ids=project_ids,
             filters=request.filters,
             include_sources=True,
         ):

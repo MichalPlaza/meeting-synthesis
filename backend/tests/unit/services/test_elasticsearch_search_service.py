@@ -103,7 +103,7 @@ class TestHybridSearch:
         # Execute search
         results = await hybrid_search(
             query="test query",
-            user_id="user_123",
+            project_ids=["proj_1", "proj_2"],
             top_k=10
         )
 
@@ -150,10 +150,10 @@ class TestHybridSearch:
         # Create filter context
         filters = FilterContext(project_ids=["proj_1", "proj_2"])
 
-        # Execute search
+        # Execute search with accessible projects
         results = await hybrid_search(
             query="project meeting",
-            user_id="user_123",
+            project_ids=["proj_1", "proj_2", "proj_3"],
             filters=filters,
             top_k=5
         )
@@ -196,7 +196,7 @@ class TestHybridSearch:
         # Execute search
         results = await hybrid_search(
             query="october meetings",
-            user_id="user_123",
+            project_ids=["proj_1"],
             filters=filters
         )
 
@@ -248,7 +248,7 @@ class TestHybridSearch:
         # Execute search
         results = await hybrid_search(
             query="sprint planning",
-            user_id="user_123",
+            project_ids=["proj_1"],
             filters=filters
         )
 
@@ -282,7 +282,7 @@ class TestHybridSearch:
 
         results = await hybrid_search(
             query="nonexistent query",
-            user_id="user_123"
+            project_ids=["proj_1"]
         )
 
         assert len(results) == 0
@@ -301,7 +301,7 @@ class TestHybridSearch:
         with pytest.raises(Exception, match="Search failed"):
             await hybrid_search(
                 query="test query",
-                user_id="user_123"
+                project_ids=["proj_1"]
             )
 
         # Client should still be closed
@@ -323,7 +323,7 @@ class TestHybridSearch:
 
         await hybrid_search(
             query="test query",
-            user_id="user_123",
+            project_ids=["proj_1"],
             top_k=5
         )
 

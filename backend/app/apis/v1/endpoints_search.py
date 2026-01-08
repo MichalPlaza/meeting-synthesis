@@ -86,19 +86,17 @@ async def search_meetings(
         f"project_ids={project_ids}, tags={tags}, page={page}"
     )
 
-    # Get user's accessible project IDs if not filtered
-    user_project_ids = project_ids
-    if not user_project_ids:
-        if current_user.role == "admin":
-            # Admins can see all projects
-            all_projects = await crud_projects.get_projects_filtered(database)
-            user_project_ids = [str(p.id) for p in all_projects]
-        else:
-            # Regular users see only their projects
-            user_projects = await crud_projects.get_projects_by_member(database, str(current_user.id))
-            user_project_ids = [str(p.id) for p in user_projects]
+    # Get user's accessible project IDs
+    if current_user.role == "admin":
+        # Admins can see all projects
+        all_projects = await crud_projects.get_projects_filtered(database)
+        accessible_project_ids = [str(p.id) for p in all_projects]
+    else:
+        # Regular users see only their projects
+        user_projects = await crud_projects.get_projects_by_member(database, str(current_user.id))
+        accessible_project_ids = [str(p.id) for p in user_projects]
 
-    if not user_project_ids:
+    if not accessible_project_ids:
         # User has no projects
         return SearchResponse(
             results=[],
@@ -109,10 +107,25 @@ async def search_meetings(
             facets=SearchFacetsResponse(projects=[], tags=[]),
         )
 
+    # If user specified project_ids, filter to only accessible ones
+    if project_ids:
+        user_project_ids = [pid for pid in project_ids if pid in accessible_project_ids]
+        if not user_project_ids:
+            # None of the requested projects are accessible
+            return SearchResponse(
+                results=[],
+                total=0,
+                page=page,
+                page_size=page_size,
+                total_pages=0,
+                facets=SearchFacetsResponse(projects=[], tags=[]),
+            )
+    else:
+        user_project_ids = accessible_project_ids
+
     # Perform search
     results, total, facets = await dashboard_search(
         query=q,
-        user_id=str(current_user.id),
         project_ids=user_project_ids,
         tags=tags,
         date_from=date_from,

@@ -63,7 +63,7 @@ class SearchResult:
 
 async def hybrid_search(
     query: str,
-    user_id: str,
+    project_ids: list[str],
     filters: FilterContext | None = None,
     top_k: int = 10,
 ) -> list[SearchResult]:
@@ -75,7 +75,7 @@ async def hybrid_search(
 
     Args:
         query: User's search query.
-        user_id: Filter to user's accessible documents.
+        project_ids: List of project IDs the user has access to.
         filters: Additional filters (project, tags, dates).
         top_k: Number of results to return.
 
@@ -91,13 +91,19 @@ async def hybrid_search(
         # 1. Generate query embedding
         query_embedding = await generate_embedding(query)
 
-        # 2. Build base query with user filter
-        must_clauses = [{"term": {"user_id": user_id}}]
+        # 2. Build base query with project filter
+        must_clauses = [{"terms": {"project_id": project_ids}}]
 
         # 3. Apply additional filters
         if filters:
             if filters.project_ids:
-                must_clauses.append({"terms": {"project_id": filters.project_ids}})
+                # Intersect with user's accessible projects
+                allowed_ids = [p for p in filters.project_ids if p in project_ids]
+                if allowed_ids:
+                    must_clauses = [{"terms": {"project_id": allowed_ids}}]
+                else:
+                    # No matching projects, return empty
+                    return []
 
             if filters.tags:
                 must_clauses.append({"terms": {"tags": filters.tags}})
@@ -261,8 +267,7 @@ class SearchFacets:
 
 async def dashboard_search(
     query: str,
-    user_id: str,
-    project_ids: list[str] | None = None,
+    project_ids: list[str],
     tags: list[str] | None = None,
     date_from: str | None = None,
     date_to: str | None = None,
@@ -273,8 +278,7 @@ async def dashboard_search(
 
     Args:
         query: Search query (can be empty for browse mode).
-        user_id: Filter to user's accessible documents.
-        project_ids: Filter by project IDs.
+        project_ids: List of project IDs the user has access to.
         tags: Filter by tags.
         date_from: Filter by start date (ISO format).
         date_to: Filter by end date (ISO format).
@@ -287,11 +291,8 @@ async def dashboard_search(
     client = get_elasticsearch_client()
 
     try:
-        # Build filter clauses
-        filter_clauses = [{"term": {"user_id": user_id}}]
-
-        if project_ids:
-            filter_clauses.append({"terms": {"project_id": project_ids}})
+        # Build filter clauses - filter by user's accessible projects
+        filter_clauses = [{"terms": {"project_id": project_ids}}]
 
         if tags:
             filter_clauses.append({"terms": {"tags": tags}})
